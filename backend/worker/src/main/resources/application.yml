@@ -1,0 +1,3 @@
+server.port=8081
+spring.application.name=ailepro-worker
+management.endpoints.web.exposure.include=health

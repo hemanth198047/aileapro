@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ailepro
+      POSTGRES_USER: ailepro
+      POSTGRES_PASSWORD: ailepro
+    ports:
+      - "5432:5432"
+    volumes:
+      - ailepro_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ailepro"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Docker Hub no longer publishes minio/minio:latest; quay.io is MinIO's official registry.
+  minio:
+    image: quay.io/minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ailepro
+      MINIO_ROOT_PASSWORD: aileprosecret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ailepro_minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ailepro_pg:
+  ailepro_minio:
