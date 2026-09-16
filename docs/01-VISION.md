@@ -2,9 +2,9 @@
 
 ## Product
 
-**ailepro** is the engineering name. The product brand is **AI Mastery**.
+**AILEPRO** is the product name. `ailepro` (lowercase) is the repository and package name.
 
-AI Mastery is a production-grade learning environment that takes a person from zero knowledge to world-class AI practitioner, engineer, researcher, or builder. Books, videos, courses, and docs are **inputs and supplements**. The product itself is the primary classroom, lab, tutor, research desk, and career coach.
+AILEPRO is a production-grade learning environment that takes a person from zero knowledge to world-class AI practitioner, engineer, researcher, or builder. Books, videos, courses, and docs are **inputs and supplements**. The product itself is the primary classroom, lab, tutor, research desk, and career coach.
 
 ## Thesis
 

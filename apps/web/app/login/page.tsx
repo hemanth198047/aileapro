@@ -4,16 +4,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { api, csrfHeaders, type Me } from "@/lib/api";
+import { AuthLayout } from "@/components/auth-layout";
+import { Brand } from "@/components/brand";
+import { Button, ErrorAlert, Field, PasswordField } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
+    setBusy(true);
     try {
       await api<Me>("/v1/auth/login", {
         method: "POST",
@@ -23,25 +28,46 @@ export default function LoginPage() {
       router.push("/app");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
+      setBusy(false);
     }
   }
 
   return (
-    <div className="auth-wrap">
-      <form className="auth-card" onSubmit={onSubmit}>
-        <p className="kicker">AI Mastery</p>
-        <h1>Sign in</h1>
-        <p>Continue your path. This is not a video LMS.</p>
-        <label htmlFor="email">Email</label>
-        <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <label htmlFor="password">Password</label>
-        <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <button className="primary" type="submit">Enter</button>
-        <p className="error">{error}</p>
-        <p>
-          New here? <Link href="/register">Create an account</Link>
+    <AuthLayout>
+      <form className="auth__form" onSubmit={onSubmit} noValidate>
+        <div className="auth__mobile-brand">
+          <Brand />
+        </div>
+        <div className="auth__head">
+          <h2>Sign in</h2>
+          <p className="muted">Pick up your path where you left it.</p>
+        </div>
+        <Field
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoFocus
+        />
+        <PasswordField
+          label="Password"
+          autoComplete="current-password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <ErrorAlert message={error} />
+        <Button type="submit" variant="primary" block loading={busy}>
+          {busy ? "Signing in…" : "Sign in"}
+        </Button>
+        <p className="auth__foot">
+          New to AILEPRO? <Link href="/register">Create an account</Link>
         </p>
       </form>
-    </div>
+    </AuthLayout>
   );
 }

@@ -1,6 +1,6 @@
-# ailepro — Planning Pack Index
+# AILEPRO — Planning Pack Index
 
-Product name (working): **AI Mastery**  
+Product name: **AILEPRO**  
 Code / repository name: **ailepro**  
 Status: **Documentation-only.** No application code until this pack is accepted.
 

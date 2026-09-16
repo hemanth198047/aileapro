@@ -1,7 +1,7 @@
-# ailepro / AI Mastery — Master implementation plan
+# AILEPRO — Master implementation plan
 
 **Document type:** Master copy for application development  
-**Product:** AI Mastery  
+**Product:** AILEPRO  
 **Repo name:** ailepro  
 **Version:** 1.0 (planning freeze + Java backend)  
 **How to use:** Complete **one phase at a time**. Do not start Phase N+1 until that phase’s **GATE** is checked. Tick the checkboxes as you go. This file is the operational script; the rest of `ailepro-docs` is the law.
@@ -164,7 +164,7 @@
 24. Routes: `/login`, `/register`, `/app` (protected).
 25. Authenticated layout: empty **orientation | work | companion** columns (companion collapsed OK).
 26. Command palette stub (`Ctrl+K`) with “Go to Today” placeholder.
-27. Copy: product name **AI Mastery**.
+27. Copy: product name **AILEPRO**.
 
 ### GATE (Phase 1)
 

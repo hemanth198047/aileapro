@@ -1,6 +1,6 @@
 # ailepro documentation pack
 
-**Product:** AI Mastery  
+**Product:** AILEPRO  
 **Repo name:** ailepro  
 
 This directory is the **planning freeze** for the product. Application code has not started.

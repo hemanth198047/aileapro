@@ -1,6 +1,6 @@
-# ailepro
+# AILEPRO
 
-**AI Mastery** learning platform.
+The AI university, lab, and personal tutor. `ailepro` is the repository name.
 
 - Planning: [`docs/00-INDEX.md`](docs/00-INDEX.md)
 - Build script: [`docs/AILEPRO_MASTER_BUILD_PLAN.md`](docs/AILEPRO_MASTER_BUILD_PLAN.md)

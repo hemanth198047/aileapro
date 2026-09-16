@@ -42,7 +42,7 @@ This workstation failed `git init` via `/bin/sh`. **Standardize on Git for Windo
 
 ## Branding
 
-Engineering: ailepro. Product: AI Mastery. Do not leak “ailepro” in learner marketing if you want a different public name — set `NEXT_PUBLIC_PRODUCT_NAME`.
+The product is **AILEPRO** everywhere a learner can see it. Lowercase `ailepro` is reserved for the repository, packages, and infrastructure names.
 
 ## Open source
 
@@ -69,5 +69,5 @@ Vanity: raw XP, video minutes.
 - Model provider keys when tutor goes live.
 - Cloud account for prod.
 - Decision on E2B vs self-hosted gVisor.
-- Trademark/domain for “AI Mastery.”
+- Trademark/domain for “AILEPRO.”
 
