@@ -276,11 +276,50 @@ come from the API log.
 
 ### GATE (Phase 3)
 
-- [ ] Logged-in user opens a real explanation without AI
-- [ ] Draft units invisible
-- [ ] Seed does not invent 10k empty topics
+- [x] Logged-in user opens a real explanation without AI
+- [x] Draft units invisible
+- [x] Seed does not invent 10k empty topics
 
 **Phase log:**
+
+- Flyway `V2__curriculum.sql` adds `learning_units`, `unit_blocks`, `unit_closure`,
+  `learning_paths`, `path_waypoints`, `sources`, `learning_resources`, `unit_resources`.
+  Enumerated columns are `VARCHAR` + `CHECK` rather than Postgres enums, so adding a block type
+  is a migration and not a type rewrite.
+- `com.aileapro.api.curriculum` holds the entities, repositories, `CurriculumQueryService`, and
+  `CatalogController` behind `GET /v1/paths`, `/v1/paths/{idOrSlug}`, `/v1/units/{idOrSlug}`, and
+  `/v1/units/{idOrSlug}/resources`. Every learner query filters on `status = published`, so a
+  draft unit 404s even when its slug is guessed, and draft waypoints drop out of a path.
+- `gradle :api:seed` runs the app with the web server off and loads the YAML under
+  `api/src/main/resources/seed/curriculum`: 16 sources, 71 units, 101 blocks, 26 resource links,
+  1 path, 11 waypoints. Re-running it changes nothing, because units upsert by slug + locale and
+  blocks, resource links, waypoints, and closure rows are replaced wholesale per owner.
+- The 71 units are 57 domain containers plus 14 authored units — the domains are described and
+  empty on purpose, and an empty domain says so on its own page instead of showing an outline
+  nobody wrote. The authored slice is what a program is (2 units), Python essentials (3),
+  vectors/matrices/matmul (3), one neuron unit, one RAG unit, and one deliberately unfinished
+  attention unit that exists only to prove drafts stay invisible.
+- Every unit carries why, the explanation levels that were actually written, example,
+  misconception, exercises, a self-check, mastery criteria, difficulty, minutes, and
+  `last_reviewed`. Every external URL has a `sources` row with type, licence, and a verified
+  timestamp.
+- Web: `/app/learn` lists the path from the API and `/app/learn/[slug]` reads a unit with
+  Markdown and KaTeX. Explanation levels become a tab switcher; self-check answers are structured
+  data rendered into `<details>` rather than HTML in Markdown, so raw HTML stays disabled.
+- Display maths must be fenced with `$$` on its own line: the Markdown maths extension treats
+  `$$x$$` as *inline* maths and text after an opening `$$` as an info string, which silently
+  rendered raw LaTeX to the learner. The seeder now rejects an unbalanced `$$` line, so this
+  fails the seed instead of the page.
+- Markdown is imported as `@aileapro/ui/markdown`, not from the package barrel. Re-exporting it
+  put KaTeX in the layout's chunk and cost every space 235 kB of first-load JS; the subpath
+  leaves the shell at 110 kB and charges the 130 kB to the unit reader that renders maths.
+- Verified: `gradle check`, `pnpm -r typecheck`, `pnpm --filter web build` (21 routes), a re-run
+  of `:api:seed`, and a browser walk — catalog, a unit with 0 KaTeX errors and display maths
+  centred, self-check reveal, an empty domain, and the draft unit's "Not published" page.
+
+**Known gaps carried forward:** reading records nothing (evidence starts in Phase 5), unit order
+is the author's rather than prerequisite-derived (Phase 4), exercises are not graded (Phase 6),
+and `next lint` in `apps/web` is still unconfigured so CI relies on typecheck and build.
 
 ---
 

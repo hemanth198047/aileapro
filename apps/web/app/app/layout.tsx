@@ -318,7 +318,10 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                 </Callout>
                 <div className="empty" style={{ padding: 16 }}>
                   <strong>Nothing to discuss yet.</strong>
-                  <span>A conversation needs a unit. Curriculum arrives in Phase 3.</span>
+                  <span>
+                    The units it will read from are published now, but no model is configured and
+                    retrieval is off. The tutor itself is Phase 7.
+                  </span>
                 </div>
               </>
             ) : (
@@ -332,7 +335,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                 </p>
                 <div className="empty" style={{ padding: 16 }}>
                   <strong>No notes.</strong>
-                  <span>Capture opens with the curriculum.</span>
+                  <span>Capture against a unit and a block opens in Phase 5.</span>
                 </div>
               </>
             )}

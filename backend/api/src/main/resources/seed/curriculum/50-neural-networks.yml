@@ -1,0 +1,272 @@
+# Vertical slice, part 4: one neural network unit, taught from the matrix product upwards.
+
+units:
+  - slug: how-a-neuron-learns
+    title: How a Neuron Learns
+    kind: knowledge_unit
+    parent: neural-networks
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [deep-learning, neural-networks, gradient-descent, loss]
+    objectives:
+      - Write the forward pass of a single neuron and name each part.
+      - Explain what a loss function measures and why training needs it to be differentiable.
+      - Carry out one gradient descent step by hand and check that the loss fell.
+      - Distinguish loss from accuracy and say when they disagree.
+    description: >-
+      One neuron, one loss, one gradient step. Everything larger in deep learning is this
+      mechanism repeated, so it is worth being able to do it on paper.
+    blocks:
+      - type: why
+        markdown: |
+          People routinely train models for months without being able to say what training
+          actually changes. That gap is why "the loss is NaN" or "it stopped improving" feel like
+          weather rather than engineering.
+
+          A single neuron is small enough to compute entirely by hand and complete enough to
+          contain the whole idea: predict, measure the error, and move the parameters in the
+          direction that reduces it.
+
+      - type: eli5
+        markdown: |
+          Imagine guessing someone's height from their shoe size, using one dial.
+
+          You turn the dial to a guess and compare against the real answer. If you guessed too
+          low, you nudge the dial up; too high, you nudge it down. Nudge a little each time, over
+          many people, and the dial settles at a setting that is usually about right.
+
+          A neuron is that dial — a few of them — and training is the nudging. The clever part is
+          not the nudge, it is knowing *which direction* to nudge without trying every setting.
+
+      - type: beginner
+        markdown: |
+          A neuron takes inputs, weights them, adds a bias, and passes the result through a
+          nonlinearity:
+
+          $$
+          z = \mathbf{w} \cdot \mathbf{x} + b, \qquad \hat{y} = \sigma(z)
+          $$
+
+          - $\mathbf{x}$ is the input vector, $\mathbf{w}$ the learned weights, $b$ the bias.
+          - $\mathbf{w} \cdot \mathbf{x}$ is exactly the dot product from the vectors unit. A
+            layer of many neurons stacks these into the matrix product $W\mathbf{x} + \mathbf{b}$.
+          - $\sigma$ is an activation function. Without one, stacking layers gains nothing,
+            because a composition of linear maps is just another linear map.
+
+          A **loss function** scores how wrong the prediction is. For a single squared-error
+          example:
+
+          $$
+          L = (\hat{y} - y)^2
+          $$
+
+          Training means changing $\mathbf{w}$ and $b$ to make $L$ smaller. The direction to move
+          comes from the **gradient**: the derivative of the loss with respect to each parameter.
+          Then you step *against* it, because the gradient points uphill:
+
+          $$
+          w \leftarrow w - \eta \frac{\partial L}{\partial w}
+          $$
+
+          $\eta$ is the **learning rate**: how big the nudge is.
+
+      - type: intermediate
+        markdown: |
+          Take the linear case $\hat{y} = wx + b$ with $L = (\hat{y} - y)^2$ and differentiate by
+          the chain rule:
+
+          $$
+          \frac{\partial L}{\partial \hat{y}} = 2(\hat{y} - y), \qquad
+          \frac{\partial \hat{y}}{\partial w} = x, \qquad
+          \frac{\partial \hat{y}}{\partial b} = 1
+          $$
+
+          $$
+          \frac{\partial L}{\partial w} = 2(\hat{y} - y)\,x, \qquad
+          \frac{\partial L}{\partial b} = 2(\hat{y} - y)
+          $$
+
+          Three things in that result are worth noticing, because they explain most training
+          behaviour you will meet:
+
+          - The gradient scales with the **error** $(\hat{y} - y)$: a confident correct
+            prediction produces almost no update.
+          - It scales with the **input** $x$: unscaled features produce wildly different update
+            magnitudes across parameters, which is why feature scaling matters.
+          - It needs the loss to be **differentiable**. Accuracy is a count of correct
+            predictions; its derivative is zero almost everywhere, so it cannot steer training.
+            That is precisely why we optimise a proxy and report the metric we care about
+            separately.
+
+          **Backpropagation** is this chain rule applied through many layers, reusing
+          intermediate results rather than recomputing them. There is no new principle in it —
+          only bookkeeping, done efficiently, so the cost of the backward pass stays
+          proportional to the forward pass.
+
+      - type: example
+        markdown: |
+          One neuron, one input, one training example, done completely by hand.
+
+          Setup: $x = 2$, target $y = 1$, initial $w = 0$, $b = 0$, learning rate $\eta = 0.1$,
+          no activation (so $\hat{y} = wx + b$).
+
+          **Forward.** $\hat{y} = 0(2) + 0 = 0$, so $L = (0 - 1)^2 = 1$.
+
+          **Backward.**
+
+          $$
+          \frac{\partial L}{\partial w} = 2(\hat{y} - y)x = 2(-1)(2) = -4, \qquad
+          \frac{\partial L}{\partial b} = 2(\hat{y} - y) = -2
+          $$
+
+          **Update.**
+
+          $$
+          w \leftarrow 0 - 0.1(-4) = 0.4, \qquad b \leftarrow 0 - 0.1(-2) = 0.2
+          $$
+
+          **Forward again.** $\hat{y} = 0.4(2) + 0.2 = 1.0$, so $L = 0$.
+
+          The loss fell from 1 to 0 because a single point can be fitted exactly. With many
+          points it would fall gradually and never reach zero — which is the normal and desirable
+          case, since a model that fits every training point exactly has usually memorised noise.
+
+          Note the sign discipline: the gradient was negative, so the parameter moved *up*. Every
+          sign error in training code shows up as a loss that climbs steadily, which is a useful
+          diagnostic.
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            ```python
+            import numpy as np
+
+            def step(w, b, x, y, lr=0.1):
+                """One gradient descent step on squared error. Returns new w, b, and the loss."""
+                y_hat = w * x + b
+                loss = (y_hat - y) ** 2
+                grad_w = 2 * (y_hat - y) * x
+                grad_b = 2 * (y_hat - y)
+                return w - lr * grad_w, b - lr * grad_b, loss
+
+            w, b = 0.0, 0.0
+            for i in range(3):
+                w, b, loss = step(w, b, x=2.0, y=1.0)
+                print(f"step {i}: loss={loss:.4f} w={w:.4f} b={b:.4f}")
+
+            # step 0: loss=1.0000 w=0.4000 b=0.2000
+            # step 1: loss=0.0000 w=0.4000 b=0.2000
+            # step 2: loss=0.0000 w=0.4000 b=0.2000
+            ```
+
+            The loss printed at each step is measured *before* the update, which is the usual
+            convention and a common source of off-by-one confusion when reading training logs.
+
+            Run it again with `lr=1.0` and watch the loss diverge: the step overshoots the
+            minimum and each correction is larger than the last. That is what "the learning rate
+            is too high" looks like from the inside.
+
+      - type: misconception
+        payload:
+          code: nn.loss_equals_accuracy
+          claim: "The loss went down, so the model got better."
+          markdown: |
+            **The claim:** loss and quality are the same thing, so a falling loss curve means an
+            improving model, and a rising one means a worse model.
+
+            **Why it feels right:** loss is the number printed every epoch, it is what training
+            minimises, and most of the time it does move together with quality.
+
+            **What actually happens:** loss is a differentiable *proxy*, chosen because it can be
+            optimised. The thing you care about — accuracy, recall at a threshold, revenue, a
+            human judgement — usually cannot steer gradients. The two can come apart:
+
+            - Cross-entropy loss falls because the model becomes more confident on examples it
+              already classified correctly, while accuracy does not move at all.
+            - Accuracy improves while loss rises, because the model now gets more examples on the
+              right side of the threshold but is badly calibrated about them.
+            - Training loss falls steadily while validation loss rises: memorisation, not
+              learning. Only the second curve is evidence about unseen data.
+
+            **How to catch yourself:** never report loss as a result. Report the metric that
+            matters, on data the model was not trained on, and keep loss as the training
+            diagnostic it is.
+
+      - type: common_mistake
+        markdown: |
+          **Reading the training loss as evidence of generalisation.** Training loss measures
+          fit to data the model has already seen. It can be driven arbitrarily low by
+          memorisation. Only held-out data says anything about future performance.
+
+          **Blaming the model for a learning rate problem.** A loss that oscillates or explodes
+          is usually a step size problem, not an architecture problem. Change one thing, and
+          change it by an order of magnitude, before rewriting the model.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Redo the worked example with $\eta = 0.5$. Report the loss after one and two
+               steps, and say what the learning rate did.
+            2. Repeat with $\eta = 1.0$ for four steps. Describe the loss curve in one sentence
+               and explain the cause.
+            3. Two training examples, $(x=1, y=2)$ and $(x=2, y=1)$. Compute the average gradient
+               over both and take one step from $w = 0$, $b = 0$. Can one line fit both exactly?
+            4. Write a case where cross-entropy loss falls while accuracy is unchanged. A
+               two-example sketch with made-up probabilities is enough.
+            5. In the code block, change the loss to absolute error $|\hat{y} - y|$ and write out
+               its derivative. What happens at $\hat{y} = y$, and why does that matter?
+
+            The lab for running these in-platform arrives in Phase 8; a local Python install is
+            enough for now.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why is the parameter updated in the direction opposite the gradient?"
+              answer: >-
+                The gradient points in the direction of steepest increase of the loss.
+                Minimising means moving the other way.
+            - question: "Why can accuracy not be used as a training objective directly?"
+              answer: >-
+                It is a step function of the parameters, so its gradient is zero almost
+                everywhere and undefined at the threshold. There is no direction to follow.
+            - question: "What does a neuron do that a matrix product alone does not?"
+              answer: >-
+                Applies a nonlinearity. Without it, stacked layers collapse into a single linear
+                map and depth buys nothing.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Compute a forward pass, a squared-error loss, both gradients, and one update by
+              hand, and verify the loss decreased.
+            - Explain why a falling training loss is not evidence that the model is good.
+            - Say why an activation function is required for depth to mean anything.
+            - Recognise a too-large learning rate from the shape of a loss curve.
+    resources:
+      - source: nielsen-nndl
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: >-
+          Chapters 1 and 2 develop the neuron, the quadratic cost, and backpropagation with the
+          same hand-computed style used here. Free to read, CC BY-NC.
+      - source: backprop-1986
+        purpose: HISTORICAL_PRIMARY
+        relevance: 0.7
+        excerpt: >-
+          The paper that put backpropagation in front of the field. Cited for provenance; the
+          publisher's paywall applies and no text is reproduced here.
+      - source: mml-book
+        purpose: MATHEMATICAL_BACKGROUND
+        relevance: 0.7
+        excerpt: "Chapter 5 covers the vector calculus behind the chain rule used above."

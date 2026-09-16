@@ -1,0 +1,385 @@
+# Vertical slice, part 1: what a program is.
+# Two knowledge units under one chapter, both authored, both published.
+
+units:
+  - slug: what-a-program-is
+    title: What a Program Is
+    kind: chapter
+    parent: computer-fundamentals
+    status: published
+    version: 1.0.0
+    difficulty: 1
+    estimateMinutes: 45
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [fundamentals, execution]
+    objectives:
+      - Describe a program as instructions that transform state.
+      - Explain what happens between writing source code and a machine executing it.
+    description: >-
+      Before any AI, the thing underneath is still a program: a finite list of instructions
+      that changes stored state. This chapter makes that concrete.
+    blocks:
+      - type: why
+        markdown: |
+          Every abstraction you will meet later — a tensor, a training loop, an agent — is a
+          program. If "the computer runs my code" is a black box, then every bug looks like
+          magic and every performance question is unanswerable.
+
+          Two ideas carry the whole chapter: a program is **instructions over state**, and
+          source code is **not** what the machine executes.
+
+  - slug: instructions-and-state
+    title: Instructions and State
+    kind: knowledge_unit
+    parent: what-a-program-is
+    status: published
+    version: 1.0.0
+    difficulty: 1
+    estimateMinutes: 20
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [fundamentals, state, execution]
+    objectives:
+      - Define a program as an ordered set of instructions that reads and writes state.
+      - Trace a short program by hand, recording the state after each step.
+      - Distinguish an expression's value from a statement's effect on state.
+    description: >-
+      A program is an ordered set of instructions that reads and writes state. Tracing state
+      by hand is the single most useful debugging skill there is.
+    blocks:
+      - type: why
+        markdown: |
+          Almost every bug is a disagreement between the state you imagined and the state that
+          existed. Learners who can trace state by hand debug in minutes; learners who cannot
+          re-read the same code hoping it will confess.
+
+      - type: eli5
+        markdown: |
+          Imagine a recipe and a kitchen counter.
+
+          The **recipe** is the instructions: chop, mix, bake. The **counter** holds everything
+          you currently have: a bowl, two eggs, some flour. Each instruction looks at what is on
+          the counter and changes it.
+
+          A program is the recipe. The state is the counter. Running a program means following
+          the recipe, one line at a time, and changing what is on the counter.
+
+      - type: beginner
+        markdown: |
+          A program is an **ordered** list of instructions. Order matters because each
+          instruction can depend on what earlier instructions left behind.
+
+          **State** is all the information the program currently holds: the values of its
+          variables, the contents of memory it has been given, the position of the file it is
+          reading. "Running" a program means repeating one step:
+
+          1. Read the next instruction.
+          2. Read whatever parts of the state it needs.
+          3. Write the parts of the state it changes.
+
+          Consider this:
+
+          ```python
+          total = 0
+          for price in [3, 5, 2]:
+              total = total + price
+          ```
+
+          Traced by hand, one row per step:
+
+          | Step | Instruction | `total` before | `price` | `total` after |
+          |---|---|---|---|---|
+          | 1 | `total = 0` | — | — | 0 |
+          | 2 | `total = total + price` | 0 | 3 | 3 |
+          | 3 | `total = total + price` | 3 | 5 | 8 |
+          | 4 | `total = total + price` | 8 | 2 | 10 |
+
+          Nothing here required knowing Python. It required knowing that `=` means *write this
+          value into that name*, and that the loop body runs once per item.
+
+      - type: intermediate
+        markdown: |
+          It helps to separate two things that look similar in source code.
+
+          - An **expression** produces a value: `total + price` produces a number and, by
+            itself, changes nothing.
+          - A **statement** has an effect on state: `total = total + price` writes a value into
+            a name.
+
+          This distinction is why `total + price` on a line by itself is a legal but useless
+          program, and why `x == 1` and `x = 1` behave completely differently.
+
+          State is also **scoped**. Inside a function, names created there are usually not
+          visible outside it, so a function's effect on the caller's state is limited to what
+          it returns or to things it was explicitly handed. That restriction is what makes
+          large programs reasonable to think about: you can trace a function without holding
+          the whole program in your head.
+
+          Finally, not all state lives in variables. A file position, a network connection, the
+          contents of a database, and the pixels on screen are all state. A program that writes
+          a file has changed state that survives the program ending — which is exactly why
+          running a broken script twice is not always the same as running it once.
+
+      - type: example
+        markdown: |
+          Two instructions, swapped, produce different results. Trace both.
+
+          **Version A**
+
+          ```python
+          x = 2
+          x = x * 10
+          y = x + 1
+          ```
+
+          Final state: `x = 20`, `y = 21`.
+
+          **Version B**
+
+          ```python
+          x = 2
+          y = x + 1
+          x = x * 10
+          ```
+
+          Final state: `x = 20`, `y = 3`.
+
+          `y` differs because it was computed from the state that existed *at that moment*.
+          Assignment is not an equation that stays true; it is an event that happened once.
+
+      - type: misconception
+        payload:
+          code: state.assignment_is_equation
+          claim: "`y = x + 1` means y stays one more than x."
+          markdown: |
+            **The claim:** writing `y = x + 1` creates a lasting relationship, so if `x` changes
+            later, `y` follows.
+
+            **Why it feels right:** in mathematics, `y = x + 1` is a statement of fact that
+            holds for all time. School trains this reading for a decade.
+
+            **What actually happens:** assignment evaluates the right-hand side *now* and stores
+            the resulting value in `y`. `y` does not remember where its value came from. Change
+            `x` afterwards and `y` does not move — as Version B in the example shows.
+
+            **How to catch yourself:** read `=` as "becomes" or "store into", never as "equals".
+            If you want a lasting relationship, you need a function that recomputes on demand,
+            not an assignment.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            Do these on paper. Write the state after **every** line — that is the skill being
+            practised, not getting the final number.
+
+            1. Trace to the final state:
+
+               ```python
+               a = 5
+               b = a
+               a = a + 1
+               ```
+
+               What are `a` and `b`? Explain why `b` is what it is.
+
+            2. Trace this and write down every value `count` takes:
+
+               ```python
+               count = 0
+               for letter in "aixi":
+                   if letter == "i":
+                       count = count + 1
+               ```
+
+            3. Rewrite Version B from the example so that `y` ends up as `21`, changing only the
+               order of lines.
+
+            4. Name two pieces of state in a program you have used that are *not* variables.
+
+            Answers to 1 and 2: `a = 6`, `b = 5`, because `b` was written before `a` changed;
+            `count` takes 0, 1, 2. Automated checking of exercises arrives with the assessment
+            engine in Phase 6 — until then these are self-checked deliberately.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "After running `p = 3`, then `q = p * 2`, then `p = 10`, what is `q`?"
+              answer: "`6`. `q` was computed when `p` was 3, and assignment does not re-run."
+            - question: "Which of these changes state: `len(items)`, `items.append(4)`, `items[0]`?"
+              answer: "Only `items.append(4)`. The other two produce values and leave `items` alone."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Trace an unfamiliar ten-line program by hand and produce the correct final state
+              without running it.
+            - Predict, before running, how reordering two assignments changes the result.
+            - Explain in one sentence why `y = x + 1` does not keep `y` synchronised with `x`.
+
+            Reading this page does not count as mastery. Tracing a program you have not seen
+            before does.
+    resources:
+      - source: nand2tetris
+        purpose: DEEPER_FOUNDATION
+        relevance: 0.7
+        excerpt: >-
+          If you want to see instructions and state all the way down to logic gates, this course
+          builds the machine from NAND upwards. Optional for this unit.
+      - source: python-tutorial
+        purpose: LANGUAGE_REFERENCE
+        relevance: 0.6
+        excerpt: "Sections 3 and 4 cover assignment and control flow in the language used above."
+
+  - slug: how-source-becomes-execution
+    title: How Source Becomes Execution
+    kind: knowledge_unit
+    parent: what-a-program-is
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 25
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [fundamentals, execution, compilers]
+    objectives:
+      - Explain the path from source text to instructions a processor executes.
+      - Contrast compilation and interpretation without treating them as opposites.
+      - Say what a runtime provides and why it matters for AI work.
+    description: >-
+      Source code is text. Something has to turn it into instructions a processor can run, and
+      what that something does explains a large share of real performance behaviour.
+    blocks:
+      - type: why
+        markdown: |
+          "Why is my Python loop slow but NumPy fast?" is not a question about Python syntax. It
+          is a question about what runs, in what language, on what hardware. You cannot answer it
+          without a model of how source becomes execution — and that question appears constantly
+          in AI work, where the fast path is almost always someone else's compiled code.
+
+      - type: beginner
+        markdown: |
+          Source code is a text file. A processor executes **machine instructions** — numbers
+          that mean things like "add these two registers". Between the two sits a translator.
+
+          Two broad strategies:
+
+          - **Compilation** translates the whole program ahead of time into machine
+            instructions, then you run the result. C and Rust work this way.
+          - **Interpretation** reads your program and carries out its meaning as it goes, using
+            a program that is itself already compiled. Python works largely this way.
+
+          Neither is "the fast one" in the abstract. Compilation moves work before execution,
+          which buys speed at run time and costs flexibility. Interpretation keeps the program
+          inspectable and portable, and pays for it per operation.
+
+      - type: intermediate
+        markdown: |
+          The real picture for Python, the language you will use most here:
+
+          1. Your `.py` text is **parsed** into a syntax tree.
+          2. That tree is compiled into **bytecode** — instructions for a virtual machine, not
+             for your CPU (this is what `.pyc` files hold).
+          3. The **interpreter loop** in CPython reads bytecode and executes each operation by
+             running already-compiled C code.
+
+          So Python *is* compiled, just not to machine code. The cost you feel in a hot loop is
+          step 3: per operation, the interpreter dispatches, checks types, and allocates objects.
+
+          This is exactly why numerical libraries win. When you call a NumPy operation on a
+          million-element array, the interpreter dispatches **once** and then compiled C runs
+          over a contiguous block of memory. The same arithmetic written as a Python `for` loop
+          dispatches a million times. Same mathematics, two very different amounts of work —
+          and the reason is in the execution path, not in the formula.
+
+          A **runtime** is the machinery that exists while your program runs: memory management,
+          garbage collection, threading, the standard library. When you later fight a GPU
+          out-of-memory error or the Python global interpreter lock, you are arguing with a
+          runtime, not with the language's grammar.
+
+      - type: example
+        markdown: |
+          A concrete look at the bytecode Python actually produces:
+
+          ```python
+          import dis
+
+          def add_one(x):
+              return x + 1
+
+          dis.dis(add_one)
+          ```
+
+          The output lists virtual-machine instructions — load the argument, load the constant
+          `1`, perform a binary add, return. That list, not your text, is what gets executed.
+
+          The practical consequence, in the shape you will meet it in week one of any AI course:
+
+          ```python
+          # Interpreted per element: a million dispatches.
+          total = 0
+          for value in values:
+              total += value * 2
+
+          # One dispatch into compiled code that loops in C.
+          total = (values * 2).sum()   # values is a NumPy array
+          ```
+
+      - type: misconception
+        payload:
+          code: execution.interpreted_means_not_compiled
+          claim: "Python is interpreted, so no compilation happens."
+          markdown: |
+            **The claim:** interpreted and compiled are opposites, and Python sits firmly on the
+            interpreted side, so no compilation step exists.
+
+            **Why it feels right:** you run `python script.py` and it just goes. There is no
+            visible build step and no binary to ship.
+
+            **What actually happens:** CPython compiles your source to bytecode every time it
+            loads a module, caching the result in `__pycache__`. Execution is then an
+            interpreter loop over that bytecode. Meanwhile a "compiled" language may still rely
+            on a heavy runtime, and a JIT compiles at run time. Compilation and interpretation
+            are stages a language implementation can mix, not tribes.
+
+            **How to catch yourself:** ask "compiled *to what*, and *when*?" rather than
+            "compiled or interpreted?".
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Run the `dis.dis` example above on a two-line function of your own. Name one
+               instruction in the output and say in words what it does.
+            2. Delete a `__pycache__` directory in a project, run it once, and look again.
+               Explain what appeared and why.
+            3. Time a Python loop that sums one million integers against the same sum with
+               NumPy. Record both numbers, then state which stage of the execution path
+               accounts for the gap.
+            4. In one sentence each, say what a compiler, an interpreter, and a runtime do.
+
+            The lab that runs this code inside AILEAPRO arrives in Phase 8; for now use a local
+            Python install.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can explain, unprompted, why the same arithmetic is much
+            slower in a Python loop than in a NumPy call, in terms of what is executed rather
+            than by citing "NumPy is faster".
+    resources:
+      - source: python-execution-model
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "The language reference's own account of names, binding, and execution."
+      - source: nand2tetris
+        purpose: DEEPER_FOUNDATION
+        relevance: 0.6
+        excerpt: "Chapters 6–7 build an assembler and a VM translator, the two layers described here."

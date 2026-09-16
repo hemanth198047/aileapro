@@ -1,0 +1,42 @@
+# The one seeded path. Abridged on purpose: it contains exactly the units that are authored
+# and published, in the order they should be studied. It does not promise a curriculum that
+# does not exist yet.
+#
+# The last waypoint points at a draft unit. A learner will not see it — the query service
+# drops waypoints whose unit is not published — and it stays here so the authoring queue and
+# the learner view are driven by the same file.
+
+paths:
+  - slug: ai-engineer-abridged
+    title: AI Engineer (abridged)
+    roleTarget: AI Engineer
+    status: published
+    version: 1.0.0
+    description: >-
+      The authored slice of the AI Engineer path: how a program runs, enough Python to work,
+      the linear algebra every model is written in, one neural network from first principles,
+      and one grounded-generation unit. Ten units, roughly five hours of reading, all of it
+      real. The full path is authored domain by domain in later phases.
+    waypoints:
+      - unit: instructions-and-state
+        requiredMasteryState: PRACTICED
+      - unit: how-source-becomes-execution
+        requiredMasteryState: PRACTICED
+      - unit: python-values-and-types
+        requiredMasteryState: PRACTICED
+      - unit: python-functions
+        requiredMasteryState: PRACTICED
+      - unit: python-collections
+        requiredMasteryState: PRACTICED
+      - unit: vectors
+        requiredMasteryState: MASTERED
+      - unit: matrices
+        requiredMasteryState: MASTERED
+      - unit: matrix-multiplication
+        requiredMasteryState: MASTERED
+      - unit: how-a-neuron-learns
+        requiredMasteryState: PRACTICED
+      - unit: rag-pipeline-basics
+        requiredMasteryState: PRACTICED
+      - unit: scaled-dot-product-attention
+        requiredMasteryState: PRACTICED

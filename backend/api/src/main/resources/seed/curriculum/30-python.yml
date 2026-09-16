@@ -1,0 +1,536 @@
+# Vertical slice, part 2: Python.
+# Python is the P0 lab language for learners. The platform itself is Java; a Java sandbox
+# for learner code is a Phase 2+ concern in the roadmap, not a gap in this seed.
+
+units:
+  - slug: python-essentials
+    title: Python Essentials
+    kind: chapter
+    parent: python
+    status: published
+    version: 1.0.0
+    difficulty: 1
+    estimateMinutes: 80
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [python]
+    objectives:
+      - Work with Python's core types and know which are mutable.
+      - Write functions with clear inputs, outputs, and no accidental shared state.
+      - Choose the right built-in collection for a task.
+    description: >-
+      The parts of Python that every later notebook, training script, and pipeline assumes you
+      already have: types, functions, and collections.
+    blocks:
+      - type: why
+        markdown: |
+          Most "AI bugs" in a beginner's first month are Python bugs: a mutable default argument,
+          a list that was aliased rather than copied, a dictionary iterated while being changed.
+          Three units here, each on one of those foundations.
+
+  - slug: python-values-and-types
+    title: Values and Types
+    kind: knowledge_unit
+    parent: python-essentials
+    status: published
+    version: 1.0.0
+    difficulty: 1
+    estimateMinutes: 25
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [python, types]
+    objectives:
+      - Name Python's core built-in types and give one use for each.
+      - Explain the difference between a name, a reference, and an object.
+      - Predict whether an operation mutates an object or creates a new one.
+    description: >-
+      In Python a name points at an object, and the object carries the type. Getting this right
+      prevents an entire family of confusing bugs.
+    blocks:
+      - type: why
+        markdown: |
+          `a = b` does not copy. That one fact, understood properly, explains why a training
+          script mysteriously modified the caller's data and why "I only changed the copy" is so
+          often false.
+
+      - type: beginner
+        markdown: |
+          The core types you will meet daily:
+
+          | Type | Example | Mutable? |
+          |---|---|---|
+          | `int` | `42` | no |
+          | `float` | `3.14` | no |
+          | `str` | `"vector"` | no |
+          | `bool` | `True` | no |
+          | `list` | `[1, 2, 3]` | **yes** |
+          | `dict` | `{"lr": 0.01}` | **yes** |
+          | `tuple` | `(1, 2)` | no |
+          | `set` | `{1, 2}` | **yes** |
+          | `None` | `None` | n/a |
+
+          A **name** is a label. An **object** is the thing in memory. Assignment binds a name
+          to an object; it does not duplicate the object.
+
+          ```python
+          a = [1, 2, 3]
+          b = a            # b and a name the SAME list
+          b.append(4)
+          print(a)         # [1, 2, 3, 4]
+          ```
+
+          To get an independent list, copy it deliberately: `b = a.copy()` or `b = list(a)`.
+
+      - type: intermediate
+        markdown: |
+          Three things follow from "names point at objects".
+
+          **Mutation versus rebinding.** `b.append(4)` mutates the object that `b` points at, so
+          every name pointing at it sees the change. `b = b + [4]` builds a *new* list and
+          rebinds `b`, leaving `a` untouched. This is the whole story behind "why did my function
+          change my input?".
+
+          **Immutability is about the object, not the name.** Strings are immutable, so
+          `s.upper()` returns a new string and `s` is unchanged unless you reassign it. A tuple
+          is immutable, but if it contains a list, that list can still be mutated —
+          `t = ([1], 2); t[0].append(9)` works.
+
+          **Identity versus equality.** `==` asks whether two objects have the same value; `is`
+          asks whether they are the same object. Use `is` only for `None` and other singletons.
+          Small integers and short strings are often cached, so `x is y` can be `True` for
+          separate-looking values — an implementation detail you should never rely on.
+
+          Type checking is dynamic: the object knows its type and errors surface when an
+          operation is attempted. Annotations (`def f(x: int) -> int:`) are documentation and
+          tooling input; Python does not enforce them at run time.
+
+      - type: example
+        markdown: |
+          The aliasing bug as it actually appears in data work:
+
+          ```python
+          def normalise(rows):
+              for row in rows:
+                  row["value"] = row["value"] / 100   # mutates the caller's dicts
+              return rows
+
+          data = [{"value": 50}, {"value": 200}]
+          scaled = normalise(data)
+          print(data[0]["value"])    # 0.5 — the original is gone
+          ```
+
+          Two honest fixes:
+
+          ```python
+          # 1. Build new objects and leave the input alone.
+          def normalised(rows):
+              return [{**row, "value": row["value"] / 100} for row in rows]
+
+          # 2. Or keep mutating, but say so and return None.
+          def normalise_in_place(rows) -> None:
+              for row in rows:
+                  row["value"] = row["value"] / 100
+          ```
+
+          A function that both mutates its argument *and* returns it is the worst of the three,
+          because callers cannot tell which behaviour they are getting.
+
+      - type: misconception
+        payload:
+          code: python.assignment_copies
+          claim: "`b = a` makes a copy, so changing b is safe."
+          markdown: |
+            **The claim:** assigning one variable to another duplicates the data.
+
+            **Why it feels right:** it is true for `int`, `float`, `str`, and `bool` — and those
+            are what beginners practise with. The rule appears to hold for weeks.
+
+            **What actually happens:** assignment binds a second name to the same object. It
+            appeared to copy only because those types are immutable, so you could never observe
+            the sharing. With a `list`, `dict`, or `set`, the sharing becomes visible the moment
+            you mutate.
+
+            **How to catch yourself:** before writing `b = a`, ask "is `a` mutable, and will
+            anyone mutate it?". If yes, copy explicitly — and remember `copy()` is shallow:
+            nested lists are still shared.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Predict the output, then run it:
+
+               ```python
+               a = {"k": [1]}
+               b = a.copy()
+               b["k"].append(2)
+               print(a)
+               ```
+
+               Explain the result in terms of what `copy()` duplicated.
+
+            2. Write `add_item(cart, item)` twice: once mutating `cart`, once returning a new
+               list. Name each version so a caller cannot mistake one for the other.
+
+            3. Find an operation on a `str` that looks like mutation but is not, and show that
+               the original is unchanged.
+
+            4. Using `id()`, demonstrate that `b = a` binds the same object and `b = a + [1]`
+               does not.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Which of `list`, `tuple`, `dict`, `str`, `set` are mutable?"
+              answer: >-
+                `list`, `dict`, and `set`. `tuple` and `str` are immutable — though a tuple can
+                hold a mutable object, which is why `t[0].append(9)` can succeed.
+            - question: 'After `s = "ai"` then `s.upper()`, what is `s`?'
+              answer: 'Still `"ai"`. `upper()` returned a new string that was discarded.'
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can look at a function that takes a list or dict and say
+            immediately whether the caller's data is at risk — and when you reach for an explicit
+            copy without being reminded.
+    resources:
+      - source: python-datamodel
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "The reference's definition of objects, values, and types — the source for the claims above."
+      - source: python-tutorial
+        purpose: GUIDED_INTRODUCTION
+        relevance: 0.8
+        excerpt: "Sections 3 and 5 cover numbers, strings, and lists with worked examples."
+
+  - slug: python-functions
+    title: Functions
+    kind: knowledge_unit
+    parent: python-essentials
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 30
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [python, functions]
+    objectives:
+      - Write functions with explicit parameters, return values, and no hidden state.
+      - Use default, keyword, and variadic arguments correctly.
+      - Avoid the mutable default argument trap and explain why it exists.
+    description: >-
+      A function is the smallest unit you can test, reuse, and reason about. Python's argument
+      rules include one genuine trap that catches nearly everyone once.
+    blocks:
+      - type: why
+        markdown: |
+          Every training script you will write is a pile of functions. Whether it is debuggable
+          depends almost entirely on whether those functions take what they need as arguments and
+          return what they produce, instead of reaching out to global state.
+
+      - type: beginner
+        markdown: |
+          ```python
+          def scale(values, factor=2):
+              """Return a new list with every value multiplied by factor."""
+              return [value * factor for value in values]
+
+          scale([1, 2, 3])             # [2, 4, 6]   factor defaults to 2
+          scale([1, 2, 3], 10)         # positional
+          scale([1, 2, 3], factor=10)  # keyword — clearer at call sites
+          ```
+
+          A function has **parameters** (the names in the definition) and receives **arguments**
+          (the values at the call). It ends either by reaching a `return` or by falling off the
+          end, in which case it returns `None`.
+
+          Prefer functions that depend only on their arguments and whose only effect is the value
+          they return. Those are the ones you can test without setting up the world first.
+
+      - type: intermediate
+        markdown: |
+          **Argument forms**, in the order Python accepts them:
+
+          ```python
+          def train(data, *, epochs=1, lr=0.01, **extra):
+              ...
+          ```
+
+          - Parameters after a bare `*` are **keyword-only**. Use this for options; `train(d, 5)`
+            tells a reader nothing, while `train(d, epochs=5)` tells them everything.
+          - `*args` collects extra positional arguments into a tuple, `**kwargs` collects extra
+            keyword arguments into a dict. Both are useful for wrappers and overused everywhere
+            else, because they erase the signature a reader relies on.
+
+          **Default values are evaluated once**, when the `def` statement runs — not on each
+          call. With an immutable default this is invisible. With a mutable one it is a bug that
+          accumulates state across calls, which is the subject of the misconception below.
+
+          **Scope** resolves names local → enclosing → global → builtins. Assigning to a name
+          anywhere in a function makes it local for the whole function, which is why reading a
+          global and then assigning to it raises `UnboundLocalError`. Needing `global` is almost
+          always a sign the value should have been a parameter.
+
+      - type: example
+        markdown: |
+          A function that is hard to test, and the same function made testable:
+
+          ```python
+          # Hard: reads configuration and the clock from the outside world.
+          def summarise():
+              rows = load_from_disk(CONFIG["path"])
+              return {"count": len(rows), "at": datetime.now()}
+
+          # Testable: everything it depends on arrives as an argument.
+          def summarise(rows, now):
+              return {"count": len(rows), "at": now}
+          ```
+
+          The second version needs no files, no config, and no clock to test — and it says
+          plainly what it depends on.
+
+      - type: misconception
+        payload:
+          code: python.mutable_default_argument
+          claim: "`def f(items=[])` gives each call a fresh empty list."
+          markdown: |
+            **The claim:** a default of `[]` means "start empty", so every call begins with an
+            empty list.
+
+            **Why it feels right:** the default is written inside the function, so it looks like
+            part of the function body — something that runs per call.
+
+            **What actually happens:** the default object is created once, when the `def` is
+            executed, and reused by every call that omits the argument. Mutating it leaks state
+            between calls:
+
+            ```python
+            def append_to(value, items=[]):
+                items.append(value)
+                return items
+
+            append_to(1)   # [1]
+            append_to(2)   # [1, 2]  — the same list
+            ```
+
+            **The fix:** default to `None` and create the object inside.
+
+            ```python
+            def append_to(value, items=None):
+                items = [] if items is None else items
+                items.append(value)
+                return items
+            ```
+
+            **How to catch yourself:** if a default is a `list`, `dict`, or `set`, it is wrong.
+            No exceptions worth learning.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Run the `append_to` example three times in one session and record the output of
+               each call. Then apply the fix and show the difference.
+            2. Write `mean(values)` that returns `None` for an empty input rather than raising,
+               and say in a comment why you chose that over an exception.
+            3. Convert this into a function with keyword-only options, then call it in a way a
+               reader can understand at a glance:
+
+               ```python
+               def report(rows, True, 10): ...   # not even valid — fix the design
+               ```
+
+            4. Take a function of your own that reads a global and rewrite it to take that value
+               as a parameter. Note what became easier to test.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does a function return if it has no `return` statement?"
+              answer: "`None`. Falling off the end of a function is not an error."
+            - question: "When is the default value in `def f(x=compute())` evaluated?"
+              answer: >-
+                Once, when the `def` statement is executed — not on each call. That is the whole
+                mechanism behind the mutable default argument trap.
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when a reviewer cannot find a mutable default or a hidden global in
+            code you wrote, and when you can explain the mutable-default behaviour from the
+            language rule rather than from memory of the symptom.
+    resources:
+      - source: python-tutorial
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Section 4.8 documents default arguments, keyword arguments, and argument lists."
+      - source: pep8
+        purpose: STYLE_REFERENCE
+        relevance: 0.6
+        excerpt: "Naming and signature conventions that make functions readable to other people."
+
+  - slug: python-collections
+    title: Collections
+    kind: knowledge_unit
+    parent: python-essentials
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 25
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [python, collections, complexity]
+    objectives:
+      - Choose between list, dict, set, and tuple based on the access pattern.
+      - State the cost of membership testing in a list versus a set.
+      - Use comprehensions where they improve clarity and avoid them where they do not.
+    description: >-
+      Four built-in collections cover most work. Choosing the wrong one is the most common
+      reason beginner data code is accidentally quadratic.
+    blocks:
+      - type: why
+        markdown: |
+          A script that takes four hours instead of four seconds is usually not short of compute.
+          It is usually asking `if item in big_list` inside a loop. Collection choice is the
+          cheapest performance decision you will ever make.
+
+      - type: beginner
+        markdown: |
+          | Need | Use | Why |
+          |---|---|---|
+          | Ordered items, may change | `list` | index access, append |
+          | Lookup by key | `dict` | near-constant-time by key |
+          | "Have I seen this?" | `set` | near-constant-time membership, no duplicates |
+          | Fixed record, safe to share | `tuple` | immutable, hashable |
+
+          ```python
+          scores = {"ada": 91, "alan": 88}     # dict
+          scores["grace"] = 95
+          "ada" in scores                      # True, fast
+
+          seen = set()
+          seen.add("doc-1")
+          "doc-1" in seen                      # True, fast
+          ```
+
+          Membership in a `list` checks elements one by one. Membership in a `set` or `dict`
+          hashes the value and looks in one place. On ten items the difference is invisible; on
+          a hundred thousand inside a loop it is the whole run time.
+
+      - type: intermediate
+        markdown: |
+          Approximate costs worth memorising:
+
+          | Operation | `list` | `dict` / `set` |
+          |---|---|---|
+          | membership (`in`) | O(n) | O(1) average |
+          | index / key access | O(1) | O(1) average |
+          | append / add | O(1) amortised | O(1) average |
+          | insert at front | O(n) | n/a |
+
+          `dict` and `set` require **hashable** keys, which in practice means immutable: a tuple
+          can be a key, a list cannot. Since Python 3.7 `dict` preserves insertion order, so
+          "ordered" and "keyed" are no longer a trade-off.
+
+          **Comprehensions** replace a build-up loop with one expression:
+
+          ```python
+          squares = [n * n for n in numbers if n > 0]
+          index = {doc["id"]: doc for doc in docs}
+          ```
+
+          They are clearer than the loop they replace up to about one condition and one
+          transformation. Past that, a named loop with a comment beats a clever one-liner — and a
+          nested comprehension that needs a diagram is worse than the loop in every case.
+
+          One rule with teeth: **never mutate a collection while iterating it.** Iterate over a
+          copy, or build a new collection and replace the old one.
+
+      - type: example
+        markdown: |
+          The accidentally quadratic pattern, and its fix:
+
+          ```python
+          # Slow: for each of 100k ids, scan a 100k-element list.
+          known = load_ids()                  # list
+          new = [row for row in rows if row["id"] not in known]
+
+          # Fast: hash once, then each check is O(1).
+          known = set(load_ids())
+          new = [row for row in rows if row["id"] not in known]
+          ```
+
+          Same output, same line count, one changed word. Ten billion comparisons become a
+          hundred thousand hash lookups.
+
+      - type: misconception
+        payload:
+          code: python.list_membership_is_cheap
+          claim: "`in` costs the same on a list and a set."
+          claimContext: "Reported by learners after small-input testing."
+          markdown: |
+            **The claim:** `x in collection` is one operation, so the collection type does not
+            matter much.
+
+            **Why it feels right:** the syntax is identical and, on the small examples used while
+            learning, both are instant.
+
+            **What actually happens:** on a list, `in` walks the elements until it finds a match
+            — O(n). On a set or dict, it hashes and probes — O(1) on average. Inside a loop over
+            n items, the first becomes O(n²).
+
+            **How to catch yourself:** any time `in` appears inside a loop, check what is on the
+            right-hand side. If it is a list you built, convert it to a set once, outside the
+            loop.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Time `x in data` for 100,000 lookups with `data` as a list and as a set of 100,000
+               items. Report both numbers.
+            2. Rewrite this without mutating during iteration, and explain what goes wrong if you
+               do not:
+
+               ```python
+               for key in config:
+                   if config[key] is None:
+                       del config[key]
+               ```
+
+            3. Build a dict from `docs` keyed by `doc["id"]`, as a comprehension and as a loop.
+               Say which you would submit for review and why.
+            4. Give one case where a `tuple` is the right choice and a `list` is wrong.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why can a tuple be a dict key but a list cannot?"
+              answer: >-
+                Keys must be hashable. Tuples are immutable so their hash is stable; lists are
+                mutable, so a hash taken now could be wrong later.
+            - question: "You need to deduplicate a million strings and keep the original order. What do you use?"
+              answer: >-
+                Iterate the list, keep a `set` of what you have seen, and append unseen items to
+                an output list. The set gives O(1) checks; the list preserves order.
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you notice `in` inside a loop and fix it before measuring, and
+            when you can justify each collection choice in code you wrote by naming the access
+            pattern it serves.
+    resources:
+      - source: python-tutorial
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Section 5 covers lists, tuples, sets, dicts, and comprehensions."
+      - source: python-datamodel
+        purpose: DEEPER_REFERENCE
+        relevance: 0.7
+        excerpt: "Defines hashability, which is the constraint behind dict and set keys."

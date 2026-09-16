@@ -21,6 +21,10 @@ public class ApiException extends RuntimeException {
         return new ApiException(403, "forbidden", "Not allowed");
     }
 
+    public static ApiException notFound(String message) {
+        return new ApiException(404, "not_found", message);
+    }
+
     public static ApiException conflict(String message) {
         return new ApiException(409, "conflict", message);
     }

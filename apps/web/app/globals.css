@@ -452,6 +452,271 @@
   gap: var(--s3);
 }
 
+/* ---------- Catalog: paths and waypoints ---------- */
+
+.waypoints {
+  display: grid;
+  gap: var(--s2);
+  margin: var(--s4) 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: waypoint;
+}
+
+.waypoint {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--s3);
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  transition: border-color var(--fast), background var(--fast);
+}
+
+.waypoint:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-hover);
+}
+
+.waypoint__n {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.waypoint__body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.waypoint__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.waypoint__title:hover {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.waypoint__desc {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.waypoint__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+/* ---------- Unit read view ---------- */
+
+.unit__crumbs {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.unit__crumbs a {
+  color: var(--muted);
+}
+
+.unit__crumbs a:hover {
+  color: var(--brand);
+}
+
+.unit__facts {
+  display: grid;
+  gap: var(--s4);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--s3);
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.facts dd {
+  margin: 4px 0 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.unit__evidence {
+  display: grid;
+  gap: var(--s2);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--line);
+}
+
+.objectives {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding-left: var(--s5);
+  color: var(--ink-soft);
+}
+
+.unit__block {
+  display: grid;
+  gap: var(--s3);
+}
+
+/* The "why" opens the unit, so it reads as a lead rather than as another card. */
+.unit__why {
+  border-left: 3px solid var(--brand);
+  background: linear-gradient(90deg, var(--brand-soft), transparent 60%), var(--surface);
+}
+
+.childlist,
+.sources {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.childlist__link {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.childlist__link:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-hover);
+  text-decoration: none;
+}
+
+.childlist__link span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.childlist__link span span {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.source {
+  display: grid;
+  gap: 6px;
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.source__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-weight: 650;
+}
+
+.source__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 0.8125rem;
+}
+
+.source__note {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.source__license {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+/* ---------- Self-check ---------- */
+
+.selfcheck {
+  display: grid;
+  gap: var(--s2);
+}
+
+.selfcheck__item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.selfcheck__item summary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: var(--s3);
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+.selfcheck__item summary::-webkit-details-marker {
+  display: none;
+}
+
+.selfcheck__item[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.selfcheck__n {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: var(--surface-hover);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.selfcheck__answer {
+  padding: var(--s3) var(--s4) var(--s4) calc(var(--s3) + 22px + var(--s3));
+}
+
+/* Inline markdown inside a summary must not restart the block rhythm. */
+.md--inline,
+.selfcheck__item summary .md--inline {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
 /* ---------- Splash ---------- */
 
 .splash {

@@ -10,8 +10,8 @@ import { SpaceHeader } from "@/components/space-view";
 /** Phases already delivered, so the learner can see where the product actually is. */
 const delivered = [
   { label: "Account, session, and roles", state: "done", note: "Phase 1" },
-  { label: "Studio shell and every space routed", state: "active", note: "Phase 2" },
-  { label: "Authored curriculum and paths", state: "todo", note: "Phase 3" },
+  { label: "Studio shell and every space routed", state: "done", note: "Phase 2" },
+  { label: "Authored curriculum, paths, and sources", state: "active", note: "Phase 3" },
   { label: "Knowledge map with prerequisites", state: "todo", note: "Phase 4" },
 ];
 
@@ -37,19 +37,19 @@ export default function TodayPage() {
         <p className="kicker">Your next action</p>
         {me.emailVerified ? (
           <>
-            <h2>Nothing is due.</h2>
+            <h2>Start at the beginning of the path.</h2>
             <p className="lede">
-              That is the truth rather than a placeholder task. There is no curriculum to schedule
-              against yet, so Today has nothing to recommend. It starts ranking work in Phase 5,
-              once units and mastery evidence exist.
+              Ten authored units are published, so there is real reading available. This is the
+              first one, not a recommendation: nothing about your knowledge is recorded yet, so
+              Today cannot yet claim to know where you should be. Ranking starts in Phase 5.
             </p>
             <div className="space__actions">
-              <Link className="btn btn--outline" href="/app/map">
-                See what is planned
+              <Link className="btn btn--primary" href="/app/learn/instructions-and-state">
+                Read: Instructions and State
                 <IconArrowRight />
               </Link>
-              <Link className="btn btn--ghost" href="/app/settings">
-                Review your account
+              <Link className="btn btn--outline" href="/app/learn">
+                See the whole path
               </Link>
             </div>
           </>

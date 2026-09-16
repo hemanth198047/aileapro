@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./markdown": "./src/markdown.tsx",
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
@@ -18,5 +19,12 @@
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "katex": "^0.18.7",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
   }
 }

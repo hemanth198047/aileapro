@@ -1,0 +1,748 @@
+# Vertical slice, part 3: linear algebra.
+# LOW volatility, FOUNDATIONAL: this material does not change, so it is authored once and
+# reviewed rarely. Matrix multiplication is the fully loaded reference unit for the seed.
+
+units:
+  - slug: vectors-matrices-and-matmul
+    title: Vectors, Matrices, and Matrix Multiplication
+    kind: chapter
+    parent: linear-algebra
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 95
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [mathematics, linear-algebra]
+    objectives:
+      - Read vector and matrix notation without translating it back to "a table of numbers".
+      - Compute dot products, norms, and matrix products by hand on small examples.
+      - Explain a matrix product as a composition of linear maps.
+    description: >-
+      The three ideas that every model's forward pass is written in. Enough to read a paper's
+      notation and enough to predict the shape of what comes out.
+    blocks:
+      - type: why
+        markdown: |
+          A neural network's forward pass is a chain of matrix products with nonlinearities
+          between them. An embedding search is a dot product. Attention is a product of three
+          matrices. If this notation is opaque, then every architecture diagram after it is
+          decoration rather than explanation.
+
+  - slug: vectors
+    title: Vectors
+    kind: knowledge_unit
+    parent: vectors-matrices-and-matmul
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 30
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [mathematics, linear-algebra, vectors, embeddings]
+    objectives:
+      - Write a vector in coordinates and state its dimension.
+      - Compute a dot product and a Euclidean norm by hand.
+      - Interpret cosine similarity, including what it deliberately ignores.
+    description: >-
+      A vector is a list of numbers you are allowed to add and scale. That modest definition is
+      what makes embeddings, gradients, and parameters all the same kind of object.
+    blocks:
+      - type: why
+        markdown: |
+          Every embedding is a vector, so every "find me similar documents" query is a question
+          about vector geometry. When a retrieval system returns something irrelevant, the
+          explanation is usually in the definitions on this page — not in the model.
+
+      - type: eli5
+        markdown: |
+          A vector is a list of numbers, like a set of dials.
+
+          Two dials: `[3, 4]` could be "3 steps east, 4 steps north". You can follow one set of
+          directions and then another, which is **adding** vectors. You can follow the same
+          directions but twice as far, which is **scaling** a vector.
+
+          That is all a vector is: something you can add to another one and stretch.
+
+      - type: beginner
+        markdown: |
+          Write a vector as a list of components:
+
+          $$
+          \mathbf{v} = \begin{bmatrix} 3 \\ 4 \end{bmatrix}
+          $$
+
+          The number of components is the **dimension**. A word embedding with 768 components is
+          a vector in 768 dimensions — impossible to picture, identical to work with.
+
+          **Addition** is componentwise, and only between vectors of the same dimension:
+
+          $$
+          \begin{bmatrix} 3 \\ 4 \end{bmatrix} + \begin{bmatrix} 1 \\ 2 \end{bmatrix}
+          = \begin{bmatrix} 4 \\ 6 \end{bmatrix}
+          $$
+
+          **Scaling** multiplies every component: $2\mathbf{v} = [6, 8]$.
+
+          **Length** (the Euclidean norm) is Pythagoras in as many dimensions as you have:
+
+          $$
+          \|\mathbf{v}\|_2 = \sqrt{\sum_{i=1}^{n} v_i^2} = \sqrt{3^2 + 4^2} = 5
+          $$
+
+          **Dot product** multiplies matching components and adds the results:
+
+          $$
+          \mathbf{a} \cdot \mathbf{b} = \sum_{i=1}^{n} a_i b_i
+          $$
+
+          With $\mathbf{a} = [3, 4]$ and $\mathbf{b} = [4, 3]$: $3(4) + 4(3) = 24$.
+
+      - type: math_intuition
+        markdown: |
+          The dot product answers: **how much does one vector point along the other?**
+
+          $$
+          \mathbf{a} \cdot \mathbf{b} = \|\mathbf{a}\|\,\|\mathbf{b}\|\cos\theta
+          $$
+
+          Three cases worth holding in your head:
+
+          - Same direction → $\cos\theta = 1$ → the dot product is as large as the lengths allow.
+          - Perpendicular → $\cos\theta = 0$ → the dot product is **zero**, regardless of length.
+            $[1,0] \cdot [0,1] = 0$.
+          - Opposite → $\cos\theta = -1$ → negative.
+
+          Rearranged, that identity gives **cosine similarity**, which throws away length and
+          keeps only direction:
+
+          $$
+          \cos\theta = \frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{a}\|\,\|\mathbf{b}\|}
+          $$
+
+          For $\mathbf{a} = [3,4]$, $\mathbf{b} = [4,3]$: $\frac{24}{5 \cdot 5} = 0.96$. Nearly
+          the same direction, and they would score 0.96 even if one were a hundred times longer.
+          That is the property retrieval systems want, since document length should not decide
+          relevance.
+
+      - type: math_formal
+        markdown: |
+          Formally, $\mathbb{R}^n$ with componentwise addition and scalar multiplication is a
+          **vector space**: addition is associative and commutative, there is a zero vector, every
+          vector has an additive inverse, and scaling distributes over addition.
+
+          The dot product is an **inner product**: symmetric, linear in each argument, and
+          positive definite ($\mathbf{v} \cdot \mathbf{v} > 0$ for $\mathbf{v} \neq \mathbf{0}$).
+          The norm it induces, $\|\mathbf{v}\| = \sqrt{\mathbf{v} \cdot \mathbf{v}}$, satisfies
+          the triangle inequality and the Cauchy–Schwarz inequality
+
+          $$
+          |\mathbf{a} \cdot \mathbf{b}| \le \|\mathbf{a}\|\,\|\mathbf{b}\|,
+          $$
+
+          which is precisely why cosine similarity is confined to $[-1, 1]$ and can be read as a
+          similarity score at all.
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            ```python
+            import numpy as np
+
+            a = np.array([3.0, 4.0])
+            b = np.array([4.0, 3.0])
+
+            a + b                      # array([7., 7.])
+            2 * a                      # array([6., 8.])
+            np.dot(a, b)               # 24.0
+            np.linalg.norm(a)          # 5.0
+
+            cosine = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+            cosine                     # 0.96
+
+            # Perpendicular vectors: zero dot product, no matter the lengths.
+            np.dot(np.array([1.0, 0.0]), np.array([0.0, 99.0]))   # 0.0
+            ```
+
+            Every one of these is a single dispatch into compiled code, which is the practical
+            reason embeddings are compared this way rather than in a Python loop.
+
+      - type: application
+        markdown: |
+          A retrieval system stores one vector per chunk of text. A query becomes a vector, and
+          the system returns the chunks whose vectors have the highest cosine similarity to it.
+
+          Nothing in that pipeline understands language. It compares directions in a space that
+          a model arranged so that related text points the same way. Which is also why retrieval
+          fails in ways that look silly: two passages with opposite meanings can still point in
+          nearly the same direction if they use the same vocabulary.
+
+      - type: misconception
+        payload:
+          code: vectors.cosine_means_same_meaning
+          claim: "High cosine similarity means the two texts mean the same thing."
+          markdown: |
+            **The claim:** cosine similarity of 0.95 means two passages say the same thing, so
+            retrieval hits at 0.95 must be relevant.
+
+            **Why it feels right:** the number behaves like a percentage, and in demos the top
+            hit usually *is* relevant, so the number gets read as a confidence score.
+
+            **What actually happens:** cosine similarity measures the angle between two vectors
+            produced by a specific embedding model. It reports similarity **as that model
+            encodes it** — which is dominated by topic and vocabulary. "The drug reduced
+            mortality" and "the drug did not reduce mortality" sit very close together, because
+            almost every word matches. Negation, numbers, and dates are exactly what embeddings
+            compress away.
+
+            Absolute scores are also not comparable across models, and in high dimensions most
+            pairs cluster in a narrow band, so 0.8 can be near-unrelated for one model and very
+            close for another.
+
+            **How to catch yourself:** treat cosine similarity as *ranking* evidence, never as
+            truth. If a claim depends on a negation, a quantity, or a date, verify it against the
+            retrieved text rather than trusting the score.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            By hand first, then check with NumPy.
+
+            1. Compute $\mathbf{a} \cdot \mathbf{b}$ and $\|\mathbf{a}\|$ for
+               $\mathbf{a} = [1, 2, 2]$, $\mathbf{b} = [2, 0, 1]$.
+            2. Find a non-zero vector perpendicular to $[3, 4]$. Verify the dot product is zero.
+            3. Compute the cosine similarity between $[1, 1]$ and $[10, 10]$. Explain the result
+               in one sentence.
+            4. Two document vectors have the same direction but one is ten times longer. Which
+               changes, the dot product or the cosine similarity? Show both numbers.
+            5. Write one sentence pair that a cosine-similarity search would rank as nearly
+               identical even though they contradict each other.
+
+            Check for 1: dot $= 4$, norm $= 3$.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does a dot product of zero tell you?"
+              answer: >-
+                The vectors are perpendicular — neither points along the other at all. It says
+                nothing about their lengths.
+            - question: "Why do retrieval systems prefer cosine similarity to a raw dot product?"
+              answer: >-
+                Cosine divides out both lengths, so a long document cannot outrank a short one on
+                magnitude alone. The raw dot product grows with length.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Compute a dot product, a norm, and a cosine similarity on a three-dimensional
+              example without notes.
+            - Say what cosine similarity ignores, and name a case where that omission produces a
+              wrong retrieval result.
+            - Read $\sum_i a_i b_i$ and see "dot product" rather than parsing it symbol by symbol.
+    resources:
+      - source: 3b1b-linear-algebra
+        purpose: VISUAL_INTUITION
+        relevance: 0.9
+        excerpt: >-
+          Chapters 1 and 2 build the geometric picture of vectors and spans. Linked as a video
+          resource; watch it, do not treat it as a substitute for computing by hand.
+      - source: mml-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.8
+        excerpt: "Chapter 2 gives the formal treatment of vector spaces and inner products."
+      - source: numpy-absolute-basics
+        purpose: TOOL_REFERENCE
+        relevance: 0.7
+        excerpt: "The array operations used in the code block above."
+
+  - slug: matrices
+    title: Matrices
+    kind: knowledge_unit
+    parent: vectors-matrices-and-matmul
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 30
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [mathematics, linear-algebra, matrices]
+    objectives:
+      - Read a matrix's shape and index its entries correctly.
+      - Describe a matrix as a linear map rather than as a table.
+      - Apply a matrix to a vector by hand and predict the output dimension.
+    description: >-
+      A matrix is a linear map written down in coordinates. Reading it that way turns every
+      layer of a network from a table of numbers into a transformation you can describe.
+    blocks:
+      - type: why
+        markdown: |
+          "Weights" in a neural network are matrices. If a matrix is only a grid of numbers to
+          you, a layer can only be memorised. If it is a map from one space to another, then the
+          shape errors you will hit daily become predictable instead of mysterious.
+
+      - type: beginner
+        markdown: |
+          A matrix has a **shape**: rows by columns. This one is $2 \times 3$:
+
+          $$
+          A = \begin{bmatrix} 1 & 2 & 3 \\ 4 & 5 & 6 \end{bmatrix}
+          $$
+
+          The entry $A_{ij}$ sits in row $i$, column $j$, so $A_{12} = 2$. Mathematics indexes
+          from 1; NumPy indexes from 0, where the same entry is `A[0, 1]`. Nearly every
+          off-by-one in a reimplementation starts here.
+
+          **Applying a matrix to a vector** takes each row's dot product with the vector:
+
+          $$
+          \begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix}
+          \begin{bmatrix} 1 \\ 1 \end{bmatrix}
+          = \begin{bmatrix} 2(1) + 0(1) \\ 0(1) + 3(1) \end{bmatrix}
+          = \begin{bmatrix} 2 \\ 3 \end{bmatrix}
+          $$
+
+          An $m \times n$ matrix consumes an $n$-dimensional vector and produces an
+          $m$-dimensional one. The inner numbers must match; the outer ones survive.
+
+      - type: math_intuition
+        markdown: |
+          A matrix is a **linear map** — a transformation of space that keeps the grid straight,
+          evenly spaced, and the origin fixed. Two properties define it:
+
+          $$
+          A(\mathbf{u} + \mathbf{v}) = A\mathbf{u} + A\mathbf{v}, \qquad
+          A(c\mathbf{v}) = c\,A\mathbf{v}
+          $$
+
+          There is a fast way to read any matrix: **its columns are where the basis vectors
+          land.** For
+
+          $$
+          R = \begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix},
+          $$
+
+          the first column says $[1,0] \mapsto [0,1]$ and the second says $[0,1] \mapsto [-1,0]$.
+          Both basis vectors turned a quarter turn counter-clockwise, so $R$ is a rotation by
+          90°. You did not need to multiply anything to see that.
+
+          Read this way, familiar matrices become descriptions: a diagonal matrix scales each
+          axis independently; the identity leaves everything where it was; a matrix with a zero
+          column collapses one dimension entirely and cannot be undone.
+
+      - type: example
+        markdown: |
+          ```python
+          import numpy as np
+
+          A = np.array([[1.0, 2.0, 3.0],
+                        [4.0, 5.0, 6.0]])      # shape (2, 3)
+          v = np.array([1.0, 0.0, -1.0])       # shape (3,)
+
+          A @ v          # array([-2., -2.])   (2, 3) @ (3,) -> (2,)
+          A.shape        # (2, 3)
+          A[0, 1]        # 2.0  — the entry written A_12 in mathematics
+
+          R = np.array([[0.0, -1.0],
+                        [1.0,  0.0]])
+          R @ np.array([1.0, 0.0])    # array([0., 1.])  — a quarter turn
+          ```
+
+          Try `A @ np.array([1.0, 0.0])` and read the error: it names the mismatched dimensions,
+          which is usually enough to find the bug without touching a debugger.
+
+      - type: misconception
+        payload:
+          code: matrices.matrix_is_just_a_table
+          claim: "A matrix is a spreadsheet of numbers; matrix rules are arbitrary conventions."
+          markdown: |
+            **The claim:** matrices are 2-D arrays, and the rules for multiplying them are
+            bookkeeping someone chose.
+
+            **Why it feels right:** they are stored as 2-D arrays, they print like tables, and
+            introductions often start with arithmetic instead of meaning.
+
+            **What actually happens:** a matrix encodes a linear map, and the multiplication rule
+            is *derived* from composing two maps — it is the only definition that makes
+            $A(B\mathbf{v}) = (AB)\mathbf{v}$ true. That is why the inner dimensions must agree
+            and why the product is not commutative.
+
+            **How to catch yourself:** when you meet a new matrix, ask "where does it send the
+            basis vectors?" instead of "what are its entries?". Data tables happen to be
+            rectangular too, but nobody multiplies two spreadsheets.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. For $A = \begin{bmatrix} 1 & 2 \\ 0 & 1 \end{bmatrix}$, compute $A[1,0]^T$ and
+               $A[0,1]^T$, then describe in words what $A$ does to the grid.
+            2. Write the matrix that scales $x$ by 3 and leaves $y$ alone. Verify it on $[1,1]$.
+            3. What shape results from a $(4 \times 3)$ matrix applied to a 3-vector? What error
+               appears if you hand it a 4-vector?
+            4. Give a $2 \times 2$ matrix that collapses the plane onto a line, and explain why
+               no matrix can undo it.
+
+            Check for 1: $A[1,0]^T = [1,0]^T$ and $A[0,1]^T = [2,1]^T$ — a horizontal shear.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What do the columns of a matrix tell you directly?"
+              answer: >-
+                Where each basis vector is sent. Column $j$ is the image of the $j$-th basis
+                vector, which is enough to name the transformation.
+            - question: "A $(3 \\times 5)$ matrix applied to a 5-vector gives what shape?"
+              answer: "A 3-vector. The inner 5s cancel; the outer 3 survives."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can look at a small matrix and describe what it does to space
+            in a sentence, and when you can predict output shapes before running anything.
+    resources:
+      - source: 3b1b-linear-algebra
+        purpose: VISUAL_INTUITION
+        relevance: 0.9
+        excerpt: "Chapter 3, 'Linear transformations and matrices', is the source of the columns-as-images reading."
+      - source: mml-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.8
+        excerpt: "Sections 2.3–2.7 cover matrices, linear mappings, and bases."
+
+  - slug: matrix-multiplication
+    title: Matrix Multiplication
+    kind: knowledge_unit
+    parent: vectors-matrices-and-matmul
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [mathematics, linear-algebra, matmul, neural-networks]
+    objectives:
+      - Compute a small matrix product by hand and verify it with NumPy.
+      - State the shape rule and predict the shape of a product before computing it.
+      - Explain why matrix multiplication is composition, and why it does not commute.
+      - Recognise a matrix product inside a neural network layer.
+    description: >-
+      The single most-used operation in machine learning. Composition of two linear maps, and the
+      reason a forward pass is one line of notation.
+    blocks:
+      - type: why
+        markdown: |
+          A forward pass through a dense layer is $\mathbf{y} = W\mathbf{x} + \mathbf{b}$.
+          Attention is three matrix products and a softmax. Training is those products plus their
+          transposes. Hardware is designed, priced, and marketed around this one operation.
+
+          It is also where most shape errors and most "why is this slow" questions live, so the
+          time spent here is repaid within a week.
+
+      - type: eli5
+        markdown: |
+          Two machines in a row.
+
+          The first machine takes a bag of ingredients and produces a half-made thing. The second
+          takes the half-made thing and produces the finished item.
+
+          Matrix multiplication builds a **single machine** that does both steps at once. The
+          order matters: baking then chopping is not chopping then baking.
+
+      - type: beginner
+        markdown: |
+          To multiply $A$ (shape $m \times n$) by $B$ (shape $n \times p$), take the dot product
+          of each **row of $A$** with each **column of $B$**:
+
+          $$
+          (AB)_{ij} = \sum_{k=1}^{n} A_{ik} B_{kj}
+          $$
+
+          The result has shape $m \times p$.
+
+          **The shape rule**, which is worth over-learning:
+
+          $$
+          (m \times \underline{n}) \cdot (\underline{n} \times p) = (m \times p)
+          $$
+
+          The inner dimensions must match and then disappear; the outer dimensions survive. When
+          a framework reports `mat1 and mat2 shapes cannot be multiplied`, it is telling you the
+          two underlined numbers differ.
+
+          Worked in full, with $A = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}$ and
+          $B = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$:
+
+          $$
+          (AB)_{11} = 1(0) + 2(1) = 2 \qquad (AB)_{12} = 1(1) + 2(0) = 1
+          $$
+          $$
+          (AB)_{21} = 3(0) + 4(1) = 4 \qquad (AB)_{22} = 3(1) + 4(0) = 3
+          $$
+
+          $$
+          AB = \begin{bmatrix} 2 & 1 \\ 4 & 3 \end{bmatrix}
+          $$
+
+      - type: math_intuition
+        markdown: |
+          The definition looks arbitrary until you ask what it is *for*. Apply $B$ to a vector,
+          then apply $A$ to the result:
+
+          $$
+          A(B\mathbf{v})
+          $$
+
+          Since both are linear maps, doing them in sequence is itself a linear map — so some
+          single matrix must produce the same output in one step. That matrix is defined to be
+          $AB$:
+
+          $$
+          A(B\mathbf{v}) = (AB)\mathbf{v}
+          $$
+
+          Every feature of the rule follows from this:
+
+          - **Inner dimensions must match**, because $B$'s output must be something $A$ can
+            accept.
+          - **Read right to left**, because $B$ acts first. Notation order is application order
+            reversed, which is a permanent source of confusion when reading papers.
+          - **Not commutative**, because doing two transformations in the other order is a
+            different transformation.
+          - **Associative**, $(AB)C = A(BC)$, because grouping how you compose does not change
+            the resulting map. This is what lets frameworks re-order products for efficiency
+            without changing your results.
+
+      - type: math_formal
+        markdown: |
+          For $A \in \mathbb{R}^{m \times n}$ and $B \in \mathbb{R}^{n \times p}$, the product
+          $AB \in \mathbb{R}^{m \times p}$ is defined entrywise by
+
+          $$
+          (AB)_{ij} = \sum_{k=1}^{n} A_{ik} B_{kj}, \quad 1 \le i \le m,\; 1 \le j \le p.
+          $$
+
+          Properties, all provable directly from that sum:
+
+          - Associativity: $(AB)C = A(BC)$.
+          - Distributivity: $A(B + C) = AB + AC$.
+          - Identity: $I_m A = A I_n = A$.
+          - Transpose: $(AB)^{T} = B^{T}A^{T}$ — note the reversal, which appears constantly in
+            backpropagation derivations.
+          - **Not** commutative: $AB \neq BA$ in general, and for non-square matrices $BA$ may
+            not even be defined.
+
+          Cost: the naive algorithm performs $m \cdot n \cdot p$ multiply-add operations, so
+          multiplying two $n \times n$ matrices is $O(n^3)$. Sub-cubic algorithms exist
+          (Strassen and successors) but production libraries mostly optimise memory movement and
+          use blocked, cache-aware kernels instead.
+
+      - type: visual
+        payload:
+          kind: ascii
+          markdown: |
+            Row of the left, column of the right, one entry out:
+
+            ```
+                       B (n x p)
+                    ┌───────────────┐
+                    │  ↓ column j   │
+            A (m x n)│               │      AB (m x p)
+            ┌────────┼───────────────┤     ┌───────────────┐
+            │ row i →│  · · · · · ·  │  =  │   (AB)_ij     │
+            └────────┴───────────────┘     └───────────────┘
+
+            (AB)_ij = sum over k of A_ik * B_kj
+            ```
+
+            An interactive version of this diagram arrives with the visual block renderer in
+            Phase 9. The ASCII is honest about what exists today.
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            ```python
+            import numpy as np
+
+            A = np.array([[1, 2],
+                          [3, 4]])
+            B = np.array([[0, 1],
+                          [1, 0]])
+
+            A @ B      # array([[2, 1],
+                       #        [4, 3]])   matches the hand computation
+            B @ A      # array([[3, 4],
+                       #        [1, 2]])   different — order matters
+
+            # Shape rule in practice.
+            W = np.random.randn(4, 3)     # (4, 3)
+            x = np.random.randn(3)        # (3,)
+            (W @ x).shape                 # (4,)
+
+            # A batch of 32 inputs, one product for the whole batch.
+            X = np.random.randn(32, 3)    # (32, 3)
+            (X @ W.T).shape               # (32, 4)
+
+            # Use @ for matrix products, not *, which multiplies elementwise.
+            A * B      # array([[0, 2],
+                       #        [3, 0]])   NOT a matrix product
+            ```
+
+      - type: example
+        markdown: |
+          **Composition, verified.** Rotate by 90° with $R$, then scale $x$ by 2 with $S$:
+
+          $$
+          R = \begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix}, \qquad
+          S = \begin{bmatrix} 2 & 0 \\ 0 & 1 \end{bmatrix}
+          $$
+
+          Apply them one at a time to $\mathbf{v} = [1, 0]$: $R\mathbf{v} = [0, 1]$, then
+          $S[0,1]^T = [0, 1]$.
+
+          Now combine first: $SR = \begin{bmatrix} 0 & -2 \\ 1 & 0 \end{bmatrix}$, and
+          $(SR)\mathbf{v} = [0, 1]$. Same answer, one step.
+
+          Reverse the order and the result changes: $RS = \begin{bmatrix} 0 & -1 \\ 2 & 0
+          \end{bmatrix}$, so $(RS)\mathbf{v} = [0, 2]$. Scaling before rotating is a different
+          transformation from rotating before scaling.
+
+      - type: counterexample
+        markdown: |
+          A tempting "rule" that is false: *if $AB = 0$ then $A = 0$ or $B = 0$.*
+
+          $$
+          A = \begin{bmatrix} 1 & 0 \\ 0 & 0 \end{bmatrix}, \qquad
+          B = \begin{bmatrix} 0 & 0 \\ 0 & 1 \end{bmatrix}, \qquad
+          AB = \begin{bmatrix} 0 & 0 \\ 0 & 0 \end{bmatrix}
+          $$
+
+          Neither factor is zero. $A$ keeps only the first coordinate, $B$ keeps only the second,
+          and composing them keeps nothing. Matrices are not numbers, and intuitions carried over
+          from arithmetic need checking before use.
+
+      - type: application
+        markdown: |
+          One dense layer over a batch of inputs:
+
+          $$
+          Y = XW^{T} + \mathbf{b}
+          $$
+
+          With a batch of 32 inputs of dimension 3 and a layer of 4 units, $X$ is
+          $32 \times 3$, $W$ is $4 \times 3$, and $Y$ is $32 \times 4$. One matrix product
+          handles the entire batch, which is exactly why GPUs — devices built to do this
+          operation in parallel — made deep learning practical.
+
+          Attention is the same operation three more times: $QK^{T}$ scores every token against
+          every other, and the softmax of that matrix multiplies $V$. When you read "the cost of
+          attention is quadratic in sequence length", that is the shape of $QK^{T}$ talking.
+
+      - type: misconception
+        payload:
+          code: matmul.commutativity
+          claim: "AB is the same as BA, like ordinary multiplication."
+          markdown: |
+            **The claim:** multiplication does not care about order, so $AB = BA$.
+
+            **Why it feels right:** it is true for every number you have ever multiplied, and the
+            notation is identical. Worse, it happens to hold for special cases — diagonal
+            matrices, anything times the identity — so early examples can seem to confirm it.
+
+            **What actually happens:** the product is composition of transformations, and order
+            of application changes the outcome. Rotating then scaling is not scaling then
+            rotating, as the example above shows numerically. For non-square matrices, $BA$ may
+            not even be a legal product.
+
+            **How to catch yourself:** read $AB\mathbf{v}$ right to left as "apply $B$, then
+            $A$". If you ever need to swap a product's order, you need the transpose identity
+            $(AB)^{T} = B^{T}A^{T}$, not commutativity.
+
+      - type: common_mistake
+        markdown: |
+          Two errors that cost hours in practice:
+
+          **Using `*` instead of `@`.** In NumPy and PyTorch, `*` is elementwise. On
+          same-shaped square matrices it runs happily and gives a wrong answer with no error,
+          which is far worse than a crash. Reserve `*` for scaling and masks.
+
+          **Transposing until it runs.** A shape error means your mental model of the data
+          layout is wrong. Adding `.T` until the exception stops usually produces a model that
+          trains to nonsense. Write the intended shapes in a comment, then make the code match.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            By hand, then verify with NumPy.
+
+            1. Compute $AB$ and $BA$ for
+               $A = \begin{bmatrix} 1 & 2 \\ 0 & 1 \end{bmatrix}$,
+               $B = \begin{bmatrix} 1 & 0 \\ 3 & 1 \end{bmatrix}$.
+               Confirm they differ, and describe each product as a transformation.
+            2. Given shapes $(8 \times 5)$ and $(5 \times 2)$, state the product's shape. Then
+               state what happens if you reverse the operands.
+            3. Verify $(AB)^{T} = B^{T}A^{T}$ on the matrices from question 1.
+            4. Compute `A * B` and `A @ B` in NumPy for the matrices in question 1 and explain,
+               in terms of definitions, why they differ.
+            5. A layer takes 768-dimensional inputs and produces 256 outputs, over a batch of 64.
+               Write the shapes of $X$, $W$, and $Y$, and count the multiply-adds in the product.
+
+            Check for 5: $X$ is $(64 \times 768)$, $W$ is $(256 \times 768)$, $Y$ is
+            $(64 \times 256)$, and the product costs $64 \times 768 \times 256 \approx 12.6$
+            million multiply-adds — for one layer, on one batch, in one forward pass.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why must the inner dimensions match?"
+              answer: >-
+                The right-hand matrix's output must be a valid input to the left-hand one. The
+                product is composition, and composition requires the interfaces to line up.
+            - question: "$A$ is $(3 \\times 7)$ and $B$ is $(7 \\times 3)$. What are the shapes of $AB$ and $BA$?"
+              answer: >-
+                $AB$ is $(3 \times 3)$ and $BA$ is $(7 \times 7)$. Both are legal and they are
+                not the same object — order changes more than the entries.
+            - question: "In NumPy or PyTorch, which operator gives a matrix product: `*` or `@`?"
+              answer: "`@`. `*` is elementwise and will silently succeed on matching shapes."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Compute a $2 \times 2$ product by hand, correctly, without looking up the rule.
+            - State the output shape of any legal product immediately, and diagnose a shape error
+              by naming which dimension is wrong.
+            - Explain in your own words why the product does not commute, referring to
+              composition rather than to a rule you were told.
+            - Point at the matrix product inside a described neural network layer and give its
+              shapes.
+
+            Reading this page is not mastery. Doing exercise 1 on paper, correctly, on a matrix
+            pair you have not seen, is.
+    resources:
+      - source: numpy-matmul
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: "The exact broadcasting and shape rules for `@` and `numpy.matmul`."
+      - source: mml-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Section 2.2 defines the product and proves the properties listed in the formal block."
+      - source: 3b1b-linear-algebra
+        purpose: VISUAL_INTUITION
+        relevance: 0.9
+        excerpt: "Chapter 4, 'Matrix multiplication as composition', is the argument in the intuition block."

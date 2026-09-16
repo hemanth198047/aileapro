@@ -913,6 +913,142 @@ select {
   }
 }
 
+/* ---------- Authored content (Markdown + KaTeX) ---------- */
+
+/* Reading measure is capped here rather than on the pane, so a wide code block or a
+   long equation can still use the full column while prose stays readable. */
+.md {
+  font-family: var(--font-serif);
+  font-size: var(--step-1);
+  line-height: 1.72;
+  color: var(--ink);
+}
+
+.md > * + * {
+  margin-top: var(--s4);
+}
+
+.md p,
+.md li {
+  max-width: 68ch;
+}
+
+.md h1,
+.md h2,
+.md h3,
+.md h4 {
+  font-family: var(--font-sans);
+  letter-spacing: -0.012em;
+}
+
+.md h2 {
+  margin-top: var(--s6);
+  font-size: var(--step-2);
+}
+
+.md h3 {
+  margin-top: var(--s5);
+  font-size: var(--step-1);
+  font-weight: 650;
+}
+
+.md strong {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.md ul,
+.md ol {
+  margin: 0;
+  padding-left: var(--s5);
+}
+
+.md li + li {
+  margin-top: var(--s2);
+}
+
+.md li > ul,
+.md li > ol {
+  margin-top: var(--s2);
+}
+
+.md blockquote {
+  margin: 0;
+  padding: var(--s2) var(--s4);
+  border-left: 3px solid var(--brand);
+  background: var(--brand-soft);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.md hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.md code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  padding: 0.12em 0.36em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.md pre {
+  margin: 0;
+  padding: var(--s4);
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  line-height: 1.55;
+}
+
+.md pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.8125rem;
+}
+
+.md__scroll {
+  overflow-x: auto;
+}
+
+.md table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+.md th,
+.md td {
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.md th {
+  color: var(--muted);
+  font-weight: 650;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Display maths can be wider than the column; scroll it instead of clipping. */
+.md .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--s1) 0;
+}
+
+.md .katex {
+  font-size: 1.04em;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -1,0 +1,49 @@
+# A genuinely unfinished unit, kept in the seed on purpose.
+#
+# It is the next unit in the authoring queue and it is not ready: one explanation level, no
+# example, no misconception, no exercises, no mastery criteria. Because its status is draft,
+# CurriculumQueryService will not return it, /v1/units/scaled-dot-product-attention answers
+# 404, and the path below skips its waypoint. That behaviour is covered by a test rather than
+# by trust — see CatalogApiTest.
+
+units:
+  - slug: scaled-dot-product-attention
+    title: Scaled Dot-Product Attention
+    kind: knowledge_unit
+    parent: attention
+    status: draft
+    version: 0.2.0
+    difficulty: 4
+    estimateMinutes: 45
+    volatility: LOW
+    knowledgeClass: STABLE
+    tags: [attention, transformers]
+    objectives:
+      - Compute attention weights for a short sequence by hand.
+      - Explain why the scores are divided by the square root of the key dimension.
+    description: >-
+      Queries, keys, and values, and why the dot products are scaled. Draft: needs a worked
+      numeric example, a misconception, and exercises before it can be published.
+    blocks:
+      - type: why
+        markdown: |
+          Attention is how a model decides what to read. Draft note: this section needs to
+          connect back to the matrix product unit before it is publishable.
+
+      - type: beginner
+        markdown: |
+          Each position produces a query, a key, and a value. The query is compared against every
+          key by dot product, the scores are scaled and softmaxed into weights, and the output is
+          the weighted sum of the values:
+
+          $$
+          \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^{T}}{\sqrt{d_k}}\right)V
+          $$
+
+          Draft note: the $\sqrt{d_k}$ term needs the variance argument written out, plus a
+          numeric example on a three-token sequence.
+    resources:
+      - source: attention-2017
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: "Section 3.2.1 defines scaled dot-product attention and gives the scaling argument."

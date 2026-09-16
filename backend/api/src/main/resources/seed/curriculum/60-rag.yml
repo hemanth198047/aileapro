@@ -1,0 +1,257 @@
+# Vertical slice, part 5: one HIGH volatility unit.
+#
+# This is the unit that tests whether the freshness machinery is honest. It is deliberately
+# written against ideas that persist (stages, failure modes, trade-offs) rather than against
+# one vendor's API, and every external claim carries a source with a verification date.
+
+units:
+  - slug: rag-pipeline-basics
+    title: How RAG Answers With Sources
+    kind: knowledge_unit
+    parent: retrieval-augmented-generation
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    lastVerifiedAt: 2026-09-16
+    tags: [rag, retrieval, embeddings, llm]
+    objectives:
+      - Name the stages of a retrieval-augmented generation pipeline and what each can get wrong.
+      - Explain why retrieval reduces but does not eliminate unsupported claims.
+      - Decide when RAG is the right tool compared with fine-tuning or a longer prompt.
+      - Design a citation contract that a reader can actually check.
+    description: >-
+      Retrieve evidence, put it in the prompt, generate an answer that cites it. The idea is
+      simple; every stage has a failure mode, and knowing them is the whole skill.
+    blocks:
+      - type: why
+        markdown: |
+          A language model answers from its weights, which are fixed at training time and carry
+          no record of where anything came from. That is unacceptable for a question about your
+          documents, your policies, or anything that changed last week.
+
+          RAG addresses both problems at once: fetch relevant text now, and pass it to the model
+          with the instruction to answer from it and say where each claim came from. AILEAPRO's
+          own tutor is built this way, which is why it can show its sources.
+
+      - type: beginner
+        markdown: |
+          Five stages, and each one can be the reason an answer is wrong.
+
+          1. **Chunk.** Split documents into passages small enough to retrieve precisely and
+             large enough to make sense alone.
+          2. **Embed.** Turn each chunk into a vector with an embedding model, and store it.
+          3. **Retrieve.** Embed the question the same way, then find the chunks whose vectors are
+             closest — the cosine similarity from the vectors unit.
+          4. **Assemble.** Build a prompt containing the question, the retrieved chunks, and
+             instructions: answer only from this text, and cite it.
+          5. **Generate.** The model writes the answer; the application shows the citations.
+
+          The important consequence: **if retrieval misses, generation cannot recover.** A
+          fluent answer built on the wrong three chunks is the most dangerous output the system
+          can produce, because nothing about it looks wrong.
+
+      - type: intermediate
+        markdown: |
+          Where each stage actually fails, in the order you will meet the problems:
+
+          **Chunking.** Too large and one chunk covers several topics, so its embedding is an
+          average that matches nothing well. Too small and a passage loses the context that made
+          it meaningful — a sentence that says "this is not recommended" without saying what
+          "this" is. Splitting on document structure (headings, sections) beats splitting on a
+          fixed character count, and carrying a little overlap between neighbours avoids cutting
+          a sentence in half.
+
+          **Embedding.** The query and the documents must be embedded by the **same model**;
+          vectors from different models are not comparable at all. Embeddings also compress away
+          exactly what precise questions depend on: negation, numbers, dates, and names. This is
+          the cosine-similarity misconception from the vectors unit, met in production.
+
+          **Retrieval.** Pure vector search has no idea what an exact identifier is, so a query
+          for an error code or a product SKU often loses to a paraphrase. Hybrid search — vector
+          plus keyword — fixes most of that. Approximate indexes trade recall for latency, so a
+          system can be fast and quietly wrong. Metadata filtering (tenant, date, language)
+          belongs in the query, not in a post-filter that silently empties your result set.
+
+          **Assembly.** Context is finite and expensive, and models attend unevenly to a long
+          context: material in the middle is more likely to be ignored. More chunks is not better
+          — precision beats volume. The instruction must state what to do when the evidence does
+          not contain the answer, otherwise the model will fill the gap.
+
+          **Generation.** Even with good evidence in the prompt, a model can summarise it
+          incorrectly, merge two chunks into a claim neither makes, or cite a chunk that does not
+          support the sentence it is attached to. Citations must therefore be **checkable** —
+          pointing at a retrievable passage a human can open — rather than a plausible-looking
+          footnote.
+
+          **When not to use RAG.** Use it when the answer must come from a corpus that changes or
+          must be attributed. Prefer fine-tuning when you need a *behaviour*, format, or style
+          rather than facts. Prefer a plain long prompt when the relevant material is small
+          enough to include entirely — a retrieval stage you do not need is just another place to
+          fail.
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            Deliberately vendor-neutral pseudocode: the stages are stable, the specific APIs are
+            not, and this unit is marked HIGH volatility for exactly that reason.
+
+            ```python
+            # Index once.
+            chunks = [c for doc in documents for c in split_on_structure(doc, overlap=1)]
+            vectors = embed(chunks)                      # one model, recorded by name + version
+            store.upsert(vectors, payloads=chunks)       # pgvector, FAISS, or a managed service
+
+            # Answer a question.
+            def answer(question, k=5):
+                hits = store.search(embed([question])[0], k=k, filter={"tenant": tenant_id})
+                if not hits or hits[0].score < MIN_SCORE:
+                    return "I do not have a source for that."   # refusing is a valid answer
+
+                context = "\n\n".join(f"[{i+1}] {h.text}" for i, h in enumerate(hits))
+                prompt = (
+                    "Answer using ONLY the sources below. Cite them as [n].\n"
+                    "If the sources do not contain the answer, say so.\n\n"
+                    f"Sources:\n{context}\n\nQuestion: {question}"
+                )
+                return generate(prompt), [h.id for h in hits]     # answer plus checkable ids
+            ```
+
+            Two details carry most of the reliability: the score threshold that allows the system
+            to refuse, and returning source ids so a reader can verify rather than trust.
+
+      - type: example
+        markdown: |
+          A retrieval failure that generation cannot fix.
+
+          A policy corpus contains: *"Refunds are available within 30 days of purchase.
+          Exception: digital licences are non-refundable after activation."*
+
+          Query: **"Can I refund a digital licence?"**
+
+          Chunked by fixed size, those two sentences land in different chunks. The query is
+          closest to the first, which never mentions digital licences — so the model receives
+          only the general rule and answers *"Yes, within 30 days,"* with a citation that
+          genuinely says that.
+
+          Every stage behaved as designed. The answer is wrong, confident, and cited. Chunking on
+          structure with overlap keeps the exception attached to the rule, which is why chunking
+          is not a detail.
+
+      - type: misconception
+        payload:
+          code: rag.eliminates_hallucination
+          claim: "RAG stops the model from hallucinating."
+          markdown: |
+            **The claim:** once the answer comes from retrieved documents, made-up content is no
+            longer possible.
+
+            **Why it feels right:** grounding genuinely reduces unsupported claims, it is the
+            standard fix recommended for them, and demo answers come back neatly cited.
+
+            **What actually happens:** RAG changes *what the model reads*, not *what it is
+            capable of asserting*. Unsupported output survives in several forms:
+
+            - **Retrieval miss.** Nothing relevant was fetched, so the model answers from its
+              weights anyway unless instructed and permitted to refuse.
+            - **Retrieval of the wrong-but-similar.** As in the example above: the cited passage
+              is real and the answer is still wrong.
+            - **Faithless summarisation.** The evidence is correct but the sentence written from
+              it overstates, negates, or merges claims.
+            - **Decorative citations.** A reference is attached to a sentence the reference does
+              not support. Unless the citation is checkable, nobody notices.
+
+            **How to catch yourself:** measure it. Track retrieval recall separately from answer
+            quality, sample answers and verify each claim against its cited span, and require the
+            system to be able to say "I do not have a source for that". A RAG system without
+            evaluation is not grounded; it is decorated.
+
+      - type: application
+        markdown: |
+          AILEAPRO's tutor will use this pipeline over the curriculum itself, with three rules
+          that follow directly from the failure modes above: every answer carries the unit and
+          block it came from, the tutor states its knowledge timestamp, and it refuses rather
+          than guessing when retrieval comes back empty.
+
+          That work is Phase 7. It is named here so that this unit is not describing something
+          imaginary — the retrieval layer for it lands in Phase 6, and the tutor on top of it in
+          Phase 7.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Take the refund example. Write a chunking rule that keeps the exception with the
+               rule, and state what it costs you elsewhere.
+            2. For each of the five stages, write one sentence describing a failure and one
+               describing how you would detect it in logs or metrics.
+            3. Decide RAG, fine-tuning, or a plain prompt for each, with a reason:
+               a) answering from a 400-page handbook updated weekly;
+               b) always replying in a fixed JSON shape;
+               c) answering from a two-page policy that never changes.
+            4. Design a citation contract for an answer: what does a citation point at, and what
+               does a reader have to be able to do with it?
+            5. Explain why embedding queries with a different model than the documents produces
+               plausible but meaningless results.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why can generation not fix a retrieval miss?"
+              answer: >-
+                The model only sees the chunks it was given. If the evidence is absent, the best
+                available behaviour is refusal, not recovery.
+            - question: "Why is hybrid search often better than vector search alone?"
+              answer: >-
+                Embeddings blur exact tokens — identifiers, codes, names, numbers. Keyword
+                matching catches those; vectors catch paraphrase. Most real queries need both.
+            - question: "What must be true of a citation for it to be worth anything?"
+              answer: >-
+                A reader must be able to open the cited passage and check that it supports the
+                claim. An unverifiable reference is decoration.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - List the five stages and give a distinct failure mode for each without notes.
+            - Explain, with a concrete example, how a cited answer can still be wrong.
+            - Choose between RAG, fine-tuning, and a longer prompt for a described problem and
+              defend the choice.
+            - State what you would measure to know whether a RAG system is actually grounded.
+
+      - type: related
+        payload:
+          markdown: |
+            This unit assumes the dot product and cosine similarity from **Vectors**. Its
+            vocabulary sits in the **Embeddings** and **Vector Databases** domains, and the
+            evaluation practice it demands belongs to **AI Evaluation**. Those domains are mapped
+            but have no published units yet; typed prerequisite edges arrive with the knowledge
+            graph in Phase 4.
+    resources:
+      - source: rag-2020
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          The paper that named retrieval-augmented generation and established the
+          retrieve-then-generate framing used here.
+      - source: sentence-transformers
+        purpose: TOOL_REFERENCE
+        relevance: 0.8
+        excerpt: "Embedding models and the symmetric-versus-asymmetric retrieval distinction."
+      - source: pgvector
+        purpose: TOOL_REFERENCE
+        relevance: 0.8
+        excerpt: >-
+          Vector storage and indexing inside Postgres, including the recall-versus-speed
+          trade-off of approximate indexes. This is the store AILEAPRO itself uses.
+      - source: faiss
+        purpose: TOOL_REFERENCE
+        relevance: 0.6
+        excerpt: "Index structures for approximate nearest-neighbour search at larger scale."

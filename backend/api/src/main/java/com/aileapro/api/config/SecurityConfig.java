@@ -3,6 +3,7 @@ package com.aileapro.api.config;
 import com.aileapro.security.PasswordEncoders;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,12 +27,10 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableMethodSecurity
+// A servlet filter chain only exists in a web process. Operator CLI runs (gradle :api:seed)
+// start the same application with the web server off and must not require it.
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class SecurityConfig {
-
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return PasswordEncoders.argon2();
-    }
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

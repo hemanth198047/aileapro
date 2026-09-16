@@ -1,0 +1,748 @@
+# Domain taxonomy A–BE from 06-CURRICULUM_MODEL.
+#
+# These are real domain definitions, not filler: each states what the domain covers so a
+# learner can tell whether it is what they need. Most have no published units yet, and the
+# UI says exactly that rather than implying depth that does not exist. Nothing here is
+# generated — 57 rows, one per domain in the spec.
+
+units:
+  - slug: computer-fundamentals
+    title: Computer Fundamentals
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [fundamentals]
+    description: >-
+      How a machine stores, moves, and executes information: binary representation, memory,
+      the CPU cycle, operating systems, and what actually happens when a program runs.
+
+  - slug: programming-fundamentals
+    title: Programming Fundamentals
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [fundamentals, programming]
+    description: >-
+      The ideas every language shares: state, control flow, functions, types, abstraction,
+      and decomposing a problem into something a machine can carry out.
+
+  - slug: python
+    title: Python
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [python, programming]
+    description: >-
+      The working language of AI practice: its data model, its collections, its functions,
+      and the libraries that numerical and machine learning work is built on.
+
+  - slug: data-structures-and-algorithms
+    title: Data Structures and Algorithms
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [dsa, fundamentals]
+    description: >-
+      Choosing a representation and a procedure with the cost you can afford, and being able
+      to argue about that cost instead of guessing.
+
+  - slug: mathematics-for-ai
+    title: Mathematics for AI
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [mathematics]
+    description: >-
+      The mathematics actually used in machine learning, taught for use rather than for
+      exams: linear algebra, calculus, probability, statistics, and optimisation.
+
+  - slug: linear-algebra
+    title: Linear Algebra
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [mathematics, linear-algebra]
+    description: >-
+      Vectors, matrices, and the linear maps between them — the language in which every
+      model's parameters, inputs, and activations are written.
+
+  - slug: calculus
+    title: Calculus
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [mathematics, calculus]
+    description: >-
+      Rates of change and accumulation, leading to the gradients that every trained model
+      depends on.
+
+  - slug: probability
+    title: Probability
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [mathematics, probability]
+    description: >-
+      Reasoning under uncertainty: distributions, conditioning, independence, and expectation,
+      which is where loss functions come from.
+
+  - slug: statistics
+    title: Statistics
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [mathematics, statistics]
+    description: >-
+      Drawing defensible conclusions from samples: estimation, uncertainty, experiment design,
+      and the ways inference goes wrong.
+
+  - slug: optimization
+    title: Optimization
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-16
+    tags: [mathematics, optimization]
+    description: >-
+      Finding parameters that minimise a loss: gradient descent and its relatives, convexity,
+      conditioning, and why training sometimes refuses to converge.
+
+  - slug: data-engineering
+    title: Data Engineering
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [data]
+    description: >-
+      Getting data to where a model can use it: ingestion, storage, transformation, schemas,
+      and the pipelines that keep all of it reproducible.
+
+  - slug: sql
+    title: SQL
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [data, sql]
+    description: >-
+      Asking precise questions of relational data: joins, aggregation, window functions, and
+      query plans you can reason about.
+
+  - slug: data-science
+    title: Data Science
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [data]
+    description: >-
+      Turning a vague question into a measurable one, then answering it with data, analysis,
+      and an honest account of what the answer does not cover.
+
+  - slug: machine-learning
+    title: Machine Learning
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [machine-learning]
+    description: >-
+      Fitting functions from data: the supervised and unsupervised setting, generalisation,
+      overfitting, and how a trained model is judged.
+
+  - slug: classical-ml
+    title: Classical Machine Learning
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [machine-learning]
+    description: >-
+      Linear and tree-based models, support vector machines, and nearest neighbours — still
+      the right answer for a large share of real tabular problems.
+
+  - slug: feature-engineering
+    title: Feature Engineering
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [machine-learning, data]
+    description: >-
+      Representing the world so a model can learn from it: encoding, scaling, leakage,
+      and the difference between a useful feature and a coincidence.
+
+  - slug: model-evaluation
+    title: Model Evaluation
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [machine-learning, evaluation]
+    description: >-
+      Measuring whether a model is any good: splits, cross-validation, metric choice,
+      calibration, and the traps that make a bad model look excellent.
+
+  - slug: ensembles
+    title: Ensembles
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [machine-learning]
+    description: >-
+      Combining many weak learners into one strong one: bagging, boosting, stacking, and why
+      gradient-boosted trees remain hard to beat on tabular data.
+
+  - slug: unsupervised-learning
+    title: Unsupervised Learning
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [machine-learning]
+    description: >-
+      Finding structure without labels: clustering, dimensionality reduction, density
+      estimation, and how to tell a real pattern from a plausible-looking one.
+
+  - slug: reinforcement-learning
+    title: Reinforcement Learning
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [reinforcement-learning]
+    description: >-
+      Learning by acting: rewards, value, policy, exploration, and the reason reward design
+      is where most projects fail.
+
+  - slug: deep-learning
+    title: Deep Learning
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [deep-learning]
+    description: >-
+      Stacked differentiable layers trained end to end: initialisation, normalisation,
+      regularisation, and the practice of getting training to actually work.
+
+  - slug: neural-networks
+    title: Neural Networks
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [deep-learning, neural-networks]
+    description: >-
+      The unit of deep learning: weighted sums, nonlinearities, loss, and backpropagation —
+      the mechanics every larger architecture inherits.
+
+  - slug: convolutional-neural-networks
+    title: Convolutional Neural Networks
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [deep-learning, vision]
+    description: >-
+      Exploiting spatial structure with shared local filters: convolution, pooling, receptive
+      fields, and the architectures that made vision work.
+
+  - slug: recurrent-neural-networks
+    title: Recurrent Neural Networks
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [deep-learning, sequences]
+    description: >-
+      Modelling sequences with state: recurrence, gating in LSTMs and GRUs, and the
+      vanishing-gradient problem that motivated attention.
+
+  - slug: attention
+    title: Attention
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [deep-learning, attention]
+    description: >-
+      Letting a model choose what to read: queries, keys, values, scaled dot-product
+      attention, and multi-head attention.
+
+  - slug: transformers
+    title: Transformers
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [deep-learning, transformers]
+    description: >-
+      The architecture behind modern language and multimodal models: attention blocks,
+      residual streams, positional information, and how it scales.
+
+  - slug: natural-language-processing
+    title: Natural Language Processing
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [nlp]
+    description: >-
+      Making language computable: tokenisation, representation, classification, generation,
+      and evaluating output that has no single right answer.
+
+  - slug: computer-vision
+    title: Computer Vision
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-16
+    tags: [vision]
+    description: >-
+      Extracting meaning from images and video: classification, detection, segmentation,
+      and the data problems specific to visual work.
+
+  - slug: speech-ai
+    title: Speech AI
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [speech]
+    description: >-
+      Audio as a signal and as language: recognition, synthesis, speaker work, and the
+      latency constraints that shape real voice systems.
+
+  - slug: generative-ai
+    title: Generative AI
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [generative-ai]
+    description: >-
+      Models that produce text, images, audio, and code: what they can be relied on for,
+      what they cannot, and how to evaluate output that is plausible by construction.
+
+  - slug: large-language-models
+    title: Large Language Models
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [llm]
+    description: >-
+      Pretraining, alignment, context windows, sampling, and cost — the behaviour of LLMs
+      as components you have to engineer around.
+
+  - slug: prompt-engineering
+    title: Prompt Engineering
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [llm, prompting]
+    description: >-
+      Specifying a task to a model precisely enough to be reliable: instruction structure,
+      examples, output schemas, and evaluation instead of superstition.
+
+  - slug: embeddings
+    title: Embeddings
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [embeddings, retrieval]
+    description: >-
+      Turning text, images, and code into vectors whose geometry carries meaning, and knowing
+      what similarity in that space does and does not imply.
+
+  - slug: vector-databases
+    title: Vector Databases
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [retrieval, infrastructure]
+    description: >-
+      Storing and searching embeddings at scale: index structures, recall-versus-latency
+      trade-offs, filtering, and hybrid search with keywords.
+
+  - slug: retrieval-augmented-generation
+    title: Retrieval-Augmented Generation
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [rag, retrieval, llm]
+    description: >-
+      Grounding a generative model in retrieved evidence so answers can cite sources, and the
+      failure modes of every stage from chunking to generation.
+
+  - slug: fine-tuning
+    title: Fine-Tuning
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [llm, training]
+    description: >-
+      Adapting a pretrained model to a task or style: data curation, objectives, evaluation,
+      and deciding whether fine-tuning is the right tool at all.
+
+  - slug: peft-and-lora
+    title: PEFT and LoRA
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [llm, training]
+    description: >-
+      Parameter-efficient adaptation: low-rank updates, adapters, quantised training, and
+      serving many variants of one base model.
+
+  - slug: multimodal-ai
+    title: Multimodal AI
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [multimodal]
+    description: >-
+      Models that take and produce more than one modality, and the alignment and evaluation
+      problems that come with mixing them.
+
+  - slug: ai-agents
+    title: AI Agents
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: EMERGING
+    lastReviewedAt: 2026-09-16
+    tags: [agents]
+    description: >-
+      Systems that plan, act through tools, and react to results, plus the control, cost, and
+      safety questions that appear as soon as a model can act.
+
+  - slug: tool-calling
+    title: Tool Calling
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [agents, llm]
+    description: >-
+      Giving a model typed access to real functions: schemas, validation, idempotency,
+      and handling a call the model got wrong.
+
+  - slug: agent-memory
+    title: Agent Memory
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: EMERGING
+    lastReviewedAt: 2026-09-16
+    tags: [agents]
+    description: >-
+      What an agent should carry between steps and sessions: working context, durable stores,
+      summarisation, and forgetting on purpose.
+
+  - slug: multi-agent-systems
+    title: Multi-Agent Systems
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: EMERGING
+    lastReviewedAt: 2026-09-16
+    tags: [agents]
+    description: >-
+      Several models coordinating on one task: role division, protocols, arbitration, and
+      whether the extra machinery earns its cost.
+
+  - slug: ai-evaluation
+    title: AI Evaluation
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [evaluation]
+    description: >-
+      Judging systems whose output is open-ended: task suites, rubrics, human review,
+      model-as-judge and its biases, and regression testing for behaviour.
+
+  - slug: mlops
+    title: MLOps
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [operations]
+    description: >-
+      Running models as software: versioned data and models, reproducible training,
+      deployment, monitoring, and drift you find before your users do.
+
+  - slug: llmops
+    title: LLMOps
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [operations, llm]
+    description: >-
+      Operating LLM features: prompt and model versioning, caching, routing, cost and latency
+      budgets, and observability over non-deterministic output.
+
+  - slug: ai-infrastructure
+    title: AI Infrastructure
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [infrastructure]
+    description: >-
+      The compute underneath: accelerators, memory bandwidth, distributed training, serving,
+      batching, and what actually limits throughput.
+
+  - slug: ai-system-design
+    title: AI System Design
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [architecture]
+    description: >-
+      Designing a product around a probabilistic component: boundaries, fallbacks, evaluation
+      loops, human review, and failure that degrades gracefully.
+
+  - slug: ai-security
+    title: AI Security
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [security]
+    description: >-
+      Attacks specific to AI systems: prompt injection, data exfiltration through context,
+      poisoning, model abuse, and defences that assume input is hostile.
+
+  - slug: responsible-ai
+    title: Responsible AI
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [ethics]
+    description: >-
+      Harm, fairness, transparency, and consent as engineering concerns rather than slogans,
+      including what to measure and what to refuse to ship.
+
+  - slug: ai-governance
+    title: AI Governance
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [governance]
+    description: >-
+      Policy meeting practice: risk classification, documentation, audit trails, and the
+      obligations that regulation places on a deployed system.
+
+  - slug: ai-research
+    title: AI Research
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [research]
+    description: >-
+      Reading, reproducing, and criticising papers, and the craft of an experiment whose
+      result means something.
+
+  - slug: frontier-ai
+    title: Frontier AI
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: HIGH
+    knowledgeClass: EXPERIMENTAL
+    lastReviewedAt: 2026-09-16
+    tags: [research, frontier]
+    description: >-
+      Work at the edge of current capability, tracked with explicit uncertainty and labelled
+      as unsettled rather than taught as fact.
+
+  - slug: ai-product-development
+    title: AI Product Development
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [product]
+    description: >-
+      Finding a problem where probabilistic output is acceptable, then shaping scope,
+      interface, and expectations around it.
+
+  - slug: ai-entrepreneurship
+    title: AI Entrepreneurship
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [business]
+    description: >-
+      Building a business on top of models you do not own: differentiation, unit economics,
+      data advantage, and dependency risk.
+
+  - slug: ai-architecture
+    title: AI Architecture
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [architecture]
+    description: >-
+      Structuring large AI systems: retrieval, orchestration, state, provider abstraction,
+      and the seams that let you replace a model later.
+
+  - slug: ai-economics
+    title: AI Economics
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [business]
+    description: >-
+      The cost structure of intelligence: tokens, accelerators, caching, and where the margin
+      in an AI feature actually comes from.
+
+  - slug: ai-applications
+    title: AI Applications
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-16
+    tags: [applications]
+    description: >-
+      Domain-by-domain accounts of where AI is genuinely in production, what it replaced, and
+      what it failed to replace.

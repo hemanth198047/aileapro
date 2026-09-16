@@ -1,3 +1,5 @@
+// Markdown is deliberately absent: it is imported from "@aileapro/ui/markdown" so that KaTeX
+// does not ship to every page that pulls a button out of this barrel.
 export { Brand, BrandMark } from "./brand";
 export { Button, IconButton } from "./button";
 export { Callout, ErrorAlert } from "./callout";

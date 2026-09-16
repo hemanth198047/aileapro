@@ -66,9 +66,9 @@ export const SPACES: Space[] = [
     group: "Study",
     icon: <IconCompass />,
     purpose: "Your one recommended action, reviews that are due, and anything that needs attention.",
-    nextAction: "Verify your email address",
+    nextAction: "Start the first unit of the AI Engineer path",
     waitingOn:
-      "Recommendations need a curriculum to rank and mastery evidence to rank it against. Until then this space only shows work that genuinely exists.",
+      "Ranking a recommendation needs mastery evidence, which starts being recorded in Phase 5. Until then Today points at the start of the authored path rather than pretending to know where you are.",
   },
   {
     id: "learn",
@@ -76,11 +76,10 @@ export const SPACES: Space[] = [
     href: "/app/learn",
     group: "Study",
     icon: <IconBook />,
-    purpose: "The unit you are working through: explanation on one side, practice on the other.",
-    arrivesIn: "Phase 3",
-    nextAction: "Nothing yet — curriculum arrives in Phase 3",
+    purpose: "Authored units: why it matters, explanations at the levels that exist, examples, and what mastery would take.",
+    nextAction: "Open the AI Engineer path and read a unit",
     waitingOn:
-      "Phase 3 authors real units, blocks, and paths. Phase 5 adds levels 1–6, evidence chips, and the practice dock.",
+      "Ten units are authored and published. Level selection, evidence chips, and the practice dock arrive in Phase 5.",
   },
   {
     id: "map",
@@ -92,7 +91,7 @@ export const SPACES: Space[] = [
     arrivesIn: "Phase 4",
     nextAction: "Nothing yet — the graph arrives in Phase 4",
     waitingOn:
-      "A map needs nodes. Phase 3 creates the units, Phase 4 adds prerequisite edges and the neighbourhood view. A list fallback ships alongside the canvas.",
+      "The nodes exist now: 57 domains and the authored units under them. Phase 4 adds the typed prerequisite edges and the neighbourhood view, with a list fallback alongside the canvas.",
   },
   {
     id: "assess",
@@ -139,7 +138,8 @@ export const SPACES: Space[] = [
     purpose: "Your own linked notes, tied back to the units that prompted them.",
     arrivesIn: "Phase 5",
     nextAction: "Nothing yet — notes arrive in Phase 5",
-    waitingOn: "Notes link to units and blocks, so they wait for the curriculum in Phase 3.",
+    waitingOn:
+      "Notes attach to a unit and a block. The blocks exist now; capture, linking, and the notes pane are Phase 5.",
   },
   {
     id: "research",
@@ -187,7 +187,7 @@ export const SPACES: Space[] = [
     arrivesIn: "Phase 8",
     nextAction: "Nothing yet — search arrives in Phase 8",
     waitingOn:
-      "Semantic search indexes published blocks with pgvector. There is nothing published to index yet.",
+      "There are now published blocks to index. Phase 8 embeds them into pgvector and adds the query API, so search stays off until it can return real results with sources.",
   },
   {
     id: "settings",
