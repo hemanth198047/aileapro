@@ -1,4 +1,4 @@
--- ailepro Phase 1 identity
+-- aileapro Phase 1 identity
 
 CREATE TABLE users (
     id UUID PRIMARY KEY,

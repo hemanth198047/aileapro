@@ -119,7 +119,7 @@ REST/JSON versioned APIs, pagination, auth bearer or cookie documented. No deskt
 ## 11. Repository layout (target)
 
 ```
-ailepro/
+aileapro/
   apps/web                 # Next.js UI only
   packages/ui
   packages/api-client      # generated from springdoc

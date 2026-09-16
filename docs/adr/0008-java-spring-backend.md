@@ -19,7 +19,7 @@ The product owner requires **Java to be used as extensively as possible** on the
 7. **API docs:** springdoc-openapi; TypeScript client generated for `apps/web`.
 8. **Web UI remains Next.js + TypeScript.** A Java-only UI (Thymeleaf/Vaadin/JSP) cannot meet the split-pane studio UX bar without a large rewrite and is **rejected for P0**.
 9. **Learner sandbox language** remains Python (and later others) **inside** the executor image — that is curriculum, not the platform language.
-10. **Repo:** Gradle multi-project for Java (`/backend`) + pnpm for `apps/web`. One git repo `ailepro`. Make/`just` scripts orchestrate both.
+10. **Repo:** Gradle multi-project for Java (`/backend`) + pnpm for `apps/web`. One git repo `aileapro`. Make/`just` scripts orchestrate both.
 
 ## Consequences
 

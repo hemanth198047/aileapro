@@ -22,7 +22,7 @@
 
 ## Config
 
-12-factor. `application.yml` + env overrides. **Refuse prod boot** if `ailepro.ai.provider=fake`.
+12-factor. `application.yml` + env overrides. **Refuse prod boot** if `aileapro.ai.provider=fake`.
 
 ## Migrations
 

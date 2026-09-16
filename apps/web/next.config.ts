@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
-const apiOrigin = process.env.AILEPRO_API_ORIGIN ?? "http://localhost:8090";
+const apiOrigin = process.env.AILEAPRO_API_ORIGIN ?? "http://localhost:8090";
 
 const nextConfig: NextConfig = {
+  // @aileapro/ui ships TypeScript source, so Next must compile it.
+  transpilePackages: ["@aileapro/ui"],
   async rewrites() {
     return [
       {

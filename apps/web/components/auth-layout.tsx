@@ -1,10 +1,9 @@
 import { ReactNode } from "react";
-import { Brand } from "./brand";
-import { IconChart, IconLab, IconPath, IconShield } from "./icons";
+import { Brand, IconChart, IconLab, IconMap, IconShield } from "@aileapro/ui";
 
 const points = [
   {
-    icon: <IconPath size={14} />,
+    icon: <IconMap size={14} />,
     title: "A path, not a playlist",
     body: "The curriculum adapts to what you have actually proven you can do.",
   },
@@ -35,7 +34,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             <p className="kicker">AI university · lab · tutor</p>
             <h1>Go from curious to world-class.</h1>
             <p className="lede">
-              AILEPRO teaches the way a great mentor would: diagnose, explain, make you build it,
+              AILEAPRO teaches the way a great mentor would: diagnose, explain, make you build it,
               then come back when you are about to forget.
             </p>
           </div>

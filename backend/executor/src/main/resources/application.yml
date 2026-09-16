@@ -1,9 +1,9 @@
 spring:
   application:
-    name: ailepro-executor
+    name: aileapro-executor
 
 server:
-  port: ${AILEPRO_EXECUTOR_PORT:8082}
+  port: ${AILEAPRO_EXECUTOR_PORT:8082}
 
 management:
   endpoints:

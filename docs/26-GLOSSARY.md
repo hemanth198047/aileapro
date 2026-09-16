@@ -18,4 +18,4 @@
 | **Human-in-the-loop** | Configurable approval for curriculum mutation. |
 | **Provider router** | Chooses model/provider by task class, cost, latency, capability. |
 | **Sandbox** | Isolated execution environment for untrusted code. |
-| **AILEPRO** | Product name. Written `ailepro` (lowercase) for the repository and packages. |
+| **AILEAPRO** | Product name. Written `aileapro` (lowercase) for the repository and packages. |

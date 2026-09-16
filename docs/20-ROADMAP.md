@@ -8,7 +8,7 @@ Staffing assumption: **1–2 engineers + this agent** unless noted. Calendar is 
 
 ## Phase 0 — Inspect (complete at first code repo)
 
-- Confirm empty/new repo `ailepro`
+- Confirm empty/new repo `aileapro`
 - Record stack freeze (this pack)
 - **Deliverable:** this documentation pack + `docs/` copied into repo  
 - **Gate:** product owner agrees stack and P0 scope

@@ -1,7 +1,7 @@
 # 02 — Product specification (complete)
 
-**Product:** AILEPRO  
-**Engineering name:** ailepro  
+**Product:** AILEAPRO  
+**Engineering name:** aileapro  
 **Status:** Planning freeze. Implementation follows [20-ROADMAP.md](20-ROADMAP.md).  
 **Source of requirements:** master prompt (Always-Current) + architectural defaults in this pack.
 

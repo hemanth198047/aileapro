@@ -1,10 +1,10 @@
 spring:
   application:
-    name: ailepro-api
+    name: aileapro-api
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ailepro}
-    username: ${SPRING_DATASOURCE_USERNAME:ailepro}
-    password: ${SPRING_DATASOURCE_PASSWORD:ailepro}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/aileapro}
+    username: ${SPRING_DATASOURCE_USERNAME:aileapro}
+    password: ${SPRING_DATASOURCE_PASSWORD:aileapro}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -24,19 +24,19 @@ spring:
     timeout: 12h
 
 server:
-  port: ${AILEPRO_API_PORT:8090}
+  port: ${AILEAPRO_API_PORT:8090}
   servlet:
     session:
       cookie:
-        name: AILEPRO_SESSION
+        name: AILEAPRO_SESSION
         http-only: true
         same-site: lax
 
-ailepro:
+aileapro:
   web:
-    origin: ${AILEPRO_WEB_ORIGIN:http://localhost:3000}
+    origin: ${AILEAPRO_WEB_ORIGIN:http://localhost:3000}
   ai:
-    provider: ${AILEPRO_AI_PROVIDER:fake}
+    provider: ${AILEAPRO_AI_PROVIDER:fake}
 
 management:
   endpoints:

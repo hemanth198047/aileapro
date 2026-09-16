@@ -2,9 +2,9 @@
 
 ## Product
 
-**AILEPRO** is the product name. `ailepro` (lowercase) is the repository and package name.
+**AILEAPRO** is the product name. `aileapro` (lowercase) is the repository and package name.
 
-AILEPRO is a production-grade learning environment that takes a person from zero knowledge to world-class AI practitioner, engineer, researcher, or builder. Books, videos, courses, and docs are **inputs and supplements**. The product itself is the primary classroom, lab, tutor, research desk, and career coach.
+AILEAPRO is a production-grade learning environment that takes a person from zero knowledge to world-class AI practitioner, engineer, researcher, or builder. Books, videos, courses, and docs are **inputs and supplements**. The product itself is the primary classroom, lab, tutor, research desk, and career coach.
 
 ## Thesis
 

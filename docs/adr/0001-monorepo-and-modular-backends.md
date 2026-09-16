@@ -10,7 +10,7 @@ Many domains; need extractable deploy units; one git repo.
 
 ## Decision
 
-- One repo `ailepro`.
+- One repo `aileapro`.
 - `apps/web`: Next.js App Router UI. Talks only to `/v1` (optional thin BFF for cookies).
 - `backend/api`: Spring Boot HTTP API.
 - `backend/worker`: Spring Boot job processor (same modules, no public HTTP or internal-only actuator).

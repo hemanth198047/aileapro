@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ailepro
-      POSTGRES_USER: ailepro
-      POSTGRES_PASSWORD: ailepro
+      POSTGRES_DB: aileapro
+      POSTGRES_USER: aileapro
+      POSTGRES_PASSWORD: aileapro
     ports:
       - "5432:5432"
     volumes:
-      - ailepro_pg:/var/lib/postgresql/data
+      - aileapro_pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ailepro"]
+      test: ["CMD-SHELL", "pg_isready -U aileapro"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -30,13 +30,13 @@ services:
     image: quay.io/minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ailepro
-      MINIO_ROOT_PASSWORD: aileprosecret
+      MINIO_ROOT_USER: aileapro
+      MINIO_ROOT_PASSWORD: aileaprosecret
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - ailepro_minio:/data
+      - aileapro_minio:/data
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 10s
@@ -44,5 +44,5 @@ services:
       retries: 10
 
 volumes:
-  ailepro_pg:
-  ailepro_minio:
+  aileapro_pg:
+  aileapro_minio:

@@ -28,4 +28,6 @@ jobs:
           node-version: "22"
       - run: corepack enable
       - run: pnpm install
+      - run: pnpm --filter @aileapro/ui typecheck
       - run: pnpm --filter web typecheck
+      - run: pnpm --filter web build

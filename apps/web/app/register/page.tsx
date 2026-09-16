@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { api, csrfHeaders, type Me } from "@/lib/api";
 import { AuthLayout } from "@/components/auth-layout";
-import { Brand } from "@/components/brand";
-import { Button, ErrorAlert, Field, PasswordField } from "@/components/ui";
+import { Brand, Button, ErrorAlert, Field, PasswordField } from "@aileapro/ui";
 
 export default function RegisterPage() {
   const router = useRouter();

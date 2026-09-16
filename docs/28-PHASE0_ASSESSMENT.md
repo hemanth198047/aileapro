@@ -4,9 +4,9 @@ Master prompt §81: inspect the entire repository before code.
 
 ## Finding
 
-There is **no application repository yet**. `create_project` for `C:\Users\Admin\Projects\ailepro` failed to initialize git (`spawn /bin/sh ENOENT` on this Windows host). Planning documents live at:
+There is **no application repository yet**. `create_project` for `C:\Users\Admin\Projects\aileapro` failed to initialize git (`spawn /bin/sh ENOENT` on this Windows host). Planning documents live at:
 
-`C:\Users\Admin\Downloads\ailepro-docs`
+`C:\Users\Admin\Downloads\aileapro-docs`
 
 ## Existing stack
 
@@ -35,4 +35,4 @@ Adopt this pack: [11-ARCHITECTURE.md](11-ARCHITECTURE.md), [14-TECH_STACK.md](14
 
 ## Next
 
-Initialize `ailepro` under WSL or Git Bash, copy this folder to `docs/`, begin Phase 1.
+Initialize `aileapro` under WSL or Git Bash, copy this folder to `docs/`, begin Phase 1.

@@ -1,9 +1,9 @@
 spring:
   application:
-    name: ailepro-worker
+    name: aileapro-worker
 
 server:
-  port: ${AILEPRO_WORKER_PORT:8081}
+  port: ${AILEAPRO_WORKER_PORT:8081}
 
 management:
   endpoints:

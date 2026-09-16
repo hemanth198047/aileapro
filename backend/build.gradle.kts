@@ -7,7 +7,7 @@ plugins {
 
 subprojects {
     apply(plugin = "java")
-    group = "com.ailepro"
+    group = "com.aileapro"
     version = "0.1.0"
 
     repositories {

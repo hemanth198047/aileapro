@@ -5,7 +5,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = "ailepro"
+rootProject.name = "aileapro"
 
 include("api", "worker", "executor")
 include("libs:domain", "libs:security", "libs:persistence")

@@ -1,7 +1,7 @@
-# AILEPRO — Planning Pack Index
+# AILEAPRO — Planning Pack Index
 
-Product name: **AILEPRO**  
-Code / repository name: **ailepro**  
+Product name: **AILEAPRO**  
+Code / repository name: **aileapro**  
 Status: **Documentation-only.** No application code until this pack is accepted.
 
 This folder is the source of truth for architecture, product, delivery, and operations. Read documents in the numbered order unless you are jumping to a specific concern.
@@ -9,7 +9,7 @@ This folder is the source of truth for architecture, product, delivery, and oper
 ## Reading order
 
 1. [00-INDEX.md](00-INDEX.md) — this file
-2. **[AILEPRO_MASTER_BUILD_PLAN.md](AILEPRO_MASTER_BUILD_PLAN.md) — phase-by-phase build script (start Phase 1 here)**
+2. **[AILEAPRO_MASTER_BUILD_PLAN.md](AILEAPRO_MASTER_BUILD_PLAN.md) — phase-by-phase build script (start Phase 1 here)**
 3. [01-VISION.md](01-VISION.md) — product thesis, non-goals, differentiators
 4. [02-PRODUCT_SPEC.md](02-PRODUCT_SPEC.md) — complete feature specification
 4. [03-PERSONAS_AND_JOURNEYS.md](03-PERSONAS_AND_JOURNEYS.md)

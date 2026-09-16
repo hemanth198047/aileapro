@@ -1,11 +1,11 @@
-# ailepro documentation pack
+# aileapro documentation pack
 
-**Product:** AILEPRO  
-**Repo name:** ailepro  
+**Product:** AILEAPRO  
+**Repo name:** aileapro  
 
 This directory is the **planning freeze** for the product. Application code has not started.
 
-Start here for **building**: [AILEPRO_MASTER_BUILD_PLAN.md](AILEPRO_MASTER_BUILD_PLAN.md)  
+Start here for **building**: [AILEAPRO_MASTER_BUILD_PLAN.md](AILEAPRO_MASTER_BUILD_PLAN.md)  
 Start here for **specs**: [00-INDEX.md](00-INDEX.md)
 
 ## Contents
@@ -43,4 +43,4 @@ Start here for **specs**: [00-INDEX.md](00-INDEX.md)
 
 ## Next step
 
-Create git repo `ailepro`, copy this pack into `/docs`, then Phase 1: **Gradle Spring API + Next.js shell** per `20-ROADMAP.md` and [ADR 0008](adr/0008-java-spring-backend.md).
+Create git repo `aileapro`, copy this pack into `/docs`, then Phase 1: **Gradle Spring API + Next.js shell** per `20-ROADMAP.md` and [ADR 0008](adr/0008-java-spring-backend.md).

@@ -1,11 +1,11 @@
-# AILEPRO
+# AILEAPRO
 
-The AI university, lab, and personal tutor. `ailepro` is the repository name.
+The AI university, lab, and personal tutor. `aileapro` is the repository name.
 
 - Planning: [`docs/00-INDEX.md`](docs/00-INDEX.md)
-- Build script: [`docs/AILEPRO_MASTER_BUILD_PLAN.md`](docs/AILEPRO_MASTER_BUILD_PLAN.md)
+- Build script: [`docs/AILEAPRO_MASTER_BUILD_PLAN.md`](docs/AILEAPRO_MASTER_BUILD_PLAN.md)
 
-## Phase 1 stack
+## Current stack (through Phase 2)
 
 | Piece | Path |
 |---|---|
@@ -13,7 +13,17 @@ The AI university, lab, and personal tutor. `ailepro` is the repository name.
 | Worker stub | `backend/worker` (health only) |
 | Executor stub | `backend/executor` (health only — no learner code) |
 | Web | `apps/web` Next.js |
+| Design system | `packages/ui` (`@aileapro/ui`) tokens and primitives |
 | Data | Postgres 16, Redis 7, MinIO |
+
+## Spaces
+
+`/app` redirects to `/app/today`. Every space below is routed, and each one states what it is
+waiting on instead of showing invented progress. `apps/web/lib/spaces.tsx` is the registry that
+drives the navigation, command palette (`Ctrl K`), breadcrumb, and empty states.
+
+Today · Learn · Map · Assess · Lab · Studio · Notes · Research · Evolve · Career · Search ·
+Settings · Admin (`/app/admin` renders the API's 403 unless you hold the admin role)
 
 ## Run locally
 
@@ -38,7 +48,7 @@ OpenAPI: http://localhost:8090/swagger-ui.html
 Health: http://localhost:8090/actuator/health
 
 The API listens on 8090 because 8080 is commonly taken (XAMPP/Apache, Jenkins). Override with
-`AILEPRO_API_PORT`, and point the web proxy at it with `AILEPRO_API_ORIGIN`.
+`AILEAPRO_API_PORT`, and point the web proxy at it with `AILEAPRO_API_ORIGIN`.
 
 Dev email verification tokens are printed in the API log (not sent by mail yet).
 
@@ -47,6 +57,9 @@ Dev email verification tokens are printed in the API log (not sent by mail yet).
 ```powershell
 cd backend
 gradle check
+pnpm --filter @aileapro/ui typecheck
+pnpm --filter web typecheck
+pnpm --filter web build
 ```
 
 If `./gradlew` times out downloading a distribution, use the system `gradle` command (9.x is fine).
