@@ -6,31 +6,44 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serializable;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
-public class AileproUserPrincipal implements UserDetails {
-    private final UserEntity user;
-    private final Collection<? extends GrantedAuthority> authorities;
+/**
+ * Held in the HTTP session, so it must stay serializable and free of JPA entities.
+ * Credentials are never copied here; fresh user state is loaded per request by id.
+ */
+public class AileproUserPrincipal implements UserDetails, Serializable {
 
-    public AileproUserPrincipal(UserEntity user, Collection<? extends GrantedAuthority> authorities) {
-        this.user = user;
-        this.authorities = authorities;
+    private static final long serialVersionUID = 1L;
+
+    private final UUID id;
+    private final String email;
+    private final String status;
+    private final List<SimpleGrantedAuthority> authorities;
+
+    public AileproUserPrincipal(UUID id, String email, String status, Collection<SimpleGrantedAuthority> authorities) {
+        this.id = id;
+        this.email = email;
+        this.status = status;
+        this.authorities = List.copyOf(authorities);
     }
 
     public static AileproUserPrincipal from(UserEntity user, UserRoleRepository roles) {
         var authorities = roles.findByUserId(user.getId()).stream()
                 .map(r -> new SimpleGrantedAuthority("ROLE_" + r.getRoleCode().toUpperCase()))
                 .toList();
-        return new AileproUserPrincipal(user, authorities);
+        return new AileproUserPrincipal(user.getId(), user.getEmail(), user.getStatus(), authorities);
     }
 
     public UUID getId() {
-        return user.getId();
+        return id;
     }
 
     public String getEmail() {
-        return user.getEmail();
+        return email;
     }
 
     @Override
@@ -40,12 +53,12 @@ public class AileproUserPrincipal implements UserDetails {
 
     @Override
     public String getPassword() {
-        return user.getPasswordHash();
+        return null;
     }
 
     @Override
     public String getUsername() {
-        return user.getEmail();
+        return email;
     }
 
     @Override
@@ -55,7 +68,7 @@ public class AileproUserPrincipal implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return "active".equals(user.getStatus());
+        return "active".equals(status);
     }
 
     @Override
@@ -65,6 +78,6 @@ public class AileproUserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return "active".equals(user.getStatus());
+        return "active".equals(status);
     }
 }

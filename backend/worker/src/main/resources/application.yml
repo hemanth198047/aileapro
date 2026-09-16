@@ -1,3 +1,12 @@
-server.port=8081
-spring.application.name=ailepro-worker
-management.endpoints.web.exposure.include=health
+spring:
+  application:
+    name: ailepro-worker
+
+server:
+  port: ${AILEPRO_WORKER_PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

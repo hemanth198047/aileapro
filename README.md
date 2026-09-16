@@ -33,9 +33,12 @@ pnpm --filter web dev
 
 Open http://localhost:3000 — register, then you should land in the studio shell.
 
-API: http://localhost:8080/v1/me (after login cookie)  
-OpenAPI: http://localhost:8080/swagger-ui.html  
-Health: http://localhost:8080/actuator/health
+API: http://localhost:8090/v1/me (after login cookie)  
+OpenAPI: http://localhost:8090/swagger-ui.html  
+Health: http://localhost:8090/actuator/health
+
+The API listens on 8090 because 8080 is commonly taken (XAMPP/Apache, Jenkins). Override with
+`AILEPRO_API_PORT`, and point the web proxy at it with `AILEPRO_API_ORIGIN`.
 
 Dev email verification tokens are printed in the API log (not sent by mail yet).
 
