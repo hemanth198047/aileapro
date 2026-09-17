@@ -21,8 +21,13 @@ const delivered = [
   { label: "Studio shell and every space routed", state: "done", note: "Phase 2" },
   { label: "Authored curriculum, paths, and sources", state: "done", note: "Phase 3" },
   { label: "Knowledge map with typed prerequisites", state: "done", note: "Phase 4" },
-  { label: "Recorded evidence and a real recommendation", state: "active", note: "Phase 5" },
-  { label: "Graded assessment, reports, and spaced review", state: "todo", note: "Phase 6" },
+  { label: "Recorded evidence and a real recommendation", state: "done", note: "Phase 5" },
+  { label: "Graded assessment, reports, and spaced review", state: "done", note: "Phase 6" },
+  {
+    label: "The grounded tutor, which must cite the units it reads",
+    state: "active",
+    note: "Phase 7",
+  },
 ];
 
 /**
@@ -89,19 +94,7 @@ export default function TodayPage() {
       )}
 
       <div className="grid-2">
-        <section className="card">
-          <div className="card__head">
-            <span className="card__title">Reviews due</span>
-            <span className="muted mono">{today?.reviews.length ?? 0}</span>
-          </div>
-          <div className="empty">
-            <strong>No reviews scheduled.</strong>
-            <span>
-              {today?.reviewsNote ??
-                "Spaced review is generated from graded attempts, which arrive in Phase 6."}
-            </span>
-          </div>
-        </section>
+        <ReviewsCard today={today} />
 
         <section className="card">
           <div className="card__head">
@@ -139,10 +132,13 @@ export default function TodayPage() {
               See the whole path with your evidence
               <IconArrowRight />
             </Link>
+            <Link className="btn btn--outline" href="/app/assess">
+              What is due and what is held against you
+            </Link>
           </div>
           <p className="hint" style={{ marginTop: 12 }}>
-            Introduced is the ceiling that reading can reach. Everything above it is earned by
-            work you produce, which starts with graded practice in Phase 6.
+            Introduced is the ceiling that reading can reach. The states above it come from the
+            graded practice and quiz on each unit.
           </p>
         </section>
       ) : null}
@@ -164,6 +160,39 @@ export default function TodayPage() {
         </ul>
       </section>
     </>
+  );
+}
+
+/**
+ * What is due for recall. Overdue review outranks everything else on this page, so when there
+ * is any, the card says so rather than sitting quietly in the second column.
+ */
+function ReviewsCard({ today }: { today: Today | null }) {
+  const due = today?.reviews ?? [];
+
+  return (
+    <section className="card">
+      <div className="card__head">
+        <span className="card__title">Reviews due</span>
+        <span className="muted mono">{due.length === 0 ? "0" : due[0].object}</span>
+      </div>
+      {due.length === 0 ? (
+        <div className="empty">
+          <strong>Nothing is due.</strong>
+          <span>{today?.reviewsNote ?? "Checking your schedule…"}</span>
+        </div>
+      ) : (
+        <>
+          <p className="prose">{due[0].reason}</p>
+          <div className="space__actions" style={{ marginTop: 16 }}>
+            <Link className="btn btn--primary" href={due[0].href}>
+              {due[0].verb} {due[0].object}
+              <IconArrowRight />
+            </Link>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -217,8 +246,9 @@ function NextActionCard({ today }: { today: Today | null }) {
       </div>
 
       <p className="hint" style={{ marginTop: 16 }}>
-        Chosen by rule <code className="mono">{next.rule}</code>. Overdue spaced review would
-        outrank this, but there is no review schedule until graded items exist.
+        Chosen by rule <code className="mono">{next.rule}</code>. Overdue recall and a held false
+        belief both outrank anything new, so if either were outstanding you would be reading
+        about that instead.
       </p>
     </section>
   );

@@ -47,15 +47,6 @@ public final class MasteryPolicy {
     public record UnitFacts(Integer estimateMinutes, int authoredLevels) {
     }
 
-    public record Evidence(
-            EvidenceState read, EvidenceState practice, EvidenceState assess, EvidenceState apply) {
-
-        public static Evidence none() {
-            return new Evidence(
-                    EvidenceState.EMPTY, EvidenceState.EMPTY, EvidenceState.EMPTY, EvidenceState.EMPTY);
-        }
-    }
-
     /** The projection these rules read and rewrite. Immutable, like the rules themselves. */
     public record Snapshot(
             MasteryState state,

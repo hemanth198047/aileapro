@@ -1,0 +1,224 @@
+# Items for how-a-neuron-learns.
+
+items:
+  - slug: nn-forward-pass
+    unit: how-a-neuron-learns
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 90
+    stem: |
+      A neuron has weights $w = [0.5, -1.0]$ and bias $b = 0.2$. For input $x = [2, 1]$,
+      what is the pre-activation $z = w \cdot x + b$?
+    answer: 0.2
+    tolerance: 0.001
+    explanation: |
+      $0.5 \cdot 2 + (-1.0) \cdot 1 + 0.2 = 1.0 - 1.0 + 0.2 = 0.2$.
+
+      That is the whole forward pass of one neuron: a dot product and an addition, then an
+      activation function applied to the result. Everything that follows in deep learning is
+      this, repeated and stacked.
+
+  - slug: nn-name-the-parts
+    unit: how-a-neuron-learns
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: "What does the **bias** term let a neuron do that weights alone cannot?"
+    choices:
+      - id: a
+        text: "Shift its output up or down independently of the input."
+        correct: true
+      - id: b
+        text: "Scale the influence of each input feature."
+      - id: c
+        text: "Introduce non-linearity."
+      - id: d
+        text: "Prevent the weights from growing too large."
+    explanation: |
+      The bias shifts the whole function. Without it, $z = 0$ whenever $x = 0$, so the
+      neuron's decision boundary is forced through the origin — a real restriction that has
+      nothing to do with the data.
+
+      Scaling per feature (b) is what weights do, non-linearity (c) comes from the
+      activation function, and keeping weights small (d) is regularisation.
+
+  - slug: nn-loss-differentiable
+    unit: how-a-neuron-learns
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Why does gradient-based training need the loss to be differentiable?"
+    choices:
+      - id: a
+        text: "The gradient is what says which direction to move each weight, and how much."
+        correct: true
+      - id: b
+        text: "Differentiable losses are always convex, so training cannot get stuck."
+      - id: c
+        text: "Non-differentiable functions cannot be computed on a GPU."
+      - id: d
+        text: "It guarantees the loss reaches zero."
+    explanation: |
+      Without a gradient there is no direction to step in. The derivative of the loss with
+      respect to each weight says which way that weight should move and roughly how much,
+      and gradient descent is nothing but repeating that step.
+
+      (b) is false and worth being clear about: neural network losses are famously
+      non-convex. Differentiability gives you a direction, not a guarantee of a global
+      minimum, and certainly not zero loss (d).
+
+  - slug: nn-gradient-step
+    unit: how-a-neuron-learns
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      A weight is currently $w = 0.8$ and $\partial L / \partial w = 0.5$. With learning
+      rate $\eta = 0.1$, what is $w$ after one gradient descent step?
+    answer: 0.75
+    tolerance: 0.001
+    explanation: |
+      $w \leftarrow w - \eta \frac{\partial L}{\partial w} = 0.8 - 0.1 \cdot 0.5 = 0.75$.
+
+      Note the minus sign: the gradient points **uphill** on the loss surface, so you step
+      against it. A positive gradient means increasing this weight would increase the loss,
+      so the weight goes down.
+
+  - slug: nn-loss-vs-accuracy
+    unit: how-a-neuron-learns
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      During training, loss falls steadily while accuracy stays flat at 91%. What is the
+      most likely explanation?
+    choices:
+      - id: a
+        text: "The model is growing more confident on examples it already classified correctly, without flipping any new ones across the decision boundary."
+        correct: true
+      - id: b
+        text: "The loss is being computed incorrectly; falling loss always raises accuracy."
+        misconception: nn.loss_equals_accuracy
+      - id: c
+        text: "Accuracy is a smoothed version of loss and simply lags behind it."
+      - id: d
+        text: "The learning rate is too low for accuracy to change."
+    explanation: |
+      Loss measures *how wrong* the predicted probabilities are; accuracy counts how many
+      land on the right side of the threshold. Moving a correct prediction from 0.6 to 0.9
+      improves the loss and changes no count at all.
+
+      They are different quantities and can move independently, in either direction — a
+      model can also improve accuracy while loss worsens, by getting a few more examples
+      just barely right and a few badly wrong. Watching only one of them is how people ship
+      a model that is confidently wrong on the cases that matter.
+
+  - slug: nn-activation-needed
+    unit: how-a-neuron-learns
+    type: true_false
+    bloom: understand
+    difficulty: 4
+    estimateSeconds: 90
+    stem: |
+      Stacking many layers with no activation function between them gives a model no more
+      expressive than a single layer.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True, and it follows from the linear algebra: composing linear maps gives a linear
+      map. $W_3(W_2(W_1 x))$ equals $(W_3 W_2 W_1) x$, which is one matrix — so a hundred
+      layers collapse to one.
+
+      The non-linearity between layers is what makes depth buy anything. It is the same
+      associativity that made $A(BC) = (AB)C$, read here as a limitation rather than an
+      optimisation.
+
+  - slug: nn-learning-rate
+    unit: how-a-neuron-learns
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      Training loss oscillates wildly and sometimes increases from one step to the next.
+      What is the first thing to suspect?
+    choices:
+      - id: a
+        text: "The learning rate is too high, so steps overshoot the minimum."
+        correct: true
+      - id: b
+        text: "The learning rate is too low, so progress is noisy."
+      - id: c
+        text: "The loss function is non-differentiable."
+      - id: d
+        text: "The model has too few parameters."
+    explanation: |
+      Too high a learning rate. The gradient is only a good guide for a small step; take a
+      big one and you can land further up the other side of the valley, which is exactly
+      what oscillating loss looks like.
+
+      A learning rate that is too low (b) gives the opposite symptom: smooth, boring,
+      painfully slow improvement. This is the first knob to check because it is the cheapest
+      to test — halve it and see.
+
+assessments:
+  - slug: how-a-neuron-learns-practice
+    title: "Practice: how a neuron learns"
+    kind: practice
+    unit: how-a-neuron-learns
+    items:
+      - nn-forward-pass
+      - nn-name-the-parts
+      - nn-loss-differentiable
+      - nn-gradient-step
+      - nn-activation-needed
+
+  - slug: how-a-neuron-learns-quiz
+    title: "Quiz: how a neuron learns"
+    kind: quiz
+    unit: how-a-neuron-learns
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - nn-gradient-step
+      - nn-loss-vs-accuracy
+      - nn-loss-differentiable
+      - nn-learning-rate
+
+cards:
+  - slug: card-nn-forward
+    unit: how-a-neuron-learns
+    front: "Write the forward pass of one neuron."
+    back: |
+      $z = w \cdot x + b$, then $a = \sigma(z)$ for some activation $\sigma$. A dot product,
+      an addition, and a non-linearity.
+
+  - slug: card-nn-update-rule
+    unit: how-a-neuron-learns
+    front: "The gradient descent update, with the sign."
+    back: |
+      $w \leftarrow w - \eta \, \partial L / \partial w$. Minus, because the gradient points
+      uphill on the loss.
+
+  - slug: card-nn-loss-vs-accuracy
+    unit: how-a-neuron-learns
+    front: "Loss falls, accuracy flat. What happened?"
+    back: |
+      Confidence improved on examples already correct, without moving any across the
+      threshold. Loss measures how wrong the probabilities are; accuracy counts sides.
+
+  - slug: card-nn-why-activation
+    unit: how-a-neuron-learns
+    front: "Why is an activation function needed between layers?"
+    back: |
+      Composing linear maps gives a linear map, so without one, any depth collapses to a
+      single matrix. The non-linearity is what makes depth buy anything.

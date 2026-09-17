@@ -142,10 +142,10 @@ class MasteryPolicyTest {
 
     @Test
     void readingNeverPullsDownAStateEarnedElsewhere() {
-        // A record that reached PRACTICED through graded evidence in a later phase.
+        // A record that reached PRACTICED through graded evidence.
         Snapshot earned = new Snapshot(
                 MasteryState.PRACTICED,
-                new MasteryPolicy.Evidence(
+                new com.aileapro.domain.Evidence(
                         EvidenceState.SOLID, EvidenceState.SOLID, EvidenceState.PARTIAL, EvidenceState.EMPTY),
                 5_000,
                 java.util.Set.of("beginner"),

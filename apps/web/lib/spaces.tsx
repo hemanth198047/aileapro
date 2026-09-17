@@ -68,7 +68,7 @@ export const SPACES: Space[] = [
     purpose: "Your one recommended action, reviews that are due, and anything that needs attention.",
     nextAction: "Read the unit Today recommends, and see why it chose it",
     waitingOn:
-      "The recommendation is rule-based: an unread prerequisite first, then the waypoint you are on. Overdue spaced review would outrank both, and there is no review schedule until graded items exist in Phase 6.",
+      "The recommendation is rule-based and it says which rule. Overdue recall comes first, then a held false belief, then an unread prerequisite, then the waypoint you are on.",
   },
   {
     id: "learn",
@@ -79,7 +79,7 @@ export const SPACES: Space[] = [
     purpose: "Authored units: why it matters, explanations at the levels that exist, examples, and what mastery would take.",
     nextAction: "Open your path and read the first unit that is not read yet",
     waitingOn:
-      "Ten units are authored, each with prerequisites drawn and your reading recorded against it. Graded exercises, which are the only thing that can fill the Practice chip, arrive in Phase 6.",
+      "Each authored unit carries its prerequisites, your reading, and the graded practice and quiz that can move the Practice and Assess chips. Apply needs a project, which arrives in Phase 10.",
   },
   {
     id: "map",
@@ -98,11 +98,10 @@ export const SPACES: Space[] = [
     href: "/app/assess",
     group: "Study",
     icon: <IconAssess />,
-    purpose: "Quizzes, exams, and spaced review that produce real evidence of mastery.",
-    arrivesIn: "Phase 6",
-    nextAction: "Nothing yet — assessment arrives in Phase 6",
+    purpose: "Quizzes, spaced review, and reports that produce real evidence of mastery.",
+    nextAction: "Take the diagnostic, or open a unit and sit its practice set",
     waitingOn:
-      "Phase 6 brings the question bank, attempt reports that are more than a percentage, the placement diagnostic, and due reviews.",
+      "Items are marked on the server and every attempt produces a written report, not a percentage. Exams across a whole path, and code-graded items the Lab will run, come later.",
   },
   {
     id: "lab",

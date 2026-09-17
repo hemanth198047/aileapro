@@ -1,8 +1,12 @@
 package com.aileapro.domain;
 
 /**
- * Things a learner can be observed doing while reading. All of them are consumption
- * signals, which is exactly why none of them can fill anything but the Read chip.
+ * Things a learner can be observed doing on a unit.
+ *
+ * <p>The first five are consumption signals, which is exactly why none of them can fill
+ * anything but the Read chip. The rest are production: an answer submitted, an attempt
+ * marked, a card recalled after a gap. Those are the only events that can move a unit past
+ * INTRODUCED, and they are handled by a different policy class for that reason.
  */
 public enum LearningEventKind {
 
@@ -22,10 +26,25 @@ public enum LearningEventKind {
     SELF_CHECK_REVEALED("self_check_revealed"),
 
     /**
-     * The exercises were opened. Also credited to nothing — Practice needs a submission,
-     * which arrives with grading in Phase 6.
+     * The exercises were opened. Also credited to nothing: looking at a question is not
+     * answering it. Practice needs a submission, which is {@link #ITEM_ANSWERED}.
      */
-    EXERCISE_VIEWED("exercise_viewed");
+    EXERCISE_VIEWED("exercise_viewed"),
+
+    /** One graded item was answered. Carries the item, correctness, and difficulty. */
+    ITEM_ANSWERED("item_answered"),
+
+    /** An attempt was submitted and scored. Carries the fraction and whether it passed. */
+    ATTEMPT_SUBMITTED("attempt_submitted"),
+
+    /** A flashcard was graded in review. Only counts as retention when it was actually due. */
+    REVIEW_ANSWERED("review_answered"),
+
+    /** A wrong answer matched a named misconception. */
+    MISCONCEPTION_RAISED("misconception_raised"),
+
+    /** A misconception was answered correctly after the reteach block was read. */
+    MISCONCEPTION_CLEARED("misconception_cleared");
 
     private final String code;
 

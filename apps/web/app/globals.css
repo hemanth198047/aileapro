@@ -1203,6 +1203,319 @@
   padding: var(--s3) var(--s4);
 }
 
+/* Graded work sits above the written exercises, and looks like something to start. */
+.offers {
+  display: grid;
+  gap: var(--s2);
+  margin: 0 0 var(--s3);
+  padding: 0;
+  list-style: none;
+}
+
+.offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.offer__body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+.offer__body span {
+  color: var(--ink-soft);
+}
+
+.offer__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: 2px;
+}
+
+/* ---------- Quiz runner ---------- */
+
+.quiz__bar {
+  display: grid;
+  gap: var(--s2);
+}
+
+.quiz__clock {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.quiz__clock[data-low="true"] {
+  color: var(--gold);
+  font-weight: 650;
+}
+
+.quiz__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.quiz__stem {
+  margin: var(--s3) 0 var(--s4);
+}
+
+.choices {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.choice {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color var(--fast), background var(--fast);
+}
+
+.choice:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-hover);
+}
+
+.choice[data-chosen="true"] {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+/* After marking, every choice carries its verdict, not only the one that was picked: which
+   answer was right is the thing worth taking away. */
+.choice[data-verdict="right"] {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--line));
+  background: var(--success-soft);
+}
+
+.choice[data-verdict="wrong"] {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+  background: var(--danger-soft);
+}
+
+.choice:has(input:disabled) {
+  cursor: default;
+}
+
+.choice__text {
+  min-width: 0;
+  font-size: 0.9375rem;
+}
+
+.quiz__code {
+  min-height: 160px;
+  resize: vertical;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.quiz__feedback {
+  margin-top: var(--s4);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--line);
+}
+
+.quiz__verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+  margin: 0 0 var(--s3);
+  font-size: 0.875rem;
+}
+
+.quiz__explain {
+  padding: var(--s3) var(--s4);
+  border-left: 3px solid var(--brand);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--surface-2);
+}
+
+.quiz__misconceptions {
+  margin-top: var(--s4);
+}
+
+.misconceptions {
+  display: grid;
+  gap: var(--s2);
+  margin: var(--s2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.misconceptions li {
+  display: grid;
+  gap: 4px;
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+/* ---------- Report ---------- */
+
+.report__score {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s3);
+  margin-top: var(--s4);
+}
+
+/* The figure is present and readable, and deliberately not the size of the headline. */
+.report__figure {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.reportlines {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.reportlines li {
+  display: grid;
+  gap: 2px;
+  padding-left: var(--s3);
+  border-left: 2px solid var(--line-strong);
+}
+
+.reportlines__label {
+  font-weight: 650;
+}
+
+.reportlines__detail {
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+/* ---------- Review ---------- */
+
+.review__front,
+.review__back {
+  padding: var(--s5) var(--s4);
+  margin: var(--s3) 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  font-size: 1.0625rem;
+}
+
+.review__grades {
+  margin-top: var(--s4);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: var(--s2);
+  justify-items: start;
+}
+
+/* ---------- Study plan ---------- */
+
+.priors {
+  display: grid;
+  gap: var(--s3);
+  margin: var(--s2) 0 var(--s3);
+  padding: 0;
+  list-style: none;
+}
+
+.prior {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.prior__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.prior__reason {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+/* A low-confidence placement is marked as such, so thin evidence stays visibly thin. */
+.badge[data-confidence="low"] {
+  border-color: color-mix(in srgb, var(--gold) 38%, var(--line));
+  color: var(--gold);
+}
+
+.planlist {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: plan;
+}
+
+.planline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 0.875rem;
+}
+
+.planline__kind {
+  text-transform: capitalize;
+}
+
+.planline__body {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.planline__reason {
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
 /* ---------- Roadmap overlay ---------- */
 
 /* A read waypoint is marked on the rail, never filled in as complete. */

@@ -501,11 +501,73 @@ in prose is Phase 7.
 
 ### GATE (Phase 6) — Milestone M3
 
-- [ ] New user: register → profile → diagnostic → roadmap
-- [ ] Quiz report is not “Score: 78%” alone
-- [ ] Due reviews appear on Today when scheduled
+- [x] New user: register → profile → diagnostic → roadmap
+- [x] Quiz report is not “Score: 78%” alone
+- [x] Due reviews appear on Today when scheduled
 
 **Phase log:**
+
+- **2026-09-17 — Phase 6 complete.** `V5__assessment.sql` adds `question_bank`,
+  `misconception_catalog`, `assessments`, `assessment_items`, `attempts`, `attempt_answers`,
+  `exam_reports`, `misconception_flags`, `flashcards`, `review_schedules`, `review_answers`,
+  and `diagnostic_priors`, and gives `study_plans` a `source` and an `attempt_id` so a plan can
+  cite the attempt that produced it. Answers are stored per item rather than as a score, because
+  every narrative section of a report is a question about individual items and a total cannot be
+  asked it later.
+- Marking is a pure function (`ItemScoring`) over the item's stored key: MCQ, multi-select,
+  true/false, short text with numeric tolerance, and a coding stub that compares against
+  accepted solutions and marks itself *unverified* rather than guessing. Partial credit is
+  fractional and a partial answer is not a correct one. Unmarkable items are excluded from both
+  halves of the fraction, so a limitation of the marker neither penalises nor rewards anyone.
+- `GradedEvidencePolicy` is the only place Practice and Assess can move and the only thing that
+  can take a unit past INTRODUCED. It is a monotonic ladder: each rung requires every rung below
+  it, so a unit whose authored items are all definitions stops at FAMILIAR however much work is
+  done, and `reachableCeiling` names that as a content gap instead of letting the learner read
+  it as falling short. `nextGate` returns the single unmet requirement, which is what the dock
+  and the report quote. MASTERED is unreachable by design: nothing can fill Apply yet.
+- Attempts start, resume, serve one item at a time, and mark on the server. A served item
+  carries no key and no explanation; the explanation arrives with the mark, including for a
+  right answer, because being right for the wrong reason is a real outcome. A second answer to
+  the same item is refused rather than re-marked, and starting an assessment twice resumes the
+  attempt rather than dealing a fresh set — otherwise the refresh key is a reroll.
+- Misconceptions are named rather than inferred from a wrong total. A coded distractor raises a
+  flag with the claim and a link to the block that argues against it; answering anything the
+  same item can detect, correctly, clears it. An open flag holds the unit at FAMILIAR, and the
+  report says so, because a belief that survives a pass keeps producing wrong answers.
+- Reports are written once at submission (`exam_reports`) rather than recomputed, so the
+  learner and the rules can disagree later without the report changing under them. Every
+  attempt yields strengths, weaknesses, misconceptions, missing prerequisites, revision,
+  readiness with its reason, the mastery state with the note explaining it, and next steps.
+- `ReviewScheduler` is an SM-2 variant, pure, with the interval capped by the volatility of the
+  content, leeches flagged rather than repeated forever, and credit given only for a card
+  answered on or after its due date: answering early is re-reading with extra steps. Cards are
+  enrolled when a unit's Read chip goes solid, so review is earned by reading.
+- The diagnostic is adaptive and scores nothing. Stop rules end a domain after three right or
+  two wrong, priors are recorded per domain with a confidence label and the item counts behind
+  them, and study plan v1 is generated from the learner's path with a reason on every line —
+  including the lines it decided to skip, which are shown rather than silently omitted. Asking
+  for a plan without a goal is refused with its own `goal_required` code so the client can send
+  the learner to onboarding instead of showing an error they cannot act on.
+- UI: a graded practice dock on every unit that names the ceiling and the next gate, a quiz
+  runner with per-item feedback and a clock, a report screen where the score is not the
+  headline, a review queue that withholds the back of the card until a grade is given, the
+  diagnostic flow ending in the plan, and an assess hub listing due reviews, open
+  misconceptions, and the current plan. Today ranks overdue review above everything else.
+- Verified: `gradle check` (110 tests, 51 new), `pnpm -r typecheck`, `pnpm --filter web build`, the API
+  walk in `backend/scripts/phase6-walk.ps1` end to end on a freshly migrated database, and a
+  browser walk of the gate. The walk found two things the suite could not: `plan_items` had no
+  `skip` in its CHECK constraint, and the quiz progress bar added `remaining` to `servedCount`
+  and so counted unanswered items twice.
+
+**Known gaps carried forward:** the test database is built from the JPA entities with Flyway
+disabled, because the migrations need pgvector and H2 does not have it — so no test in the suite
+exercises a CHECK constraint, and `PlanItemKindsTest` reads the constraint out of the migration
+as a narrow stand-in for the Testcontainers run this needs. Apply cannot move and MASTERED is
+therefore unreachable until the lab (Phase 9) and Project Studio (Phase 10). Coding items are
+string-compared and marked unverified until the executor exists. The adaptive rules are authored
+priors per difficulty rather than item statistics, which need many learners' answers before they
+mean anything. Nothing re-plans yet: a changed goal does not produce version 2, and repeated
+failure does not trigger a recalculation.
 
 ---
 

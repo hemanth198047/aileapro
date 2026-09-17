@@ -235,8 +235,8 @@ function SelfCheck({ block, label }: { block: UnitBlock; label: string }) {
       </div>
       <p className="hint" style={{ marginTop: 12 }}>
         Self-check only. Revealing an answer is stored as history and earns no evidence, because
-        seeing the answer is not recalling it. Graded items and misconception tagging arrive with
-        the assessment engine in Phase 6.
+        seeing the answer is not recalling it. The graded items that do move a chip are in the
+        practice set below.
       </p>
     </section>
   );

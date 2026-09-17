@@ -13,6 +13,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -81,6 +82,53 @@ public class MasteryRecordEntity {
     @Column(name = "last_event_at")
     private Instant lastEventAt;
 
+    // Graded inputs. Same reasoning as the reading columns above: carried on the projection
+    // so a read path never replays the event log.
+
+    @Column(name = "practice_items_correct", nullable = false)
+    private int practiceItemsCorrect;
+
+    @Column(name = "practice_items_answered", nullable = false)
+    private int practiceItemsAnswered;
+
+    @Column(name = "assess_items_correct", nullable = false)
+    private int assessItemsCorrect;
+
+    @Column(name = "assess_items_answered", nullable = false)
+    private int assessItemsAnswered;
+
+    @Column(name = "assess_best_fraction")
+    private BigDecimal assessBestFraction;
+
+    @Column(name = "assessments_passed", nullable = false)
+    private int assessmentsPassed;
+
+    /** Correct answers on items above recall level, which is the UNDERSTOOD gate. */
+    @Column(name = "understand_items_correct", nullable = false)
+    private int understandItemsCorrect;
+
+    @Column(name = "accuracy_ema")
+    private BigDecimal accuracyEma;
+
+    @Column(name = "reviews_due_passed", nullable = false)
+    private int reviewsDuePassed;
+
+    @Column(name = "reviews_due_failed", nullable = false)
+    private int reviewsDueFailed;
+
+    /** Distinct days with graded evidence, which is how consistency is measured. */
+    @Column(name = "graded_days", nullable = false)
+    private int gradedDays;
+
+    @Column(name = "last_graded_on")
+    private LocalDate lastGradedOn;
+
+    @Column(name = "open_misconceptions", nullable = false)
+    private int openMisconceptions;
+
+    @Column(name = "last_graded_at")
+    private Instant lastGradedAt;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -127,4 +175,32 @@ public class MasteryRecordEntity {
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public int getPracticeItemsCorrect() { return practiceItemsCorrect; }
+    public void setPracticeItemsCorrect(int practiceItemsCorrect) { this.practiceItemsCorrect = practiceItemsCorrect; }
+    public int getPracticeItemsAnswered() { return practiceItemsAnswered; }
+    public void setPracticeItemsAnswered(int practiceItemsAnswered) { this.practiceItemsAnswered = practiceItemsAnswered; }
+    public int getAssessItemsCorrect() { return assessItemsCorrect; }
+    public void setAssessItemsCorrect(int assessItemsCorrect) { this.assessItemsCorrect = assessItemsCorrect; }
+    public int getAssessItemsAnswered() { return assessItemsAnswered; }
+    public void setAssessItemsAnswered(int assessItemsAnswered) { this.assessItemsAnswered = assessItemsAnswered; }
+    public BigDecimal getAssessBestFraction() { return assessBestFraction; }
+    public void setAssessBestFraction(BigDecimal assessBestFraction) { this.assessBestFraction = assessBestFraction; }
+    public int getAssessmentsPassed() { return assessmentsPassed; }
+    public void setAssessmentsPassed(int assessmentsPassed) { this.assessmentsPassed = assessmentsPassed; }
+    public int getUnderstandItemsCorrect() { return understandItemsCorrect; }
+    public void setUnderstandItemsCorrect(int understandItemsCorrect) { this.understandItemsCorrect = understandItemsCorrect; }
+    public BigDecimal getAccuracyEma() { return accuracyEma; }
+    public void setAccuracyEma(BigDecimal accuracyEma) { this.accuracyEma = accuracyEma; }
+    public int getReviewsDuePassed() { return reviewsDuePassed; }
+    public void setReviewsDuePassed(int reviewsDuePassed) { this.reviewsDuePassed = reviewsDuePassed; }
+    public int getReviewsDueFailed() { return reviewsDueFailed; }
+    public void setReviewsDueFailed(int reviewsDueFailed) { this.reviewsDueFailed = reviewsDueFailed; }
+    public int getGradedDays() { return gradedDays; }
+    public void setGradedDays(int gradedDays) { this.gradedDays = gradedDays; }
+    public LocalDate getLastGradedOn() { return lastGradedOn; }
+    public void setLastGradedOn(LocalDate lastGradedOn) { this.lastGradedOn = lastGradedOn; }
+    public int getOpenMisconceptions() { return openMisconceptions; }
+    public void setOpenMisconceptions(int openMisconceptions) { this.openMisconceptions = openMisconceptions; }
+    public Instant getLastGradedAt() { return lastGradedAt; }
+    public void setLastGradedAt(Instant lastGradedAt) { this.lastGradedAt = lastGradedAt; }
 }

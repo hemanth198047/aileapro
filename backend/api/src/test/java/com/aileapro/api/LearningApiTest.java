@@ -159,9 +159,10 @@ class LearningApiTest {
                 .andExpect(jsonPath("$.onboarded").value(false))
                 .andExpect(jsonPath("$.next.rule").value("onboarding"))
                 .andExpect(jsonPath("$.next.href").value("/app/onboarding"))
-                // Reviews are absent and the response says why rather than showing an empty queue.
+                // The queue is empty because cards are enrolled by reading, and this learner has
+                // read nothing. The note says that rather than leaving a blank panel.
                 .andExpect(jsonPath("$.reviews").isEmpty())
-                .andExpect(jsonPath("$.reviewsNote").value(containsString("assessment engine")));
+                .andExpect(jsonPath("$.reviewsNote").value(containsString("finish reading a unit")));
     }
 
     @Test

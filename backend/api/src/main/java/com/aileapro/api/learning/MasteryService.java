@@ -49,10 +49,21 @@ public class MasteryService implements GraphViews.MasteryLookup {
     /** A gap this long ends the reading session rather than stretching it. */
     private static final Duration SESSION_IDLE_GAP = Duration.ofMinutes(15);
 
+    /**
+     * Enrols a unit's review cards, supplied from outside so this class never has to know how
+     * scheduling works. Called the moment reading is finished on a unit and not before:
+     * enrolling material nobody has met is how a review queue becomes a chore people abandon.
+     */
+    public interface ReviewEnrolment {
+
+        int enrol(UUID userId, UUID unitId);
+    }
+
     private final CurriculumQueryService curriculum;
     private final MasteryRecordRepository records;
     private final MasteryEventRepository events;
     private final LearningSessionRepository sessions;
+    private final ReviewEnrolment reviews;
     private final ObjectMapper json;
 
     public MasteryService(
@@ -60,11 +71,13 @@ public class MasteryService implements GraphViews.MasteryLookup {
             MasteryRecordRepository records,
             MasteryEventRepository events,
             LearningSessionRepository sessions,
+            ReviewEnrolment reviews,
             ObjectMapper json) {
         this.curriculum = curriculum;
         this.records = records;
         this.events = events;
         this.sessions = sessions;
+        this.reviews = reviews;
         this.json = json;
     }
 
@@ -96,6 +109,11 @@ public class MasteryService implements GraphViews.MasteryLookup {
         record.setLastEventAt(now);
         record.setUpdatedAt(now);
         records.save(record);
+
+        if (before.evidence().read() != EvidenceState.SOLID
+                && after.evidence().read() == EvidenceState.SOLID) {
+            reviews.enrol(userId, unit.id());
+        }
 
         return view(record, unit.slug(), facts);
     }
@@ -221,7 +239,9 @@ public class MasteryService implements GraphViews.MasteryLookup {
     private static Snapshot toSnapshot(MasteryRecordEntity record) {
         return new Snapshot(
                 record.getState(),
-                new MasteryPolicy.Evidence(
+                // Fully qualified: the domain's Evidence and the view's Evidence are both in
+                // scope here, and they are not the same thing.
+                new com.aileapro.domain.Evidence(
                         record.getReadState(),
                         record.getPracticeState(),
                         record.getAssessState(),

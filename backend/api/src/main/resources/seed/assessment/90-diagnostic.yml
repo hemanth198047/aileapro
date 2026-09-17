@@ -1,0 +1,66 @@
+# The entry diagnostic.
+#
+# It has no item list of its own. Items are chosen per attempt from the blueprint below,
+# which is what makes it adaptive: the point is to find where each learner should start in
+# as few questions as possible, not to cover everything.
+#
+# The diagnostic grades nothing. Its kind is `diagnostic`, and AssessmentKind.chip() returns
+# null for that kind, so not one answer here can move a Practice or Assess chip. It writes
+# priors — a guess per domain, with a confidence — and priors decide where you begin. Two
+# questions cannot be evidence that you know a topic, and the system is not allowed to
+# pretend otherwise.
+
+assessments:
+  - slug: entry-diagnostic
+    title: "Where should you start?"
+    kind: diagnostic
+    description: |
+      Twelve to sixteen questions across the curriculum, adapting as you go. It produces a
+      starting point and a plan, not a score, and nothing you answer here counts as evidence
+      of mastery — you will meet these topics properly, and be assessed on them then.
+    timeLimitSeconds: 1800
+    blueprint:
+      maxItems: 16
+      stopRules:
+        # Below two items a domain estimate is noise, so the floor is not negotiable.
+        minPerDomain: 2
+        # Above four we are measuring rather than placing, and the learner is bored.
+        maxPerDomain: 4
+        # Two wrong in a row: the ceiling is below this domain. Probing further is
+        # demoralising and tells us nothing we will act on.
+        stopAfterWrong: 2
+        # Three right in a row: they are comfortable here. Spend the budget elsewhere.
+        stopAfterCorrect: 3
+      # Ordered easiest first within each domain, so a learner who is going to fail a domain
+      # fails early and moves on.
+      domains:
+        - unit: computer-fundamentals
+          items:
+            - cf-state-what-is-state
+            - cf-state-order-matters
+            - cf-exec-stages-order
+            - cf-exec-error-timing
+        - unit: python
+          items:
+            - py-types-mutability
+            - py-coll-membership-cost
+            - py-types-assignment-aliases
+            - py-func-mutable-default
+        - unit: linear-algebra
+          items:
+            - la-mat-identity
+            - la-vec-dot-product
+            - la-mat-shape-of-product
+            - la-matmul-commutativity
+        - unit: neural-networks
+          items:
+            - nn-name-the-parts
+            - nn-forward-pass
+            - nn-gradient-step
+            - nn-loss-vs-accuracy
+        - unit: retrieval-augmented-generation
+          items:
+            - rag-stages
+            - rag-vs-fine-tuning
+            - rag-citation-contract
+            - rag-not-hallucination-proof

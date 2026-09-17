@@ -1,0 +1,257 @@
+# Items for rag-pipeline-basics.
+
+items:
+  - slug: rag-stages
+    unit: rag-pipeline-basics
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "Which ordering describes a retrieval-augmented generation pipeline at query time?"
+    choices:
+      - id: a
+        text: "Embed the query → search the index → select and rank passages → build the prompt → generate with citations."
+        correct: true
+      - id: b
+        text: "Generate an answer → search for sources that support it → attach citations."
+      - id: c
+        text: "Search the index → fine-tune the model on the results → generate."
+      - id: d
+        text: "Embed the whole corpus → generate → verify against the corpus."
+    explanation: |
+      Retrieval comes first: the retrieved text is what goes into the prompt, so it has to
+      exist before generation.
+
+      Option (b) describes something worse than useless — generating first and hunting for
+      support afterwards is motivated reasoning with footnotes, and it produces citations
+      that look checkable while supporting a claim the source never made. Option (c)
+      confuses RAG with fine-tuning, which changes weights rather than the prompt.
+
+  - slug: rag-not-hallucination-proof
+    unit: rag-pipeline-basics
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      Your RAG system retrieves a correct passage and the model still produces an
+      unsupported claim in its answer. What does this tell you?
+    choices:
+      - id: a
+        text: "Retrieval constrains the prompt but does not constrain generation, so unsupported claims remain possible and must be checked."
+        correct: true
+      - id: b
+        text: "The retrieval must have failed; correct retrieval rules out unsupported claims."
+        misconception: rag.eliminates_hallucination
+      - id: c
+        text: "The model needs fine-tuning, which would eliminate the problem."
+      - id: d
+        text: "The passage was not embedded correctly."
+    explanation: |
+      Retrieval changes what is *available* in the context. Nothing about putting good text
+      in the prompt forces the model to stay inside it, and models routinely blend retrieved
+      content with parametric knowledge, over-generalise from a partial passage, or fill a
+      gap the passage left.
+
+      This is why RAG reduces unsupported claims rather than eliminating them, and why the
+      citation contract matters: a claim mapped to a specific span is one a reader can
+      check. Fine-tuning (c) changes the prior, not the guarantee.
+
+  - slug: rag-chunking-tradeoff
+    unit: rag-pipeline-basics
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      Your chunks are 2,000 tokens each. Retrieval returns relevant documents, but answers
+      are vague and cite whole pages. What is the most likely cause?
+    choices:
+      - id: a
+        text: "Chunks are too large, so each embedding averages several topics and the cited span is too coarse to check."
+        correct: true
+      - id: b
+        text: "Chunks are too small, so context is missing."
+      - id: c
+        text: "The embedding model has too few dimensions."
+      - id: d
+        text: "The index needs rebuilding more often."
+    explanation: |
+      One embedding has to represent the whole chunk, so a 2,000-token chunk covering three
+      topics gets an average of three directions — close to everything and specific to
+      nothing. The citation inherits the same coarseness: "somewhere on this page" is not
+      checkable.
+
+      Going too far the other way is a genuine failure too, which is why this is a trade
+      rather than a setting: chunks small enough to lose the antecedent of a pronoun retrieve
+      confidently and mean nothing.
+
+  - slug: rag-when-not-to-use
+    unit: rag-pipeline-basics
+    type: multi_select
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 130
+    stem: "For which problems is RAG a poor fit? Select all that apply."
+    choices:
+      - id: a
+        text: "Teaching the model a new output format or house style."
+        correct: true
+      - id: b
+        text: "Answering questions over a document set that changes daily."
+      - id: c
+        text: "Aggregating a number across thousands of records, like a total or a count."
+        correct: true
+      - id: d
+        text: "Answering from a small, fixed set of facts that fits comfortably in the prompt."
+        correct: true
+      - id: e
+        text: "Grounding answers in an internal wiki with citations."
+    explanation: |
+      (a) is a behaviour problem: style lives in the weights or the system prompt, and
+      retrieving examples of it is an expensive way to demonstrate what an instruction could
+      state. (c) is a query problem — retrieval returns the top-k most similar passages, not
+      an exhaustive scan, so any "how many" question is answered from a sample. That is
+      SQL's job. (d) works, but you have built an index to solve a problem the prompt solved
+      for free.
+
+      (b) and (e) are exactly what RAG is for: freshness without retraining, and grounding
+      with sources a reader can check.
+
+  - slug: rag-citation-contract
+    unit: rag-pipeline-basics
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "What makes a citation actually checkable by a reader?"
+    choices:
+      - id: a
+        text: "It points to a specific span that supports the specific claim it is attached to."
+        correct: true
+      - id: b
+        text: "It names a source that appeared in the retrieved set."
+      - id: c
+        text: "There is at least one citation per answer."
+      - id: d
+        text: "The cited document has a high similarity score."
+    explanation: |
+      Checkable means a reader can follow the link and confirm *that claim*. That requires
+      the span and the claim to be paired.
+
+      (b) is the common shortcut and it is close to meaningless: a document being retrieved
+      says the retriever found it similar, not that it supports the sentence it is now
+      attached to. (c) counts citations rather than verifying them, and (d) reports the
+      retriever's opinion of relevance, which is what you were trying to verify.
+
+  - slug: rag-vs-fine-tuning
+    unit: rag-pipeline-basics
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 80
+    stem: |
+      Adding a new document to a RAG index makes it available for answers without retraining
+      the model.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True, and it is the main operational argument for RAG. Knowledge lives in the index,
+      so updating knowledge is an insert rather than a training run.
+
+      This is the clean dividing line: RAG for *what the model knows*, fine-tuning for *how
+      the model behaves*. A system whose facts change daily and whose format is fixed wants
+      the first; one whose format is unusual and whose facts are stable wants the second.
+
+  - slug: rag-retrieval-eval
+    unit: rag-pipeline-basics
+    type: mcq
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      Answers are poor. You want to know whether retrieval or generation is at fault. What
+      do you measure first?
+    choices:
+      - id: a
+        text: "Whether a passage containing the answer appears in the retrieved set at all."
+        correct: true
+      - id: b
+        text: "The average similarity score of the retrieved passages."
+      - id: c
+        text: "The fluency of the generated answers."
+      - id: d
+        text: "End-to-end answer quality, scored by a stronger model."
+    explanation: |
+      Retrieval recall, on a set of questions whose supporting passages you know. If the
+      right passage never arrives, no amount of prompt work will fix the answer, and you
+      have localised the problem to one stage.
+
+      Similarity scores (b) are self-reported confidence from the component under suspicion.
+      Fluency (c) is uncorrelated with correctness — that is precisely the danger. And
+      end-to-end scoring (d) is worth having, but it tells you the system is bad without
+      telling you which half to fix.
+
+assessments:
+  - slug: rag-pipeline-basics-practice
+    title: "Practice: RAG pipeline basics"
+    kind: practice
+    unit: rag-pipeline-basics
+    items:
+      - rag-stages
+      - rag-citation-contract
+      - rag-vs-fine-tuning
+      - rag-chunking-tradeoff
+      - rag-when-not-to-use
+
+  - slug: rag-pipeline-basics-quiz
+    title: "Quiz: RAG pipeline basics"
+    kind: quiz
+    unit: rag-pipeline-basics
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - rag-not-hallucination-proof
+      - rag-when-not-to-use
+      - rag-retrieval-eval
+      - rag-citation-contract
+
+cards:
+  - slug: card-rag-stages
+    unit: rag-pipeline-basics
+    front: "The query-time stages of a RAG pipeline."
+    back: |
+      Embed the query → search the index → select and rank passages → build the prompt →
+      generate with citations. Retrieval first, because the retrieved text is the input.
+
+  - slug: card-rag-hallucination
+    unit: rag-pipeline-basics
+    front: "Does RAG eliminate unsupported claims?"
+    back: |
+      No. Retrieval constrains what is *available*, not what is generated. Models still
+      blend retrieved text with parametric knowledge and fill gaps. Reduced, not removed.
+
+  - slug: card-rag-vs-fine-tuning
+    unit: rag-pipeline-basics
+    front: "RAG or fine-tuning?"
+    back: |
+      RAG for what the model *knows* — facts, freshness, citations. Fine-tuning for how it
+      *behaves* — format, style, task shape.
+
+  - slug: card-rag-citation
+    unit: rag-pipeline-basics
+    front: "What makes a citation checkable?"
+    back: |
+      A specific span paired with the specific claim it supports. "This document was
+      retrieved" is not a citation.
+
+  - slug: card-rag-debug
+    unit: rag-pipeline-basics
+    front: "Answers are bad. Retrieval or generation?"
+    back: |
+      Measure retrieval recall first on questions with known supporting passages. If the
+      right passage never arrives, prompt work cannot help.

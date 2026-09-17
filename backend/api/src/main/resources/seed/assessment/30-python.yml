@@ -1,0 +1,647 @@
+# Items for the Python essentials units.
+
+items:
+  # ------------------------------------------------------------- python-values-and-types
+  - slug: py-types-mutability
+    unit: python-values-and-types
+    type: multi_select
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: "Which of these built-in types are **mutable**? Select all that apply."
+    choices:
+      - id: a
+        text: "`list`"
+        correct: true
+      - id: b
+        text: "`dict`"
+        correct: true
+      - id: c
+        text: "`tuple`"
+      - id: d
+        text: "`str`"
+      - id: e
+        text: "`set`"
+        correct: true
+    explanation: |
+      Lists, dicts, and sets can be changed in place. Tuples and strings cannot: every
+      operation that looks like editing a string (`s.upper()`, `s + "!"`) returns a new one
+      and leaves the original alone.
+
+      This is not trivia. It decides whether a value is safe to share between two parts of a
+      program, whether it can be a dict key, and whether `x.append(...)` in a function is
+      visible to the caller.
+
+  - slug: py-types-assignment-aliases
+    unit: python-values-and-types
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      What does this print?
+
+      ```python
+      a = [1, 2]
+      b = a
+      b.append(3)
+      print(a)
+      ```
+    choices:
+      - id: a
+        text: "`[1, 2, 3]`"
+        correct: true
+      - id: b
+        text: "`[1, 2]`"
+        misconception: python.assignment_copies
+      - id: c
+        text: "`[3]`"
+      - id: d
+        text: "It raises an error, because `a` is not a copy."
+    explanation: |
+      `[1, 2, 3]`. `b = a` binds a second *name* to the same list object; it does not copy
+      anything. `b.append(3)` mutates that one object, and `a` sees it because `a` was never
+      a separate list.
+
+      Confirm it with `a is b` (`True`) or `id(a) == id(b)`. If you wanted a copy, ask for
+      one: `b = a.copy()` or `b = list(a)`.
+
+  - slug: py-types-rebind-vs-mutate
+    unit: python-values-and-types
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      What does this print?
+
+      ```python
+      a = [1, 2]
+      b = a
+      b = b + [3]
+      print(a)
+      ```
+    choices:
+      - id: a
+        text: "`[1, 2]`"
+        correct: true
+      - id: b
+        text: "`[1, 2, 3]`"
+      - id: c
+        text: "`[3]`"
+      - id: d
+        text: "`None`"
+    explanation: |
+      `[1, 2]`. `b + [3]` builds a **new** list, and `b =` rebinds the name `b` to it. The
+      original list is untouched, so `a` still sees two elements.
+
+      Put this beside the previous item and the whole distinction is one line:
+
+      - `b.append(3)` — mutates the object both names share, so `a` changes.
+      - `b = b + [3]` — makes a new object and moves `b` to it, so `a` does not.
+
+      `b += [3]` sides with `append` for lists, which is a genuinely surprising asymmetry
+      and worth checking in a REPL rather than trusting memory.
+
+  - slug: py-types-name-reference-object
+    unit: python-values-and-types
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 75
+    stem: "In Python, what does a variable *name* hold?"
+    choices:
+      - id: a
+        text: "A reference to an object that lives elsewhere."
+        correct: true
+      - id: b
+        text: "The object's bytes, stored in the variable itself."
+      - id: c
+        text: "A copy of the object, made when the name was assigned."
+        misconception: python.assignment_copies
+      - id: d
+        text: "The object's type, with the value fetched on each use."
+    explanation: |
+      A name is a label bound to an object. Two names can label the same object, which is
+      why mutating through one is visible through the other, and why `is` (same object) and
+      `==` (same value) are different questions.
+
+      Once you hold this model, aliasing bugs stop being surprises and become predictions.
+
+  - slug: py-types-immutable-key
+    unit: python-values-and-types
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 60
+    stem: "A `list` cannot be used as a dictionary key, but a `tuple` of numbers can."
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. A key's hash must not change while it is in the dict, and a mutable object
+      cannot promise that — so lists are unhashable by design rather than by oversight.
+
+      A tuple of immutable values is hashable and works fine. A tuple *containing* a list
+      does not, which is the rule behaving consistently rather than an exception to it.
+
+  - slug: py-types-predict-mutation
+    unit: python-values-and-types
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      What does `"hello".upper()` leave the original string as? Write the original string's
+      value after the call.
+    accepted:
+      - "hello"
+      - "\"hello\""
+      - "'hello'"
+    explanation: |
+      Still `hello`. Strings are immutable, so `.upper()` returns a new string and discards
+      nothing — if you did not keep the return value, the work is gone.
+
+      This is the most common first-week bug in Python: calling a method and expecting the
+      object to change. `list.sort()` mutates and returns `None`; `sorted(list)` returns a
+      new list. Knowing which kind you are calling is the whole skill.
+
+  # ------------------------------------------------------------------- python-functions
+  - slug: py-func-mutable-default
+    unit: python-functions
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      What does this print?
+
+      ```python
+      def add(item, bag=[]):
+          bag.append(item)
+          return bag
+
+      print(add("a"))
+      print(add("b"))
+      ```
+    choices:
+      - id: a
+        text: "`['a']` then `['a', 'b']`"
+        correct: true
+      - id: b
+        text: "`['a']` then `['b']`"
+        misconception: python.mutable_default_argument
+      - id: c
+        text: "`['a']` then `['a']`"
+      - id: d
+        text: "It raises on the second call."
+    explanation: |
+      `['a']` then `['a', 'b']`. The default value is evaluated **once**, when the `def`
+      executes — not on each call. Every call that omits `bag` therefore shares the same
+      list, and it accumulates.
+
+      The fix is to default to `None` and build inside:
+
+      ```python
+      def add(item, bag=None):
+          if bag is None:
+              bag = []
+          bag.append(item)
+          return bag
+      ```
+
+      This is not a wart to memorise so much as a consequence of `def` being a statement
+      that runs: the default expression is just an expression in the enclosing scope.
+
+  - slug: py-func-why-default-evaluated-once
+    unit: python-functions
+    type: mcq
+    bloom: understand
+    difficulty: 4
+    estimateSeconds: 100
+    stem: "Why is a function's default argument evaluated only once?"
+    choices:
+      - id: a
+        text: "`def` is a statement that executes, and it evaluates the defaults while building the function object."
+        correct: true
+      - id: b
+        text: "It is an optimisation that CPython applies to avoid repeated allocation."
+      - id: c
+        text: "Defaults are cached after the first call and reused."
+      - id: d
+        text: "The language specification leaves it undefined, and CPython happens to do it once."
+    explanation: |
+      Running `def` creates a function object, and the default expressions are evaluated
+      then and stored on it — you can see them in `add.__defaults__`. There is no later
+      point at which Python re-runs them.
+
+      Calling it an optimisation (b) or a cache (c) gets the behaviour right and the model
+      wrong, and the wrong model will mispredict the next surprise. It is specified, not
+      incidental (d).
+
+  - slug: py-func-return-none
+    unit: python-functions
+    type: mcq
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      What does this print?
+
+      ```python
+      def shout(text):
+          print(text.upper())
+
+      result = shout("hi")
+      print(result)
+      ```
+    choices:
+      - id: a
+        text: "`HI` then `None`"
+        correct: true
+      - id: b
+        text: "`HI` then `HI`"
+      - id: c
+        text: "`HI` then an empty line"
+      - id: d
+        text: "It raises, because `shout` returns nothing."
+    explanation: |
+      `HI` then `None`. A function with no `return` returns `None`, and printing inside a
+      function is not the same as returning a value.
+
+      The habit worth building: a function that computes something should `return` it and
+      let the caller decide whether to print. Mixing the two makes the function untestable,
+      because there is nothing to assert on.
+
+  - slug: py-func-keyword-args
+    unit: python-functions
+    type: multi_select
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Given `def split(text, sep=",", limit=-1): ...`, which calls are valid?
+    choices:
+      - id: a
+        text: "`split(\"a,b\")`"
+        correct: true
+      - id: b
+        text: "`split(\"a,b\", limit=1)`"
+        correct: true
+      - id: c
+        text: "`split(sep=\";\", text=\"a;b\")`"
+        correct: true
+      - id: d
+        text: "`split(sep=\";\", \"a;b\")`"
+      - id: e
+        text: "`split()`"
+    explanation: |
+      (a), (b), and (c) are fine: defaults may be omitted, a later default can be named
+      while skipping an earlier one, and keyword arguments can be given in any order.
+
+      (d) is a syntax error — a positional argument may not follow a keyword argument.
+      (e) fails at call time because `text` has no default.
+
+      Naming arguments at the call site is the cheapest readability win available:
+      `split(text, limit=1)` explains itself where `split(text, ",", 1)` does not.
+
+  - slug: py-func-no-hidden-state
+    unit: python-functions
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 110
+    stem: |
+      Two functions compute the same total. One reads a module-level `RATE`; the other takes
+      `rate` as a parameter. Why is the second usually preferable?
+    choices:
+      - id: a
+        text: "Its result depends only on its arguments, so it can be tested and reasoned about in isolation."
+        correct: true
+      - id: b
+        text: "It runs faster, because module lookups are slow."
+      - id: c
+        text: "Module-level names are unreliable and may be garbage collected."
+      - id: d
+        text: "There is no real difference; it is a style preference."
+    explanation: |
+      The parameterised version is a function of its inputs: to test it you call it, and to
+      understand a call you read the call. The other one's behaviour depends on state
+      established somewhere you are not looking, so a test must arrange that state and a
+      reader must go find it.
+
+      Global lookups are marginally slower (b), but that is not the reason — the reason is
+      that hidden inputs make a function's contract a lie. This is the same idea that makes
+      the mutable-default trap dangerous: shared state that nothing in the signature admits
+      to.
+
+  - slug: py-func-write-function
+    unit: python-functions
+    type: coding_stub
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 180
+    stem: |
+      Write a function `mean` that takes a list of numbers and returns their average,
+      returning `0.0` for an empty list. Use no global state.
+    accepted:
+      - |
+        def mean(numbers):
+            if not numbers:
+                return 0.0
+            return sum(numbers) / len(numbers)
+    explanation: |
+      A reference solution:
+
+      ```python
+      def mean(numbers):
+          if not numbers:
+              return 0.0
+          return sum(numbers) / len(numbers)
+      ```
+
+      The empty case is the whole point of the exercise: `sum([]) / len([])` raises
+      `ZeroDivisionError`, so a function that does not decide what "average of nothing"
+      means will decide it by crashing.
+
+      Returning `0.0` is one defensible choice; raising a `ValueError` is another, and
+      arguably better, because the caller almost certainly has a bug. What is not
+      defensible is leaving it unhandled.
+
+  # ----------------------------------------------------------------- python-collections
+  - slug: py-coll-membership-cost
+    unit: python-collections
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: "What is the average cost of `x in c` for a list and for a set of `n` items?"
+    choices:
+      - id: a
+        text: "List O(n), set O(1)"
+        correct: true
+      - id: b
+        text: "List O(1), set O(1)"
+        misconception: python.list_membership_is_cheap
+      - id: c
+        text: "List O(n), set O(n)"
+      - id: d
+        text: "List O(log n), set O(1)"
+    explanation: |
+      A list has to compare against elements one at a time until it finds a match, so
+      membership is linear. A set hashes the value and looks in one place, so it is constant
+      on average.
+
+      The gap is invisible at `n = 10` and decisive inside a loop: checking membership of a
+      100,000-item list for each of 100,000 records is ten billion comparisons, and the same
+      code against a set finishes immediately. This is the single most common accidental
+      quadratic in data-processing scripts.
+
+  - slug: py-coll-choose-structure
+    unit: python-collections
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      You are de-duplicating ten million document IDs while reading them from a file, and
+      you do not care about order. Which collection?
+    choices:
+      - id: a
+        text: "`set`, because membership and insertion are constant on average."
+        correct: true
+      - id: b
+        text: "`list`, checking `if id not in seen` before appending."
+      - id: c
+        text: "`dict` mapping each ID to `True`, for the same cost and more memory."
+      - id: d
+        text: "`tuple`, rebuilt as each ID arrives."
+    explanation: |
+      A set. Insertion tests membership as part of doing the insert, so the whole job is one
+      linear pass.
+
+      (b) is the accidental quadratic from the previous item. (c) works and gets the
+      complexity right, but it is a set with a wasted value for every key — which is
+      essentially what a set is implemented as, so you are paying for the abstraction twice.
+      (d) is the worst option available: tuples are immutable, so every ID copies the whole
+      structure.
+
+  - slug: py-coll-dict-vs-set
+    unit: python-collections
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "What does a `dict` give you that a `set` does not?"
+    choices:
+      - id: a
+        text: "An associated value for each key."
+        correct: true
+      - id: b
+        text: "Constant-time membership testing."
+      - id: c
+        text: "Guaranteed uniqueness of its keys."
+      - id: d
+        text: "Ordered iteration."
+    explanation: |
+      The value. Both hash their keys, so both give constant-time membership (b) and unique
+      keys (c), and both preserve insertion order in modern CPython (d).
+
+      Choosing between them is therefore a question about intent, not performance: if you
+      only need to know *whether* something is present, a set says so in the type and a dict
+      leaves the reader wondering what the values were for.
+
+  - slug: py-coll-tuple-use
+    unit: python-collections
+    type: multi_select
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "When is a `tuple` the better choice over a `list`?"
+    choices:
+      - id: a
+        text: "The value must be usable as a dictionary key."
+        correct: true
+      - id: b
+        text: "The positions mean different things, like `(row, column)`."
+        correct: true
+      - id: c
+        text: "You want to guarantee callers cannot change it."
+        correct: true
+      - id: d
+        text: "You will append to it frequently."
+      - id: e
+        text: "You need it sorted in place."
+    explanation: |
+      (a) follows from hashability. (b) is the honest use of a tuple: a fixed-size record
+      where position carries meaning, as against a list of same-kind things. (c) is the
+      immutability being the point rather than a restriction.
+
+      (d) and (e) are lists' jobs — appending to a tuple builds a new one each time, and
+      there is no in-place sort to call.
+
+  - slug: py-coll-comprehension
+    unit: python-collections
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      What does this evaluate to?
+
+      ```python
+      len({n % 3 for n in range(10)})
+      ```
+    accepted:
+      - "3"
+    explanation: |
+      3. `n % 3` over `range(10)` produces `0,1,2,0,1,2,0,1,2,0`, and the braces make it a
+      **set** comprehension, so the duplicates collapse to `{0, 1, 2}`.
+
+      The item is really about noticing the brace: the same expression in square brackets
+      gives a list of ten elements. Comprehensions are worth using where the transformation
+      is the point and worth avoiding once the reader has to decode them, which is roughly
+      the moment a second `for` or a nested conditional appears.
+
+  - slug: py-coll-list-membership-in-loop
+    unit: python-collections
+    type: true_false
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 75
+    stem: |
+      Replacing a list with a set for a membership test inside a loop can change a program's
+      running time from quadratic to linear.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. The loop runs `n` times and each list membership test costs up to `n`
+      comparisons, giving `O(n²)`; with a set each test is constant, so the whole loop is
+      `O(n)`.
+
+      One line, one type, and a job that took an hour finishes in seconds. It is the
+      highest-leverage thing on this page.
+
+assessments:
+  - slug: python-values-and-types-practice
+    title: "Practice: values and types"
+    kind: practice
+    unit: python-values-and-types
+    items:
+      - py-types-mutability
+      - py-types-assignment-aliases
+      - py-types-name-reference-object
+      - py-types-immutable-key
+      - py-types-predict-mutation
+      - py-types-rebind-vs-mutate
+
+  - slug: python-values-and-types-quiz
+    title: "Quiz: values and types"
+    kind: quiz
+    unit: python-values-and-types
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - py-types-assignment-aliases
+      - py-types-rebind-vs-mutate
+      - py-types-name-reference-object
+      - py-types-mutability
+
+  - slug: python-functions-practice
+    title: "Practice: functions"
+    kind: practice
+    unit: python-functions
+    items:
+      - py-func-mutable-default
+      - py-func-return-none
+      - py-func-keyword-args
+      - py-func-why-default-evaluated-once
+      - py-func-write-function
+
+  - slug: python-functions-quiz
+    title: "Quiz: functions"
+    kind: quiz
+    unit: python-functions
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - py-func-mutable-default
+      - py-func-why-default-evaluated-once
+      - py-func-no-hidden-state
+      - py-func-return-none
+
+  - slug: python-collections-practice
+    title: "Practice: collections"
+    kind: practice
+    unit: python-collections
+    items:
+      - py-coll-membership-cost
+      - py-coll-choose-structure
+      - py-coll-dict-vs-set
+      - py-coll-tuple-use
+      - py-coll-comprehension
+
+  - slug: python-collections-quiz
+    title: "Quiz: collections"
+    kind: quiz
+    unit: python-collections
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - py-coll-membership-cost
+      - py-coll-choose-structure
+      - py-coll-list-membership-in-loop
+      - py-coll-tuple-use
+
+cards:
+  - slug: card-py-mutable-types
+    unit: python-values-and-types
+    front: "Which core Python types are mutable?"
+    back: "`list`, `dict`, `set`. Not `tuple`, not `str`, not the numbers."
+
+  - slug: card-py-assignment
+    unit: python-values-and-types
+    front: "`b = a` on a list — copy or alias?"
+    back: |
+      Alias. Both names label the same object, so `b.append(x)` is visible through `a`.
+      `a is b` is `True`. For a copy: `a.copy()` or `list(a)`.
+
+  - slug: card-py-mutate-vs-rebind
+    unit: python-values-and-types
+    front: "`b.append(3)` versus `b = b + [3]` — which one does `a` see?"
+    back: |
+      `append` mutates the shared object, so `a` sees it. `b + [3]` builds a new list and
+      rebinds `b`, so `a` does not.
+
+  - slug: card-py-mutable-default
+    unit: python-functions
+    front: "Why does `def add(x, bag=[])` accumulate across calls?"
+    back: |
+      Defaults are evaluated once, when `def` runs, and stored on the function object. Every
+      call omitting `bag` shares that one list. Default to `None` and build inside.
+
+  - slug: card-py-implicit-none
+    unit: python-functions
+    front: "What does a function with no `return` return?"
+    back: "`None`. Printing inside a function is not returning a value."
+
+  - slug: card-py-membership-cost
+    unit: python-collections
+    front: "Cost of `x in c` for a list versus a set?"
+    back: |
+      List O(n) — it compares element by element. Set O(1) average — it hashes and looks in
+      one place. Inside a loop this is the difference between quadratic and linear.
+
+  - slug: card-py-dict-vs-set
+    unit: python-collections
+    front: "What does a `dict` add over a `set`?"
+    back: |
+      A value per key. Both give O(1) membership, unique keys, and insertion order, so the
+      choice is about intent rather than speed.

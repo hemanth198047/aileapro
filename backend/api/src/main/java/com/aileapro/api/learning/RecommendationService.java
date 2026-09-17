@@ -26,38 +26,43 @@ import java.util.UUID;
  * Turns the learner's evidence into one recommendation and the Today screen around it.
  *
  * <p>The ranking itself lives in {@link NextActionPolicy}; this class only gathers the facts
- * the rules need. Reviews are absent rather than faked: there is no schedule until the
- * assessment engine exists, and {@link Today#reviewsNote()} says as much instead of showing
- * an empty queue with no explanation.
+ * the rules need, including the graded ones it reads through {@link AssessmentSignals} rather
+ * than by importing the assessment engine.
  */
 @Service
 @Transactional(readOnly = true)
 public class RecommendationService {
 
-    private static final String REVIEWS_NOTE =
-            "Spaced review needs graded items to schedule from, so nothing is due yet. "
-                    + "The queue starts filling once the assessment engine lands.";
-
     private final CurriculumQueryService curriculum;
     private final GraphQueryService graph;
     private final MasteryService mastery;
     private final LearnerProfileService profiles;
+    private final AssessmentSignals signals;
 
     public RecommendationService(
             CurriculumQueryService curriculum,
             GraphQueryService graph,
             MasteryService mastery,
-            LearnerProfileService profiles) {
+            LearnerProfileService profiles,
+            AssessmentSignals signals) {
         this.curriculum = curriculum;
         this.graph = graph;
         this.mastery = mastery;
         this.profiles = profiles;
+        this.signals = signals;
     }
 
     public NextAction next(UUID userId) {
         boolean onboarded = profiles.profile(userId).map(p -> p.onboardedAt() != null).orElse(false);
         if (!onboarded) {
             return NextActionPolicy.onboarding();
+        }
+
+        // The two highest rules do not depend on a path at all: decaying recall and a held
+        // false belief are worth fixing whether or not the learner has picked a destination.
+        Optional<NextAction> maintenance = maintenance(userId);
+        if (maintenance.isPresent()) {
+            return maintenance.get();
         }
 
         Optional<PathSummary> target = profiles.targetPath(userId);
@@ -70,16 +75,19 @@ public class RecommendationService {
     public Today today(UUID userId) {
         boolean onboarded = profiles.profile(userId).map(p -> p.onboardedAt() != null).orElse(false);
         Optional<PathSummary> target = profiles.targetPath(userId);
+        AssessmentSignals.DueReviews reviews = signals.dueReviews(userId);
+        List<NextAction> reviewActions =
+                reviews.dueCount() == 0 ? List.of() : List.of(NextActionPolicy.review(reviews));
 
         if (target.isEmpty()) {
             return new Today(
                     onboarded ? NextActionPolicy.emptyPath("the catalog") : NextActionPolicy.onboarding(),
-                    null, null, 0, 0, 0, List.of(), REVIEWS_NOTE, onboarded);
+                    null, null, 0, 0, 0, reviewActions, reviewsNote(userId, reviews), onboarded);
         }
 
         PathDetail path = curriculum.path(target.get().slug());
         List<Stop> stops = stops(userId, path);
-        NextAction next = onboarded ? nextOnPath(userId, path) : NextActionPolicy.onboarding();
+        NextAction next = onboarded ? next(userId) : NextActionPolicy.onboarding();
 
         int started = (int) stops.stream().filter(stop -> stop.mastery().openedCount() > 0).count();
         int introduced = (int) stops.stream()
@@ -93,9 +101,29 @@ public class RecommendationService {
                 stops.size(),
                 started,
                 introduced,
-                List.of(),
-                REVIEWS_NOTE,
+                reviewActions,
+                reviewsNote(userId, reviews),
                 onboarded);
+    }
+
+    /** Overdue recall first, then a held false belief. Both outrank anything new. */
+    private Optional<NextAction> maintenance(UUID userId) {
+        AssessmentSignals.DueReviews reviews = signals.dueReviews(userId);
+        if (reviews.dueCount() > 0) {
+            return Optional.of(NextActionPolicy.review(reviews));
+        }
+        return signals.openMisconceptions(userId).stream()
+                .findFirst()
+                .map(NextActionPolicy::clearMisconception);
+    }
+
+    private String reviewsNote(UUID userId, AssessmentSignals.DueReviews reviews) {
+        if (reviews.dueCount() > 0) {
+            return "";
+        }
+        return "Nothing is due. Cards are enrolled when you finish reading a unit, and answering one early does"
+                + " not count towards retention — that would make remembering something and seeing it again the"
+                + " same fact.";
     }
 
     /** The path waypoints with the learner's evidence laid over them. */
@@ -125,19 +153,38 @@ public class RecommendationService {
             return NextActionPolicy.emptyPath(path.title());
         }
 
-        Optional<Stop> current = NextActionPolicy.currentStop(stops);
-        if (current.isEmpty()) {
-            return NextActionPolicy.readingExhausted(path.title());
+        Optional<Stop> unread = NextActionPolicy.currentStop(stops);
+        if (unread.isPresent()) {
+            Stop stop = unread.get();
+            // Only the blocked waypoint's own chain is queried: one walk, and it is the only
+            // one that can change the answer.
+            List<Prereq> required = prerequisitesOf(userId, stop.unit());
+            Optional<Prereq> blocking = NextActionPolicy.blockingPrerequisite(required);
+            return blocking
+                    .map(prereq -> NextActionPolicy.readPrerequisite(prereq, stop.unit()))
+                    .orElseGet(() -> NextActionPolicy.readWaypoint(stop, path.title(), !required.isEmpty()));
         }
 
-        Stop stop = current.get();
-        // Only the blocked waypoint's own chain is queried: one walk, and it is the only one
-        // that can change the answer.
-        List<Prereq> required = prerequisitesOf(userId, stop.unit());
-        Optional<Prereq> blocking = NextActionPolicy.blockingPrerequisite(required);
-        return blocking
-                .map(prereq -> NextActionPolicy.readPrerequisite(prereq, stop.unit()))
-                .orElseGet(() -> NextActionPolicy.readWaypoint(stop, path.title(), !required.isEmpty()));
+        // Everything is read, which is where Phase 5 stopped. Graded work takes over: the
+        // first waypoint whose practice or assessment is outstanding, in path order.
+        for (Stop stop : stops) {
+            Optional<AssessmentSignals.GradedOffer> offered = signals.offerFor(userId, stop.unit().id());
+            if (offered.isEmpty()) {
+                continue;
+            }
+            AssessmentSignals.GradedOffer offer = offered.get();
+            if (offer.practiceSlug() != null && !NextActionPolicy.practiceFinished(stop.mastery())) {
+                return NextActionPolicy.practise(stop, offer);
+            }
+            if (offer.quizSlug() != null && !NextActionPolicy.assessFinished(stop.mastery())) {
+                return NextActionPolicy.assess(stop, offer);
+            }
+            if (!stateOf(stop.mastery()).atLeast(MasteryState.valueOf(offer.ceiling()))) {
+                continue;
+            }
+            return NextActionPolicy.ceiling(stop, offer, path.title());
+        }
+        return NextActionPolicy.readingExhausted(path.title());
     }
 
     private List<Stop> stops(UUID userId, PathDetail path) {

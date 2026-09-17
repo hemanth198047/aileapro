@@ -271,8 +271,8 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
               </div>
               <p className="hint">
                 The graph knows what each unit needs, and the unit page shows that chain against
-                what you have read. Whether you have actually understood a prerequisite needs
-                graded evidence, which arrives in Phase 6.
+                your evidence on it. A prerequisite you have only read is marked as read, not as
+                understood — that distinction is the whole point of tracking both.
               </p>
             </div>
           </div>

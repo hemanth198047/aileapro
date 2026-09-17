@@ -95,10 +95,10 @@ export function PrereqPanel({ slug }: { slug: string }) {
             ))}
           </ol>
           <p className="hint">
-            Listed furthest-back first, which is study order. The states are your own reading:
-            anything marked not read is a gap you can close today, and INTRODUCED means you read
-            it, not that you can do it. Nothing here blocks the page, and a diagnostic that can
-            skip what you already know arrives with the assessment engine.
+            Listed furthest-back first, which is study order. Anything marked not read is a gap
+            you can close today, and INTRODUCED means you read it, not that you can do it —
+            moving past that takes the graded practice on each unit. Nothing here blocks the
+            page, and the diagnostic will skip whatever you can already demonstrate.
           </p>
         </>
       ) : null}

@@ -215,3 +215,20 @@ export function IconClose({ size = 16 }: IconProps) {
     </svg>
   );
 }
+
+export function IconCheck({ size = 16 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <path d="m5 13 4.5 4.5L19 7" />
+    </svg>
+  );
+}
+
+export function IconRepeat({ size = 16 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <path d="M4 9a5 5 0 0 1 5-5h11m0 0-3-3m3 3-3 3" />
+      <path d="M20 15a5 5 0 0 1-5 5H4m0 0 3 3m-3-3 3-3" />
+    </svg>
+  );
+}

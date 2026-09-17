@@ -1,0 +1,526 @@
+# Items for the linear algebra units.
+#
+# Numeric answers carry a tolerance. A learner who writes 0.7071 for 1/sqrt(2) has the
+# concept; marking that wrong would teach them to distrust the marking rather than to
+# think, so the tolerance is part of the item rather than an allowance.
+
+items:
+  # ----------------------------------------------------------------------------- vectors
+  - slug: la-vec-dot-product
+    unit: vectors
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 75
+    stem: |
+      Compute the dot product of $[2, -1, 3]$ and $[4, 5, 1]$.
+    answer: 6
+    tolerance: 0.001
+    explanation: |
+      $2 \cdot 4 + (-1) \cdot 5 + 3 \cdot 1 = 8 - 5 + 3 = 6$.
+
+      Multiply matching components, then add. The sign of the result is what matters most in
+      practice: positive means the vectors broadly point the same way, zero means they are
+      orthogonal, negative means they oppose.
+
+  - slug: la-vec-norm
+    unit: vectors
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 75
+    stem: |
+      What is the Euclidean norm (length) of $[3, 4]$?
+    answer: 5
+    tolerance: 0.001
+    explanation: |
+      $\sqrt{3^2 + 4^2} = \sqrt{25} = 5$.
+
+      The norm is Pythagoras in as many dimensions as you have. It is also the quantity you
+      divide by to normalise a vector, which is the step that turns a dot product into a
+      cosine similarity.
+
+  - slug: la-vec-orthogonal
+    unit: vectors
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 80
+    stem: "Two non-zero vectors have a dot product of exactly zero. What does that tell you?"
+    choices:
+      - id: a
+        text: "They are orthogonal — at right angles."
+        correct: true
+      - id: b
+        text: "They are identical."
+      - id: c
+        text: "They point in opposite directions."
+      - id: d
+        text: "At least one of them is the zero vector."
+    explanation: |
+      They are orthogonal. Since $a \cdot b = \lVert a \rVert \lVert b \rVert \cos\theta$
+      and neither length is zero, the cosine must be zero, so $\theta = 90°$.
+
+      Opposite directions (c) give a *negative* dot product, and identical directions give
+      the maximum positive one. The zero vector (d) is excluded by the premise — it is
+      trivially orthogonal to everything, which is why the question says non-zero.
+
+  - slug: la-vec-cosine-meaning
+    unit: vectors
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      A retrieval system returns a passage with cosine similarity 0.95 to the query. What
+      can you conclude?
+    choices:
+      - id: a
+        text: "The passage is close to the query in this model's embedding space, which may or may not mean it answers the question."
+        correct: true
+      - id: b
+        text: "The passage and the query mean the same thing."
+        misconception: vectors.cosine_means_same_meaning
+      - id: c
+        text: "The system is 95% confident the passage is relevant."
+        misconception: vectors.cosine_means_same_meaning
+      - id: d
+        text: "The passage contains 95% of the query's words."
+    explanation: |
+      Only (a). Cosine similarity measures the angle between two vectors produced by one
+      specific embedding model, so it reports closeness *as that model encodes text* —
+      nothing more.
+
+      The number looks like a percentage, which is why (c) is tempting, but it is not a
+      calibrated probability of anything. Models routinely score negations close together
+      ("the drug is effective" / "the drug is not effective"), and scale is model-specific:
+      0.95 can be unremarkable on one encoder and exceptional on another.
+
+      This is why a retrieval system needs evaluation against judged relevance rather than a
+      similarity threshold someone picked.
+
+  - slug: la-vec-scalar-multiple
+    unit: vectors
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      Multiplying a vector by $-2$ doubles its length and reverses its direction.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Scaling by $c$ multiplies the length by $\lvert c \rvert$, and a negative $c$
+      flips the direction. So $-2$ does both: twice as long, pointing the other way.
+
+      Normalising is the same operation with $c = 1 / \lVert v \rVert$ — direction kept,
+      length set to one.
+
+  - slug: la-vec-what-a-vector-is
+    unit: vectors
+    type: multi_select
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "Which statements about a vector are accurate in the sense used in this unit?"
+    choices:
+      - id: a
+        text: "It has both a magnitude and a direction."
+        correct: true
+      - id: b
+        text: "Its components depend on the basis you express it in."
+        correct: true
+      - id: c
+        text: "It is any ordered list of numbers, with no further structure implied."
+      - id: d
+        text: "Adding two vectors gives another vector of the same space."
+        correct: true
+      - id: e
+        text: "Its length changes when you change basis."
+    explanation: |
+      (a), (b), and (d). The arrow exists independently of the numbers you use to describe
+      it: change the basis and every component changes while the arrow does not — which is
+      why (e) is wrong, since an orthonormal change of basis preserves length.
+
+      (c) is the array-of-numbers view. It is how vectors are *stored*, and it is precisely
+      the view that makes matrix multiplication look arbitrary later on.
+
+  # ---------------------------------------------------------------------------- matrices
+  - slug: la-mat-as-linear-map
+    unit: matrices
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "What does a matrix *encode*?"
+    choices:
+      - id: a
+        text: "A linear map: where each basis vector of the input lands."
+        correct: true
+      - id: b
+        text: "A table of numbers, with the arithmetic rules chosen by convention."
+        misconception: matrices.matrix_is_just_a_table
+      - id: c
+        text: "A system of equations, and nothing more."
+      - id: d
+        text: "A graph of connections between nodes."
+    explanation: |
+      A linear map. Each **column** of the matrix is the image of one input basis vector, so
+      reading the columns tells you what the transformation does before you compute anything.
+
+      Options (c) and (d) are genuine *uses* of matrices — solving systems, adjacency in
+      graphs — and (b) is how they are stored. But none of them explains where the
+      multiplication rule comes from, and the linear-map reading does.
+
+  - slug: la-mat-identity
+    unit: matrices
+    type: mcq
+    bloom: remember
+    difficulty: 1
+    estimateSeconds: 45
+    stem: "What does the identity matrix do to a vector?"
+    choices:
+      - id: a
+        text: "Leaves it unchanged."
+        correct: true
+      - id: b
+        text: "Sets it to the zero vector."
+      - id: c
+        text: "Normalises it to unit length."
+      - id: d
+        text: "Reverses its direction."
+    explanation: |
+      Nothing at all — $Iv = v$. In the linear-map reading this is obvious: each basis
+      vector maps to itself, so the columns of $I$ are the basis vectors, which is exactly
+      what its ones-on-the-diagonal shape says.
+
+  - slug: la-mat-shape-of-product
+    unit: matrices
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 75
+    stem: |
+      $A$ is $3 \times 5$ and $B$ is $5 \times 2$. What is the shape of $AB$? Answer as
+      `rows x cols`, for example `4 x 7`.
+    accepted:
+      - "3 x 2"
+      - "3x2"
+      - "3 × 2"
+      - "(3, 2)"
+      - "3, 2"
+    explanation: |
+      $3 \times 2$. The inner dimensions must match — $A$'s 5 columns against $B$'s 5 rows —
+      and they vanish, leaving $A$'s rows and $B$'s columns.
+
+      As composition of maps it reads left to right in the other direction: $B$ takes
+      2-dimensional input to 5 dimensions, $A$ takes 5 to 3, so the composition takes 2 to 3.
+
+  - slug: la-mat-transpose
+    unit: matrices
+    type: true_false
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 50
+    stem: |
+      The transpose of a $2 \times 7$ matrix is $7 \times 2$.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — transposing swaps rows and columns, so the shape swaps too. It is the operation
+      you reach for constantly when aligning shapes for a matrix product, and the reason
+      `A.T @ B` appears everywhere in numerical code.
+
+  - slug: la-mat-columns-tell-you
+    unit: matrices
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 110
+    stem: |
+      A $2 \times 2$ matrix has columns $[0, 1]$ and $[-1, 0]$. What transformation is it?
+    choices:
+      - id: a
+        text: "A 90° rotation counter-clockwise."
+        correct: true
+      - id: b
+        text: "A reflection in the x-axis."
+      - id: c
+        text: "A scaling by 2 in both directions."
+      - id: d
+        text: "The identity."
+    explanation: |
+      A 90° counter-clockwise rotation. Read the columns as images of the basis vectors:
+      $\hat{i} = [1,0]$ lands on $[0,1]$ (pointing up), and $\hat{j} = [0,1]$ lands on
+      $[-1,0]$ (pointing left). Both turned a quarter turn the same way.
+
+      This is the payoff for treating a matrix as a map rather than a table: you read the
+      geometry straight off the columns, with no arithmetic at all.
+
+  # -------------------------------------------------------------- matrix-multiplication
+  - slug: la-matmul-compute-2x2
+    unit: matrix-multiplication
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      With
+      $$
+      A = \begin{bmatrix} 1 & 2 \\ 0 & 1 \end{bmatrix}, \quad
+      B = \begin{bmatrix} 3 & 0 \\ 1 & 4 \end{bmatrix}
+      $$
+      what is the top-left entry of $AB$?
+    answer: 5
+    tolerance: 0.001
+    explanation: |
+      Row 1 of $A$ against column 1 of $B$: $1 \cdot 3 + 2 \cdot 1 = 5$.
+
+      Every entry of a product is one dot product — row $i$ of the left against column $j$
+      of the right. The full product here is
+      $\begin{bmatrix} 5 & 8 \\ 1 & 4 \end{bmatrix}$.
+
+  - slug: la-matmul-commutativity
+    unit: matrix-multiplication
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "Is $AB = BA$ for square matrices $A$ and $B$?"
+    choices:
+      - id: a
+        text: "Not in general, because the product composes transformations and order of application matters."
+        correct: true
+      - id: b
+        text: "Yes — multiplication does not depend on order."
+        misconception: matmul.commutativity
+      - id: c
+        text: "Yes, provided both matrices are the same size."
+        misconception: matmul.commutativity
+      - id: d
+        text: "Never, for any pair of matrices."
+    explanation: |
+      Not in general. $AB$ means "do $B$, then $A$", and rotating-then-scaling is not the
+      same as scaling-then-rotating.
+
+      (d) overcorrects: it *does* hold for special pairs — anything times the identity, two
+      diagonal matrices, a matrix and its own inverse — and those easy cases are exactly
+      what makes the misconception survive early examples. Same size (c) only makes both
+      products *defined*; it says nothing about them being equal.
+
+  - slug: la-matmul-why-this-rule
+    unit: matrix-multiplication
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      Why is the row-times-column rule the definition of matrix multiplication, rather than
+      the simpler entry-by-entry product?
+    choices:
+      - id: a
+        text: "It is the only rule for which the product matrix represents the composition of the two maps."
+        correct: true
+      - id: b
+        text: "It is faster to compute on real hardware."
+      - id: c
+        text: "It was standardised for consistency with determinants."
+      - id: d
+        text: "The entry-by-entry product is undefined for non-square matrices."
+    explanation: |
+      Because composition forces it. If $A$ and $B$ are maps and you want a single matrix
+      $C$ with $Cv = A(Bv)$ for every $v$, working out the entries of $C$ *derives* the
+      row-times-column rule. Nothing was chosen.
+
+      The entry-by-entry product exists and is perfectly well defined — NumPy spells it
+      `A * B`, the Hadamard product — so (d) is wrong, and it is genuinely useful. It just
+      does not compose maps. And the real rule is *slower* (b), which is a good sign it was
+      not picked for convenience.
+
+  - slug: la-matmul-shape-mismatch
+    unit: matrix-multiplication
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      You have a batch of 32 inputs, each of dimension 128, stored as a $32 \times 128$
+      array, and a weight matrix $W$ that maps 128 features to 64. Which product is defined?
+    choices:
+      - id: a
+        text: "$X W$, with $W$ shaped $128 \\times 64$, giving $32 \\times 64$."
+        correct: true
+      - id: b
+        text: "$W X$, with $W$ shaped $128 \\times 64$."
+      - id: c
+        text: "$X W$, with $W$ shaped $64 \\times 128$."
+      - id: d
+        text: "Either order works, since both matrices are non-square."
+    explanation: |
+      $XW$ with $W$ shaped $128 \times 64$: the inner dimensions meet ($128$ against $128$)
+      and the result is $32 \times 64$ — one 64-dimensional output per input in the batch.
+
+      (b) fails because $W$'s 64 columns cannot meet $X$'s 32 rows. (c) is the same failure
+      with the transpose. This is the single most common runtime error in neural network
+      code, and reading it as "does the inner dimension match" is faster than guessing.
+
+  - slug: la-matmul-associative
+    unit: matrix-multiplication
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 70
+    stem: |
+      Matrix multiplication is associative: $(AB)C = A(BC)$.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True, and it follows immediately from the composition reading: both sides say "apply
+      $C$, then $B$, then $A$".
+
+      Associative but not commutative is not a quirk to memorise — order of *application* is
+      preserved on both sides, which is what associativity is about, while commutativity
+      would change it. The practical consequence is real money: computing $A(BC)$ instead of
+      $(AB)C$ can cut the work by orders of magnitude when the shapes are lopsided.
+
+  - slug: la-matmul-identity-check
+    unit: matrix-multiplication
+    type: short_text
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      $A$ is $4 \times 4$. What is $A I$, where $I$ is the $4 \times 4$ identity? Answer
+      with a single symbol.
+    accepted:
+      - "A"
+      - "$A$"
+    explanation: |
+      $A$. Composing any map with the do-nothing map leaves it alone, in either order — $AI
+      = IA = A$, which makes $I$ one of the few cases where matrices do commute.
+
+assessments:
+  - slug: vectors-practice
+    title: "Practice: vectors"
+    kind: practice
+    unit: vectors
+    items:
+      - la-vec-dot-product
+      - la-vec-norm
+      - la-vec-orthogonal
+      - la-vec-scalar-multiple
+      - la-vec-what-a-vector-is
+
+  - slug: vectors-quiz
+    title: "Quiz: vectors"
+    kind: quiz
+    unit: vectors
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - la-vec-dot-product
+      - la-vec-orthogonal
+      - la-vec-cosine-meaning
+      - la-vec-what-a-vector-is
+
+  - slug: matrices-practice
+    title: "Practice: matrices"
+    kind: practice
+    unit: matrices
+    items:
+      - la-mat-identity
+      - la-mat-as-linear-map
+      - la-mat-shape-of-product
+      - la-mat-transpose
+      - la-mat-columns-tell-you
+
+  - slug: matrices-quiz
+    title: "Quiz: matrices"
+    kind: quiz
+    unit: matrices
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - la-mat-as-linear-map
+      - la-mat-columns-tell-you
+      - la-mat-shape-of-product
+      - la-mat-identity
+
+  - slug: matrix-multiplication-practice
+    title: "Practice: matrix multiplication"
+    kind: practice
+    unit: matrix-multiplication
+    items:
+      - la-matmul-compute-2x2
+      - la-matmul-commutativity
+      - la-matmul-shape-mismatch
+      - la-matmul-associative
+      - la-matmul-identity-check
+
+  - slug: matrix-multiplication-quiz
+    title: "Quiz: matrix multiplication"
+    kind: quiz
+    unit: matrix-multiplication
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - la-matmul-commutativity
+      - la-matmul-why-this-rule
+      - la-matmul-shape-mismatch
+      - la-matmul-compute-2x2
+
+cards:
+  - slug: card-la-dot-product
+    unit: vectors
+    front: "What does the *sign* of a dot product tell you?"
+    back: |
+      Positive: the vectors broadly agree in direction. Zero: orthogonal. Negative: they
+      oppose. From $a \cdot b = \lVert a \rVert \lVert b \rVert \cos\theta$.
+
+  - slug: card-la-cosine
+    unit: vectors
+    front: "What does cosine similarity 0.95 actually mean?"
+    back: |
+      Two vectors are close in *one model's* embedding space. Not the same meaning, not a
+      95% confidence. Scale is model-specific and negations often land close together.
+
+  - slug: card-la-matrix-columns
+    unit: matrices
+    front: "What are the columns of a matrix?"
+    back: |
+      The images of the input basis vectors. Read them and you know what the map does
+      before computing anything.
+
+  - slug: card-la-product-shape
+    unit: matrices
+    front: "Shape of $AB$ when $A$ is $m \\times n$ and $B$ is $n \\times p$?"
+    back: |
+      $m \times p$. Inner dimensions must match and then disappear. A mismatch there is the
+      most common shape error in neural network code.
+
+  - slug: card-la-commutativity
+    unit: matrix-multiplication
+    front: "Is $AB = BA$?"
+    back: |
+      Not in general — the product composes maps, and order of application matters. It does
+      hold for special cases (identity, diagonals, inverses), which is why the misconception
+      survives.
+
+  - slug: card-la-matmul-derived
+    unit: matrix-multiplication
+    front: "Why row-times-column rather than entry-by-entry?"
+    back: |
+      Because it is the only rule under which the product represents the composition of the
+      two maps. Entry-by-entry exists (Hadamard, `A * B`) and does not compose.

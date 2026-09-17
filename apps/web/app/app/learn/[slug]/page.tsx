@@ -13,7 +13,13 @@ import {
   MasteryChips,
 } from "@aileapro/ui";
 import { Markdown } from "@aileapro/ui/markdown";
-import { ApiError, api, type UnitBlock, type UnitDetail } from "@/lib/api";
+import {
+  ApiError,
+  api,
+  type UnitAssessments,
+  type UnitBlock,
+  type UnitDetail,
+} from "@/lib/api";
 import { UnitBody } from "@/components/unit-blocks";
 import { PrereqPanel } from "@/components/prereq-panel";
 import { UnitProgressProvider, readingProgress, useUnitProgress } from "@/components/unit-progress";
@@ -175,7 +181,7 @@ export default function UnitPage() {
 
       <UnitBody blocks={unit.blocks} />
 
-      <PracticeDock blocks={unit.blocks} />
+      <PracticeDock slug={unit.slug} blocks={unit.blocks} />
 
       {isContainer ? (
         <section className="card">
@@ -259,10 +265,10 @@ export default function UnitPage() {
           <span className="card__title">What this page does not do yet</span>
         </div>
         <p className="prose">
-          Your reading is recorded and it fills the Read chip, which is as far as reading can go.
-          The exercises below are not graded, nothing here can raise Practice, Assess, or Apply,
-          and the tutor cannot discuss this unit. Graded assessment arrives in Phase 6 and the
-          grounded tutor in Phase 7.
+          Your reading fills the Read chip, and the graded practice and quiz above can fill
+          Practice and Assess. Nothing on this page can fill Apply — that takes a project you
+          build, which arrives in Phase 10 — and the tutor cannot discuss this unit until Phase
+          7.
         </p>
         <div className="space__actions" style={{ marginTop: 16 }}>
           <Link className="btn btn--outline" href="/app/learn">
@@ -298,8 +304,8 @@ function UnitEvidence() {
           </div>
           <p className="hint">
             State: <strong>{mastery.state}</strong>. Reading counts only while this tab is in
-            front of you, and it stops at INTRODUCED however long you stay — the states above it
-            need work you produce.
+            front of you, and it stops at INTRODUCED however long you stay. Everything above it
+            is earned in the graded practice and quiz below.
           </p>
         </>
       ) : (
@@ -310,63 +316,116 @@ function UnitEvidence() {
 }
 
 /**
- * The practice dock. It shows the authored exercises and says plainly that nobody is marking
- * them yet, rather than offering a "mark as done" button that would turn self-report into
- * evidence.
+ * The practice dock: the graded work authored for this unit, plus the ungraded exercises.
+ *
+ * <p>Graded and ungraded are kept visibly separate. The practice set and the quiz move the
+ * chips because a server marked them; the written exercises are worth doing and move nothing,
+ * and offering a "mark as done" button beside them would turn self-report into evidence.
  */
-function PracticeDock({ blocks }: { blocks: UnitBlock[] }) {
+function PracticeDock({ slug, blocks }: { slug: string; blocks: UnitBlock[] }) {
   const { report } = useUnitProgress();
+  const [offered, setOffered] = useState<UnitAssessments | null>(null);
   const exercises = blocks.filter((block) => block.type === "exercise_set");
   const opened = useRef(false);
 
-  if (exercises.length === 0) {
-    return (
-      <section className="card dock" aria-label="Practice">
-        <div className="card__head">
-          <span className="card__title">Practice</span>
-          <span className="badge badge--warn">None authored</span>
-        </div>
-        <div className="empty">
-          <strong>No exercises are written for this unit.</strong>
-          <span>
-            Until there are, the Practice chip on this unit cannot move for anyone, which is why
-            it is empty rather than optimistic.
-          </span>
-        </div>
-      </section>
-    );
-  }
+  useEffect(() => {
+    let cancelled = false;
+    setOffered(null);
+    api<UnitAssessments>(`/v1/units/${slug}/assessments`)
+      .then((loaded) => {
+        if (!cancelled) setOffered(loaded);
+      })
+      .catch(() => {
+        // The dock degrades to the authored exercises rather than blocking the reading.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  const graded = offered ? [offered.practice, offered.quiz].filter(Boolean) : [];
 
   return (
-    <section className="card dock" aria-label="Practice">
+    <section className="card dock" id="practice" aria-label="Practice">
       <div className="card__head">
-        <span className="card__title">Practice</span>
-        <span className="badge">Not graded yet</span>
+        <span className="card__title">Practice and assess</span>
+        {offered ? (
+          <span className="badge" data-mastery={offered.ceiling}>
+            Ceiling: {offered.ceiling}
+          </span>
+        ) : null}
       </div>
-      <p className="hint">
-        The exercises are authored and they are worth doing. Submitting them for a mark, and
-        filling the Practice chip, arrives with the assessment engine in Phase 6.
-      </p>
-      <details
-        className="dock__body"
-        onToggle={(event) => {
-          // Recorded as history, credited to nothing: looking at exercises is not practice.
-          if (event.currentTarget.open && !opened.current) {
-            opened.current = true;
-            report("exercise_viewed");
-          }
-        }}
-      >
-        <summary>
-          Open the exercises for this unit
-          <span className="muted mono">{exercises.length} set{exercises.length > 1 ? "s" : ""}</span>
-        </summary>
-        {exercises.map((block) => (
-          <div className="dock__set" key={block.id}>
-            {block.payload.markdown ? <Markdown>{block.payload.markdown}</Markdown> : null}
-          </div>
-        ))}
-      </details>
+
+      {graded.length > 0 ? (
+        <>
+          <ul className="offers">
+            {graded.map((offer) => (
+              <li className="offer" key={offer!.id}>
+                <span className="offer__body">
+                  <strong>{offer!.title}</strong>
+                  {offer!.description ? <span>{offer!.description}</span> : null}
+                  <span className="offer__meta">
+                    <span className="badge">{offer!.kind}</span>
+                    <span className="muted mono">{offer!.itemCount} items</span>
+                    {offer!.kind === "quiz" ? (
+                      <span className="muted mono">
+                        pass {Math.round(offer!.passMark * 100)}%
+                      </span>
+                    ) : null}
+                    {offer!.openAttemptId ? (
+                      <span className="badge badge--warn">In progress</span>
+                    ) : null}
+                  </span>
+                </span>
+                <Link
+                  className={`btn ${offer!.kind === "quiz" ? "btn--outline" : "btn--primary"}`}
+                  href={`/app/quiz/${offer!.slug}`}
+                >
+                  {offer!.openAttemptId ? "Resume" : "Start"}
+                  <IconArrowRight />
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {offered ? <p className="hint">{offered.stateNote}</p> : null}
+        </>
+      ) : (
+        <div className="empty">
+          <strong>
+            {offered ? "No graded items are authored for this unit." : "Checking what is graded…"}
+          </strong>
+          <span>
+            {offered
+              ? "Until there are, the Practice and Assess chips on this unit cannot move for anyone, which is why they are empty rather than optimistic."
+              : "The practice set and quiz for this unit load in a moment."}
+          </span>
+        </div>
+      )}
+
+      {exercises.length > 0 ? (
+        <details
+          className="dock__body"
+          onToggle={(event) => {
+            // Recorded as history, credited to nothing: looking at exercises is not practice.
+            if (event.currentTarget.open && !opened.current) {
+              opened.current = true;
+              report("exercise_viewed");
+            }
+          }}
+        >
+          <summary>
+            Open the written exercises
+            <span className="muted mono">
+              {exercises.length} set{exercises.length > 1 ? "s" : ""} · not marked
+            </span>
+          </summary>
+          {exercises.map((block) => (
+            <div className="dock__set" key={block.id}>
+              {block.payload.markdown ? <Markdown>{block.payload.markdown}</Markdown> : null}
+            </div>
+          ))}
+        </details>
+      ) : null}
     </section>
   );
 }

@@ -1,0 +1,455 @@
+# Items for the computer fundamentals units.
+#
+# Distractors are not filler. Where a wrong option names a misconception code, choosing it
+# raises a flag against that code, and the learner is sent back to the block that teaches
+# against it. That is the whole reason the item bank exists rather than a score.
+
+items:
+  # ---------------------------------------------------------------- instructions-and-state
+  - slug: cf-state-what-is-state
+    unit: instructions-and-state
+    type: mcq
+    bloom: remember
+    difficulty: 1
+    estimateSeconds: 40
+    stem: "In the sense used here, what is a program's **state**?"
+    choices:
+      - id: a
+        text: "The values currently held by everything the program can read or write."
+        correct: true
+      - id: b
+        text: "The source code text, as written in the file."
+      - id: c
+        text: "Whether the program is running, paused, or stopped."
+      - id: d
+        text: "The output the program has printed so far."
+    explanation: |
+      State is the data: the values in variables, memory, and anywhere else the program can
+      reach. Source code is the *instructions* that transform state, and printed output is
+      one effect of running them — neither is the state itself.
+
+      Option (c) is a real meaning of the word "state" elsewhere (process state in an
+      operating system), which is exactly why it is worth separating here.
+
+  - slug: cf-state-trace-swap
+    unit: instructions-and-state
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 90
+    stem: |
+      Trace this by hand and give the final value of `a`:
+
+      ```python
+      a = 3
+      b = 8
+      a = a + b
+      b = a - b
+      ```
+    accepted:
+      - "11"
+    explanation: |
+      Statements run in order, each rewriting state:
+
+      | after line | `a` | `b` |
+      | --- | --- | --- |
+      | `a = 3` | 3 | — |
+      | `b = 8` | 3 | 8 |
+      | `a = a + b` | 11 | 8 |
+      | `b = a - b` | 11 | 3 |
+
+      `a` is 11. The third line reads the old `a` and the old `b`, computes 11, then stores
+      it. The fourth line then reads the *new* `a`, which is why `b` ends at 3 and not 5.
+
+  - slug: cf-state-assignment-is-not-equation
+    unit: instructions-and-state
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      A learner reads `count = count + 1` and says "that cannot be true — nothing equals
+      itself plus one." What has gone wrong in their reading?
+    choices:
+      - id: a
+        text: "They read `=` as a claim about equality rather than as an instruction to store a value."
+        correct: true
+      - id: b
+        text: "Nothing: the line is invalid and a real language would reject it."
+        misconception: state.assignment_is_equation
+      - id: c
+        text: "The line is a shorthand that only works for numbers."
+      - id: d
+        text: "`count` must be declared twice for the line to make sense."
+    explanation: |
+      `=` here is an instruction: *evaluate the right side, then store the result in the name
+      on the left.* Read in that order the line is unremarkable — take the current value of
+      `count`, add one, put it back.
+
+      The confusion is worth naming because it is inherited from mathematics, where `=` does
+      assert equality. Some languages make the difference visible in the syntax (`count :=
+      count + 1`), which is a hint about how often this trips people.
+
+  - slug: cf-state-expression-vs-statement
+    unit: instructions-and-state
+    type: multi_select
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Which of these **change state**? Select all that apply.
+    choices:
+      - id: a
+        text: "`total = total + price`"
+        correct: true
+      - id: b
+        text: "`items.append(\"pen\")`"
+        correct: true
+      - id: c
+        text: "`total + price`"
+      - id: d
+        text: "`len(items)`"
+      - id: e
+        text: "`items = items + [\"pen\"]`"
+        correct: true
+    explanation: |
+      (a), (b), and (e) all leave something different behind: (a) and (e) rebind a name, and
+      (b) mutates the list in place.
+
+      (c) and (d) are expressions. They produce a value and change nothing, so running them
+      on their own line is legal and useless — a real source of quiet bugs when someone
+      writes `items.sorted()` expecting `items` to change.
+
+      The distinction between (b) and (e) — mutating an object versus rebinding a name —
+      becomes the whole story in `python-values-and-types`.
+
+  - slug: cf-state-order-matters
+    unit: instructions-and-state
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 45
+    stem: |
+      Reordering two statements can change a program's result even when neither statement
+      is removed or edited.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True, and this is the point of calling a program *ordered* instructions. `x = 2` then
+      `y = x * 3` leaves `y` at 6; swap them and `y = x * 3` reads an `x` that does not
+      exist yet.
+
+      Each instruction reads the state left by the ones before it, so order is part of the
+      meaning rather than a formatting choice.
+
+  - slug: cf-state-trace-loop
+    unit: instructions-and-state
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      What is the value of `total` after this runs?
+
+      ```python
+      total = 0
+      for n in [4, 7, 2]:
+          if n > 3:
+              total = total + n
+      ```
+    accepted:
+      - "11"
+    explanation: |
+      The loop body runs three times, and the `if` gates the update:
+
+      | `n` | `n > 3` | `total` after |
+      | --- | --- | --- |
+      | 4 | yes | 4 |
+      | 7 | yes | 11 |
+      | 2 | no | 11 |
+
+      `total` is 11. Tracing state one row at a time is slower than guessing and is the only
+      method that keeps working once the programs stop fitting on a screen.
+
+  - slug: cf-state-why-trace
+    unit: instructions-and-state
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 75
+    stem: |
+      A program prints the wrong total. Why is tracing state by hand often faster than
+      re-reading the code looking for the mistake?
+    choices:
+      - id: a
+        text: "It shows where the values first diverge from what you expected, which localises the bug."
+        correct: true
+      - id: b
+        text: "It is not faster; re-reading finds bugs sooner in practice."
+      - id: c
+        text: "It proves the program has no other bugs."
+      - id: d
+        text: "It rewrites the program into a simpler form."
+    explanation: |
+      Re-reading checks the code against your understanding of it — and your understanding
+      is what is wrong, so you read straight past the error. A trace checks the code against
+      *values*, and the first row that surprises you brackets the defect.
+
+      It proves nothing about the rest of the program (c), and a debugger automates exactly
+      this, which is why knowing how to do it by hand transfers.
+
+  # ---------------------------------------------------------- how-source-becomes-execution
+  - slug: cf-exec-stages-order
+    unit: how-source-becomes-execution
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 50
+    stem: "Which ordering describes the usual path from source text to something a processor runs?"
+    choices:
+      - id: a
+        text: "Source text → parsed into a structure → translated to a lower-level form → executed."
+        correct: true
+      - id: b
+        text: "Source text → executed directly by the processor, character by character."
+      - id: c
+        text: "Source text → compressed → loaded into memory → executed."
+      - id: d
+        text: "Source text → translated to English → executed."
+    explanation: |
+      Something has to read the text and work out its structure before anything can be
+      translated; you cannot know what `a + b * c` means until you know how it groups. After
+      parsing comes translation to a lower-level form — machine code, or bytecode for a
+      virtual machine — and then execution.
+
+      No processor consumes source characters (b). The intermediate forms are where the
+      difference between compilers and interpreters actually lives.
+
+  - slug: cf-exec-interpreted-not-compiled
+    unit: how-source-becomes-execution
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      "Python is interpreted, so no compilation happens." What is wrong with this?
+    choices:
+      - id: a
+        text: "Python compiles source to bytecode first; the interpreter then executes that bytecode."
+        correct: true
+      - id: b
+        text: "Nothing — interpreted and compiled are opposites, and Python is the former."
+        misconception: execution.interpreted_means_not_compiled
+      - id: c
+        text: "Python is actually compiled to machine code like C, so it is not interpreted at all."
+      - id: d
+        text: "Only the standard library is compiled; your own code is not."
+    explanation: |
+      CPython parses your source, compiles it to bytecode (the `.pyc` files in
+      `__pycache__`), and the virtual machine executes that bytecode. Compilation happened —
+      it just targets a virtual machine rather than your CPU, and it happens as you run
+      rather than in a separate step you invoke.
+
+      "Compiled" and "interpreted" describe *stages of a toolchain*, not two camps languages
+      belong to. The useful questions are: translated to what, and when?
+
+  - slug: cf-exec-what-a-runtime-provides
+    unit: how-source-becomes-execution
+    type: multi_select
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Which of these are typically provided by a language **runtime** rather than by your code?"
+    choices:
+      - id: a
+        text: "Memory management, including reclaiming objects you no longer reference."
+        correct: true
+      - id: b
+        text: "Dispatching to the right function when a name could mean several things."
+        correct: true
+      - id: c
+        text: "The business rules your program implements."
+      - id: d
+        text: "Turning an error into an exception that unwinds the call stack."
+        correct: true
+      - id: e
+        text: "The names you chose for your variables."
+    explanation: |
+      (a), (b), and (d) are services the runtime performs while your program executes. You
+      never wrote the garbage collector, and you never wrote the machinery that unwinds a
+      stack when something raises.
+
+      (c) and (e) are yours. The line matters for AI work: when a training run dies with an
+      out-of-memory error or a native library segfaults, you are debugging the runtime's
+      territory, and knowing it is a separate layer is the difference between a hypothesis
+      and a shrug.
+
+  - slug: cf-exec-error-timing
+    unit: how-source-becomes-execution
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      A misspelled function name in a rarely-taken branch crashes your program in
+      production, after hours of correct operation. What does this tell you about when
+      that name was checked?
+    choices:
+      - id: a
+        text: "It was resolved when the branch first ran, not when the file was translated."
+        correct: true
+      - id: b
+        text: "The translation step is broken and should have rejected the file."
+      - id: c
+        text: "The name was checked at startup and the check silently failed."
+      - id: d
+        text: "Nothing — crash timing is unrelated to when names are resolved."
+    explanation: |
+      The program ran for hours, so the file was accepted. The failure arrived with the
+      branch, which means the name was looked up at the moment of the call.
+
+      That is the practical cost of late binding: errors that a language resolving names
+      earlier would have refused to start with surface at whatever hour the unlucky input
+      arrives. It is not a bug in the toolchain (b) — it is a trade, bought in exchange for
+      the flexibility that makes `getattr` and duck typing work, and paid for with tests.
+
+  - slug: cf-exec-same-source-different-machines
+    unit: how-source-becomes-execution
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      Bytecode aimed at a virtual machine can run on processors with different instruction
+      sets, without recompiling the source.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True, and it is the reason the intermediate form exists. The bytecode targets the
+      virtual machine, and a build of that machine exists for each real processor, so the
+      portability problem is solved once by the VM implementers instead of once per program.
+
+      The cost is a layer of indirection at run time, which is why the hot numerical parts
+      of AI libraries drop out of Python bytecode and into compiled native code.
+
+  - slug: cf-exec-explain-stages
+    unit: how-source-becomes-execution
+    type: short_text
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      In one word, what is the name of the intermediate form CPython writes to
+      `__pycache__` and then executes?
+    accepted:
+      - "bytecode"
+      - "byte code"
+      - "byte-code"
+    explanation: |
+      Bytecode. It is a compact instruction set for CPython's virtual machine rather than
+      for your CPU, which is why the same `.pyc` is useless to your processor and fine for
+      any machine running a compatible CPython.
+
+      Seeing the cache directory appear after a first run is the most direct evidence you
+      can get that "interpreted" did not mean "untranslated".
+
+assessments:
+  - slug: instructions-and-state-practice
+    title: "Practice: instructions and state"
+    kind: practice
+    unit: instructions-and-state
+    description: "Trace state by hand until the habit is automatic."
+    items:
+      - cf-state-what-is-state
+      - cf-state-trace-swap
+      - cf-state-assignment-is-not-equation
+      - cf-state-expression-vs-statement
+      - cf-state-order-matters
+      - cf-state-trace-loop
+
+  - slug: instructions-and-state-quiz
+    title: "Quiz: instructions and state"
+    kind: quiz
+    unit: instructions-and-state
+    description: "Cold check. No notes."
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - cf-state-assignment-is-not-equation
+      - cf-state-trace-loop
+      - cf-state-expression-vs-statement
+      - cf-state-why-trace
+
+  - slug: how-source-becomes-execution-practice
+    title: "Practice: source to execution"
+    kind: practice
+    unit: how-source-becomes-execution
+    items:
+      - cf-exec-stages-order
+      - cf-exec-interpreted-not-compiled
+      - cf-exec-what-a-runtime-provides
+      - cf-exec-same-source-different-machines
+      - cf-exec-explain-stages
+
+  - slug: how-source-becomes-execution-quiz
+    title: "Quiz: source to execution"
+    kind: quiz
+    unit: how-source-becomes-execution
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - cf-exec-interpreted-not-compiled
+      - cf-exec-what-a-runtime-provides
+      - cf-exec-error-timing
+      - cf-exec-stages-order
+
+cards:
+  - slug: card-cf-state-definition
+    unit: instructions-and-state
+    front: "What is a program's *state*?"
+    back: |
+      The values currently held by everything the program can read or write. Instructions
+      transform state; source code and printed output are not it.
+
+  - slug: card-cf-assignment
+    unit: instructions-and-state
+    front: "How do you read `x = x + 1` without it sounding false?"
+    back: |
+      As an instruction, left to right in the wrong order: evaluate `x + 1` first, then
+      store the result in `x`. `=` stores; it does not assert equality.
+
+  - slug: card-cf-expression-statement
+    unit: instructions-and-state
+    front: "Expression or statement — which one changes state?"
+    back: |
+      A statement changes state; an expression produces a value and changes nothing. A line
+      containing only an expression is legal and does nothing.
+
+  - slug: card-cf-exec-pipeline
+    unit: how-source-becomes-execution
+    front: "The four stages from source text to execution."
+    back: |
+      Read the text → parse into a structure → translate to a lower-level form (machine
+      code or bytecode) → execute.
+
+  - slug: card-cf-interpreted
+    unit: how-source-becomes-execution
+    front: "Does \"interpreted\" mean no compilation happens?"
+    back: |
+      No. CPython compiles to bytecode (`__pycache__`) and the virtual machine runs that.
+      "Compiled" and "interpreted" name stages of a toolchain, not two kinds of language.
+
+  - slug: card-cf-runtime
+    unit: how-source-becomes-execution
+    front: "Name three things a runtime does that you never wrote."
+    back: |
+      Reclaims memory you stopped referencing, resolves which function a name means, and
+      unwinds the stack when something raises.

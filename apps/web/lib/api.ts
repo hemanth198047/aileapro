@@ -255,6 +255,184 @@ export type RoadmapStop = {
   mastery: Mastery;
 };
 
+/** Assessment reads. Mirrors AssessmentViews on the API. */
+export type AssessmentSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  kind: "practice" | "quiz" | "exam" | "diagnostic";
+  description: string | null;
+  timeLimitSeconds: number | null;
+  passMark: number;
+  itemCount: number;
+  unit: UnitRef | null;
+  /** An attempt already in progress, which starting again resumes rather than replaces. */
+  openAttemptId: string | null;
+};
+
+export type UnitAssessments = {
+  unit: UnitRef;
+  practice: AssessmentSummary | null;
+  quiz: AssessmentSummary | null;
+  /** The highest state this unit's authored items can support, stated rather than implied. */
+  ceiling: MasteryState;
+  ceilingReason: string;
+  /** The one thing standing between the learner and their next rung on this unit. */
+  stateNote: string;
+  mastery: Mastery;
+};
+
+export type ItemType = "mcq" | "multi_select" | "true_false" | "short_text" | "coding_stub";
+
+/** A choice as served. There is no `correct` field: the key does not travel with the item. */
+export type Choice = { id: string; text: string };
+
+export type ServedItem = {
+  id: string;
+  type: ItemType;
+  stem: string;
+  choices: Choice[];
+  difficulty: number;
+  bloom: string;
+  estimateSeconds: number | null;
+  sort: number;
+  answered: boolean;
+  unit: UnitRef | null;
+};
+
+/** A named false belief, with the page that argues against it. */
+export type Misconception = {
+  code: string;
+  claim: string;
+  unit: UnitRef | null;
+  href: string | null;
+};
+
+/** The mark for one item, returned the instant it is answered. */
+export type Marked = {
+  itemId: string;
+  /** Null when the system cannot mark it, which is not the same as wrong. */
+  correct: boolean | null;
+  unverified: boolean;
+  fraction: number;
+  correctIds: string[];
+  explanation: string;
+  raised: Misconception[];
+  answeredCount: number;
+  servedCount: number;
+  complete: boolean;
+};
+
+export type AttemptState = {
+  id: string;
+  kind: AssessmentSummary["kind"];
+  status: "in_progress" | "submitted" | "abandoned" | "expired";
+  assessmentSlug: string;
+  assessmentTitle: string;
+  unit: UnitRef | null;
+  startedAt: string;
+  timeLimitSeconds: number | null;
+  secondsRemaining: number | null;
+  answeredCount: number;
+  servedCount: number;
+  /** Null while adaptive: the diagnostic does not know how many it will ask. */
+  remaining: number | null;
+  nextItem: ServedItem | null;
+};
+
+export type ReportLine = { label: string; detail: string; href: string | null };
+
+export type Report = {
+  attemptId: string;
+  kind: AssessmentSummary["kind"];
+  assessmentTitle: string;
+  unit: UnitRef | null;
+  submittedAt: string;
+  fraction: number;
+  passMark: number;
+  passed: boolean | null;
+  answered: number;
+  correct: number;
+  unmarked: number;
+  summary: string;
+  readiness: string;
+  readinessReason: string;
+  strengths: ReportLine[];
+  weaknesses: ReportLine[];
+  misconceptions: Misconception[];
+  missingPrereqs: ReportLine[];
+  revision: ReportLine[];
+  nextSteps: ReportLine[];
+  masteryState: MasteryState;
+  masteryNote: string;
+};
+
+/** A card waiting to be recalled. The back is withheld until a grade is committed. */
+export type DueCard = {
+  scheduleId: string;
+  cardId: string;
+  front: string;
+  unit: UnitRef | null;
+  due: string;
+  daysOverdue: number;
+  intervalDays: number;
+  reps: number;
+  lapses: number;
+};
+
+export type ReviewQueue = {
+  dueCount: number;
+  overdueCount: number;
+  leechCount: number;
+  cards: DueCard[];
+  note: string;
+};
+
+export type ReviewResult = {
+  scheduleId: string;
+  cardId: string;
+  back: string;
+  grade: number;
+  passed: boolean;
+  wasDue: boolean;
+  intervalBefore: number;
+  intervalAfter: number;
+  nextDue: string;
+  ease: number;
+  leech: boolean;
+  note: string;
+  remaining: number;
+};
+
+/** The diagnostic's placement guess for one domain, with how thin the evidence was. */
+export type Prior = {
+  domain: UnitRef;
+  itemsServed: number;
+  itemsCorrect: number;
+  estimate: number;
+  confidence: "low" | "medium" | "high";
+  reason: string;
+};
+
+export type PlanLine = {
+  kind: string;
+  unit: UnitRef | null;
+  reason: string;
+  due: string | null;
+  href: string | null;
+};
+
+export type StudyPlan = {
+  id: string;
+  version: number;
+  horizon: string;
+  reason: string;
+  source: string;
+  generatedAt: string;
+  priors: Prior[];
+  items: PlanLine[];
+};
+
 export type Roadmap = {
   pathSlug: string;
   pathTitle: string;

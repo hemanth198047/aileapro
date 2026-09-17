@@ -238,9 +238,8 @@ function MapView() {
         <p className="prose">
           Only authored units are nodes. Technologies, papers, and misconceptions get their own
           node kinds later, and the 50-odd domains with no units yet have no edges to draw. The
-          fills can currently only reach INTRODUCED, because reading is the only evidence the
-          platform collects until graded work arrives; impact analysis on content change is
-          Phase 15.
+          fills stop short of MASTERED, which needs a project you build rather than a quiz you
+          pass; impact analysis on content change is Phase 15.
         </p>
       </section>
     </>
