@@ -341,11 +341,62 @@ and `next lint` in `apps/web` is still unconfigured so CI relies on typecheck an
 
 ### GATE (Phase 4)
 
-- [ ] Click node opens unit
-- [ ] Gap list for a target unit works
-- [ ] Map does not download the entire graph
+- [x] Click node opens unit
+- [x] Gap list for a target unit works
+- [x] Map does not download the entire graph
 
 **Phase log:**
+
+- **2026-09-17 — Phase 4 complete.** `V3__knowledge_graph.sql` adds `concept_edges`
+  (`from_id`, `to_id`, `edge_type`, `weight`, `status`, `note`, `evidence_source_ids[]`) with a
+  unique natural key, a no-self-loop check, a type check covering the ten stored edge types, and
+  indexes both ways. Containment is **not** duplicated as `PART_OF` edges — `parent_id` plus
+  `unit_closure` already answers it, and two representations of one fact would eventually
+  disagree. `GENERALIZATION_OF` is not stored either; it is the inverse of `SPECIALIZATION_OF`.
+- No `concept_closure` table and no recursive SQL: `GraphQueryService` walks the graph in Java,
+  one indexed lookup per hop, because the authored graph is small and the node budget caps the
+  work. One traversal then serves both the map and the prerequisite chain.
+- API: `GET /v1/units/:id/graph?hops=&types=` and `GET /v1/units/:id/prerequisites`. Hops are
+  clamped to 3 (default 2) and nodes to 60; the response reports `hops`, `maxHops`, `nodeBudget`,
+  and `truncated`, so a trimmed neighbourhood can never pass as the whole graph. An unknown
+  edge type is a 400 naming the valid ones, not a 500.
+- Published-only, enforced by reusing `CurriculumQueryService.publishedRefs`: a draft node is
+  dropped **with its edges**, since a dangling arrow discloses the draft. Edges are collected
+  after the node set is final, so no edge can reference a node the client was not given — there
+  is a test asserting exactly that invariant.
+- Prerequisites are transitive and ordered deepest-first (study order), with `DEPENDS_ON`
+  reported separately as advisory. The walk passes *through* an unpublished unit but does not
+  show it, so a published ancestor behind a draft is still listed. Every step reports
+  `masteryState: "unknown"` and the response carries `masteryTracked: false`.
+- Cycle rejection is a pure function (`PrerequisiteDag.findCycle`) that reports the ring as a
+  walk closing on itself, generic over node type so the seed loader checks slugs and the error
+  names the units. It runs before any edge is written. The seeder also refuses a published
+  non-domain unit with no parent, so nothing can be published unreachable.
+- Seed: `80-edges.yml`, 17 authored edges with notes and cited sources, covering the chain the
+  spec asks for as far as authored units exist (computer fundamentals → Python → vectors →
+  matrices → matmul → neuron → RAG). It stops there: there is no transformers or agents unit,
+  so there is no edge pretending otherwise. Two edges deliberately point at the draft attention
+  unit, which is what proves the draft-hiding rule in the tests. `RELATED_TO` is reserved for
+  pairs with no prerequisite between them, so no claim is drawn twice. The seed owns
+  `concept_edges`: deleting a line from the file deletes the relationship.
+- Map UI (`/app/map?unit=&hops=`): ring layout by hop distance in SVG, with the adjacency list
+  beside it carrying every node and edge, phrased from each node's side ("requires", "must be
+  read before", "helps with"). Nodes are real links, so clicking or tabbing to one opens the
+  unit. Edge type filters only offer types present in the response. Node colour is deliberately
+  meaningless and the caption says why: colouring by mastery would be a claim about the learner
+  that nothing has measured.
+- Unit pages gained a prerequisite panel: the chain in study order, advisory links, and labelled
+  connections, all explicitly "authored, unverified". A domain that merely contains units is
+  distinguished from one with nothing to read.
+- Verified: `gradle check` (26 tests, 18 new), `pnpm -r typecheck`, `pnpm --filter web build`
+  (map at 117 kB first load — no KaTeX), a re-run of `:api:seed` against Postgres, and a browser
+  walk: canvas plus list, a node click landing on the unit, a one-hop versus three-hop
+  neighbourhood, the draft unit absent, and an unmapped domain saying so plainly.
+
+**Known gaps carried forward:** mastery colouring and real gap detection wait on evidence
+(Phase 5); only units are nodes, so technologies, papers, and misconceptions are still
+block-level content rather than graph nodes; edge provenance is stored but not surfaced in the
+UI; and impact analysis on content change is Phase 15.
 
 ---
 

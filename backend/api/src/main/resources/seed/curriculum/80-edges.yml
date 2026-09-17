@@ -1,0 +1,145 @@
+# Typed edges between authored units (08-KNOWLEDGE_GRAPH).
+#
+# Containment is not repeated here — that is the `parent` field on each unit. These are the
+# relationships a tree cannot express: what must come first, what merely helps, what is worth
+# reading alongside, and where an idea gets used.
+#
+# PREREQUISITE_OF is a claim with teeth: Phase 5 will refuse to recommend a unit whose
+# prerequisites are unmet, so a link belongs here only if the target is genuinely unreadable
+# without the source. Softer "this would help" claims are DEPENDS_ON.
+#
+# The chain the spec asks for is linear algebra -> neural networks -> attention -> RAG. It stops
+# where the authored units stop: there is no transformers or agents unit yet, so there is no edge
+# pretending otherwise.
+
+edges:
+  # --- Computer fundamentals --------------------------------------------------------------
+  - from: instructions-and-state
+    to: how-source-becomes-execution
+    type: PREREQUISITE_OF
+    note: >-
+      Translation only makes sense once you know what it is translating into: instructions that
+      read and write state.
+    sources: [nand2tetris]
+
+  - from: instructions-and-state
+    to: python-values-and-types
+    type: PREREQUISITE_OF
+    note: >-
+      A name pointing at an object is a statement about state, and it is the first thing that
+      confuses people who have not seen state as a concept.
+
+  - from: how-source-becomes-execution
+    to: python-values-and-types
+    type: DEPENDS_ON
+    weight: 0.6
+    note: >-
+      Knowing that CPython compiles to bytecode explains error timing, but you can write correct
+      Python without it.
+    sources: [python-execution-model]
+
+  # --- Python -----------------------------------------------------------------------------
+  - from: python-values-and-types
+    to: python-functions
+    type: PREREQUISITE_OF
+    note: >-
+      Argument passing is the mutability question again, one call deeper. It cannot be taught
+      before values and references.
+    sources: [python-datamodel]
+
+  - from: python-functions
+    to: python-collections
+    type: PREREQUISITE_OF
+    note: The collection examples pass and return them, and the exercises are written as functions.
+
+  # --- Linear algebra ---------------------------------------------------------------------
+  - from: vectors
+    to: matrices
+    type: PREREQUISITE_OF
+    note: A matrix is read here as a map between vector spaces, so vectors come first.
+    sources: [3b1b-linear-algebra]
+
+  - from: matrices
+    to: matrix-multiplication
+    type: PREREQUISITE_OF
+    note: >-
+      The product is defined as composition of the two maps, which is meaningless until a matrix
+      is a map.
+    sources: [mml-book]
+
+  - from: python-collections
+    to: vectors
+    type: DEPENDS_ON
+    weight: 0.5
+    note: >-
+      The NumPy blocks assume you can read indexing and a list. The mathematics does not need
+      Python at all.
+    sources: [numpy-absolute-basics]
+
+  # --- Neural networks --------------------------------------------------------------------
+  - from: matrix-multiplication
+    to: how-a-neuron-learns
+    type: PREREQUISITE_OF
+    note: >-
+      A layer is a matrix product over a batch. Without the shape rule, the forward pass is
+      notation rather than arithmetic.
+    sources: [nielsen-nndl]
+
+  - from: python-functions
+    to: how-a-neuron-learns
+    type: DEPENDS_ON
+    weight: 0.5
+    note: The gradient step is shown as a Python loop, but the derivation stands without it.
+
+  - from: matrix-multiplication
+    to: neural-networks
+    type: APPLIED_IN
+    note: Every dense layer in the domain is this operation over a batch.
+
+  # --- Retrieval-augmented generation -----------------------------------------------------
+  - from: vectors
+    to: rag-pipeline-basics
+    type: PREREQUISITE_OF
+    note: >-
+      Retrieval ranks by cosine similarity. Without the dot product and normalisation, the
+      ranking step is a black box.
+    sources: [sentence-transformers, rag-2020]
+
+  - from: python-collections
+    to: rag-pipeline-basics
+    type: DEPENDS_ON
+    weight: 0.6
+    note: The chunking and top-k code is list and dict work.
+
+  - from: vectors
+    to: retrieval-augmented-generation
+    type: APPLIED_IN
+    note: An embedding is a vector, so the whole retrieval step is vector geometry.
+    sources: [sentence-transformers]
+
+  # RELATED_TO is reserved for pairs with no prerequisite between them; repeating a prerequisite
+  # as "related" would just draw the same claim twice.
+  - from: matrix-multiplication
+    to: rag-pipeline-basics
+    type: RELATED_TO
+    weight: 0.7
+    note: >-
+      Scoring one query against every document is a single matrix product, which is why vector
+      indexes exist at all.
+    sources: [faiss, pgvector]
+
+  # --- Into the unwritten part of the chain ------------------------------------------------
+  # The attention unit is deliberately still a draft. The edge is authored anyway, which is the
+  # honest state of affairs: the relationship is known, the content is not written. A learner
+  # never sees either, because the graph drops edges that touch unpublished units.
+  - from: matrix-multiplication
+    to: scaled-dot-product-attention
+    type: PREREQUISITE_OF
+    note: Attention is three matrix products and a softmax.
+    sources: [attention-2017]
+
+  - from: how-a-neuron-learns
+    to: scaled-dot-product-attention
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Knowing what a learned weight is makes Q, K, and V read as projections rather than magic.

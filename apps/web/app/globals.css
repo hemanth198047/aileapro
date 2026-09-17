@@ -717,6 +717,318 @@
   line-height: 1.5;
 }
 
+/* ---------- Map: controls, canvas, adjacency ---------- */
+
+.mapctl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  align-items: flex-end;
+  margin: var(--s4) 0;
+}
+
+.mapctl__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.mapctl__field--wide {
+  flex: 1 1 260px;
+}
+
+.mapctl__field select {
+  min-width: 220px;
+  padding: 8px var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter {
+  padding: 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--fast), color var(--fast), background var(--fast);
+}
+
+.filter:hover {
+  border-color: var(--line-strong);
+  color: var(--ink-soft);
+}
+
+.filter--on {
+  border-color: transparent;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.graph {
+  margin: var(--s4) 0 0;
+  display: grid;
+  gap: var(--s3);
+}
+
+.graph__svg {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.graph__caption {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+/* Base and type rules share specificity so the type below can override the stroke. */
+.gnode-edge {
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+}
+
+#graph-arrow path {
+  fill: var(--line-strong);
+}
+
+/* Gating edges are the only ones drawn solid and in the brand colour: they are the claims
+   that will refuse a recommendation in Phase 5. Everything softer looks softer. */
+.gnode-edge--prerequisite-of {
+  stroke: var(--brand);
+  stroke-width: 2;
+}
+
+.gnode-edge--depends-on {
+  stroke-dasharray: 5 4;
+}
+
+.gnode-edge--related-to {
+  stroke-dasharray: 2 5;
+}
+
+.gnode-edge--applied-in {
+  stroke-dasharray: 9 4;
+}
+
+.gnode rect {
+  fill: var(--surface);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  transition: stroke var(--fast), fill var(--fast);
+}
+
+.gnode text {
+  fill: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.gnode:hover rect,
+.gnode:focus-visible rect {
+  fill: var(--surface-hover);
+  stroke: var(--brand);
+}
+
+.gnode:focus-visible {
+  outline: none;
+}
+
+.gnode--focus rect {
+  fill: var(--brand-soft);
+  stroke: var(--brand);
+  stroke-width: 1.5;
+}
+
+.gnode--focus text {
+  fill: var(--ink);
+}
+
+/* A node whose unit has no authored blocks: reachable, but nothing to read yet. */
+.gnode--empty rect {
+  stroke-dasharray: 4 3;
+}
+
+.gnode--empty text {
+  fill: var(--muted);
+}
+
+.adjacency {
+  display: grid;
+  gap: var(--s2);
+  margin: var(--s4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adjacency__item {
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.adjacency__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.adjacency__title {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.adjacency__title:hover {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.adjacency__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.adjacency__edges {
+  display: grid;
+  gap: 6px;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.adjacency__edges li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2);
+}
+
+.adjacency__note {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.etag {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.etag--prerequisite-of {
+  border-color: transparent;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+/* ---------- Prerequisites on a unit ---------- */
+
+.prereqs {
+  display: grid;
+  gap: var(--s2);
+  margin: var(--s2) 0 var(--s3);
+  padding: 0;
+  list-style: none;
+}
+
+.prereq {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: var(--s3);
+  align-items: start;
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.prereqs--soft .prereq {
+  grid-template-columns: minmax(0, 1fr);
+  background: transparent;
+  border-style: dashed;
+}
+
+.prereq__depth {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: var(--surface-hover);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.prereq__body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.prereq__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.prereq__title:hover {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.prereq__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.related {
+  display: grid;
+  gap: var(--s2);
+  margin: var(--s2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.related__note {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
 /* ---------- Splash ---------- */
 
 .splash {

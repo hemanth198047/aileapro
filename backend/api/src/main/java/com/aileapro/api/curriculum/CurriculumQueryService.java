@@ -163,6 +163,25 @@ public class CurriculumQueryService {
         return resourcesFor(publishedUnit(idOrSlug).getId());
     }
 
+    /**
+     * A single published unit as a reference, or 404. The graph resolves its focus through
+     * here so that "published only" is decided in one place.
+     */
+    public UnitRef publishedRef(String idOrSlug) {
+        LearningUnitEntity unit = publishedUnit(idOrSlug);
+        return toRef(unit, blockCounts(List.of(unit.getId())), childCounts(List.of(unit.getId())));
+    }
+
+    /** References for the ids that are published, keyed by id. Ids in draft are simply absent. */
+    public Map<UUID, UnitRef> publishedRefs(Collection<UUID> ids) {
+        Map<UUID, LearningUnitEntity> found = publishedById(ids);
+        Map<UUID, Integer> blockCounts = blockCounts(found.keySet());
+        Map<UUID, Integer> childCounts = childCounts(found.keySet());
+        Map<UUID, UnitRef> refs = new HashMap<>(found.size());
+        found.forEach((id, unit) -> refs.put(id, toRef(unit, blockCounts, childCounts)));
+        return refs;
+    }
+
     /** Ancestors of a published unit, top-down, skipping any ancestor that is not published. */
     private List<UnitRef> breadcrumb(LearningUnitEntity unit) {
         List<UUID> ancestorIds = closure.findByIdDescendantIdOrderByDepthDesc(unit.getId()).stream()

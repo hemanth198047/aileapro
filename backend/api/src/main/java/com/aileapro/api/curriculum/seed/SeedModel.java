@@ -18,7 +18,24 @@ public final class SeedModel {
     public record SeedFile(
             List<SeedSource> sources,
             List<SeedUnit> units,
+            List<SeedEdge> edges,
             List<SeedPath> paths) {
+    }
+
+    /**
+     * A typed edge between two units, by slug.
+     *
+     * @param note    why the author drew it, shown beside the edge in the map
+     * @param sources slugs of seeded sources that back the claim
+     */
+    public record SeedEdge(
+            String from,
+            String to,
+            String type,
+            Double weight,
+            String status,
+            String note,
+            List<String> sources) {
     }
 
     public record SeedSource(

@@ -14,6 +14,7 @@ import {
 } from "@aileapro/ui";
 import { ApiError, api, type UnitDetail } from "@/lib/api";
 import { UnitBody } from "@/components/unit-blocks";
+import { PrereqPanel } from "@/components/prereq-panel";
 
 /** Read mode for one unit. No AI is involved on this page — the text is authored. */
 export default function UnitPage() {
@@ -159,6 +160,8 @@ export default function UnitPage() {
           </p>
         </div>
       </section>
+
+      <PrereqPanel slug={unit.slug} />
 
       {unit.objectives.length > 0 ? (
         <section className="card">

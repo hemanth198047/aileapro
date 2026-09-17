@@ -107,6 +107,54 @@ export type UnitDetail = {
   resources: UnitResource[];
 };
 
+/** Graph reads. Mirrors GraphViews on the API. */
+export type GraphNode = {
+  unit: UnitRef;
+  /** Distance from the focus unit, so the map can lay nodes out in rings. */
+  hops: number;
+  masteryState: string;
+};
+
+export type GraphEdge = {
+  id: string;
+  fromId: string;
+  toId: string;
+  type: string;
+  weight: number;
+  /** Symmetric edges are drawn without an arrowhead. */
+  symmetric: boolean;
+  /** Gating edges can block progress, so they are drawn and listed first. */
+  gating: boolean;
+  note: string | null;
+};
+
+export type Neighborhood = {
+  focus: UnitRef;
+  hops: number;
+  maxHops: number;
+  nodeBudget: number;
+  truncated: boolean;
+  /** False until Phase 5: node colour must not imply a mastery state nobody measured. */
+  masteryTracked: boolean;
+  edgeTypes: string[];
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+};
+
+export type PrerequisiteStep = {
+  unit: UnitRef;
+  depth: number;
+  direct: boolean;
+  masteryState: string;
+};
+
+export type Prerequisites = {
+  unit: UnitRef;
+  masteryTracked: boolean;
+  required: PrerequisiteStep[];
+  advisory: PrerequisiteStep[];
+};
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;

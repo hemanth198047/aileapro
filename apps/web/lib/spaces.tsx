@@ -79,7 +79,7 @@ export const SPACES: Space[] = [
     purpose: "Authored units: why it matters, explanations at the levels that exist, examples, and what mastery would take.",
     nextAction: "Open the AI Engineer path and read a unit",
     waitingOn:
-      "Ten units are authored and published. Level selection, evidence chips, and the practice dock arrive in Phase 5.",
+      "Ten units are authored and published, each with its prerequisites drawn. Level selection, evidence chips, and the practice dock arrive in Phase 5.",
   },
   {
     id: "map",
@@ -87,11 +87,10 @@ export const SPACES: Space[] = [
     href: "/app/map",
     group: "Study",
     icon: <IconMap />,
-    purpose: "The knowledge graph: what you know, what is next, and what is blocking it.",
-    arrivesIn: "Phase 4",
-    nextAction: "Nothing yet — the graph arrives in Phase 4",
+    purpose: "The knowledge graph: what a unit needs, what it leads to, and what it connects with.",
+    nextAction: "Open the map and follow the prerequisite chain into neural networks",
     waitingOn:
-      "The nodes exist now: 57 domains and the authored units under them. Phase 4 adds the typed prerequisite edges and the neighbourhood view, with a list fallback alongside the canvas.",
+      "Typed edges are authored across the units that exist. Node colouring by mastery needs evidence, which starts in Phase 5 — until then the map describes the subject, not you.",
   },
   {
     id: "assess",

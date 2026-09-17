@@ -11,8 +11,9 @@ import { SpaceHeader } from "@/components/space-view";
 const delivered = [
   { label: "Account, session, and roles", state: "done", note: "Phase 1" },
   { label: "Studio shell and every space routed", state: "done", note: "Phase 2" },
-  { label: "Authored curriculum, paths, and sources", state: "active", note: "Phase 3" },
-  { label: "Knowledge map with prerequisites", state: "todo", note: "Phase 4" },
+  { label: "Authored curriculum, paths, and sources", state: "done", note: "Phase 3" },
+  { label: "Knowledge map with typed prerequisites", state: "active", note: "Phase 4" },
+  { label: "Recorded evidence and a real recommendation", state: "todo", note: "Phase 5" },
 ];
 
 export default function TodayPage() {

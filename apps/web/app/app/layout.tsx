@@ -269,9 +269,12 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
               </p>
               <div className="orient__row">
                 <span className="kicker">Prerequisites</span>
-                <span className="badge">Not tracked yet</span>
+                <span className="badge">Authored, unverified</span>
               </div>
-              <p className="hint">Prerequisite health turns on with the graph in Phase 4.</p>
+              <p className="hint">
+                The graph knows what each unit needs, and the unit page shows that chain. Whether
+                you have met it cannot be checked until evidence exists in Phase 5.
+              </p>
             </div>
           </div>
 

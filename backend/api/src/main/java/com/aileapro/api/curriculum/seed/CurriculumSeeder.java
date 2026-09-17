@@ -9,17 +9,22 @@ import com.aileapro.api.curriculum.UnitBlockRepository;
 import com.aileapro.api.curriculum.UnitClosureRepository;
 import com.aileapro.api.curriculum.UnitResourceRepository;
 import com.aileapro.api.curriculum.seed.SeedModel.SeedBlock;
+import com.aileapro.api.curriculum.seed.SeedModel.SeedEdge;
 import com.aileapro.api.curriculum.seed.SeedModel.SeedFile;
 import com.aileapro.api.curriculum.seed.SeedModel.SeedPath;
 import com.aileapro.api.curriculum.seed.SeedModel.SeedResourceLink;
 import com.aileapro.api.curriculum.seed.SeedModel.SeedSource;
 import com.aileapro.api.curriculum.seed.SeedModel.SeedUnit;
+import com.aileapro.api.graph.ConceptEdgeRepository;
+import com.aileapro.api.graph.PrerequisiteDag;
 import com.aileapro.domain.BlockType;
 import com.aileapro.domain.ContentStatus;
+import com.aileapro.domain.EdgeType;
 import com.aileapro.domain.KnowledgeClass;
 import com.aileapro.domain.SourceType;
 import com.aileapro.domain.UnitKind;
 import com.aileapro.domain.Volatility;
+import com.aileapro.persistence.ConceptEdgeEntity;
 import com.aileapro.persistence.LearningPathEntity;
 import com.aileapro.persistence.LearningResourceEntity;
 import com.aileapro.persistence.LearningUnitEntity;
@@ -84,6 +89,7 @@ public class CurriculumSeeder {
     private final SourceRepository sources;
     private final LearningResourceRepository resources;
     private final UnitResourceRepository unitResources;
+    private final ConceptEdgeRepository edges;
     private final ObjectMapper yaml;
     private final ObjectMapper json;
 
@@ -95,7 +101,8 @@ public class CurriculumSeeder {
             PathWaypointRepository waypoints,
             SourceRepository sources,
             LearningResourceRepository resources,
-            UnitResourceRepository unitResources) {
+            UnitResourceRepository unitResources,
+            ConceptEdgeRepository edges) {
         this.units = units;
         this.blocks = blocks;
         this.closure = closure;
@@ -104,15 +111,17 @@ public class CurriculumSeeder {
         this.sources = sources;
         this.resources = resources;
         this.unitResources = unitResources;
+        this.edges = edges;
         this.yaml = JsonMapper.builder(new YAMLFactory()).addModule(new JavaTimeModule()).build();
         this.json = new ObjectMapper();
     }
 
-    public record SeedReport(int sources, int units, int blocks, int resourceLinks, int paths, int waypoints) {
+    public record SeedReport(
+            int sources, int units, int blocks, int resourceLinks, int edges, int paths, int waypoints) {
         @Override
         public String toString() {
-            return "sources=%d units=%d blocks=%d resourceLinks=%d paths=%d waypoints=%d"
-                    .formatted(sources, units, blocks, resourceLinks, paths, waypoints);
+            return "sources=%d units=%d blocks=%d resourceLinks=%d edges=%d paths=%d waypoints=%d"
+                    .formatted(sources, units, blocks, resourceLinks, edges, paths, waypoints);
         }
     }
 
@@ -122,11 +131,15 @@ public class CurriculumSeeder {
 
         List<SeedSource> seedSources = files.stream().flatMap(f -> nullSafe(f.sources()).stream()).toList();
         List<SeedUnit> seedUnits = files.stream().flatMap(f -> nullSafe(f.units()).stream()).toList();
+        List<SeedEdge> seedEdges = files.stream().flatMap(f -> nullSafe(f.edges()).stream()).toList();
         List<SeedPath> seedPaths = files.stream().flatMap(f -> nullSafe(f.paths()).stream()).toList();
 
         Map<String, UUID> resourceIdsBySourceSlug = new LinkedHashMap<>();
+        Map<String, UUID> sourceIdsBySlug = new LinkedHashMap<>();
         for (SeedSource source : seedSources) {
-            resourceIdsBySourceSlug.put(source.slug(), upsertSource(source));
+            SeededSource seeded = upsertSource(source);
+            resourceIdsBySourceSlug.put(source.slug(), seeded.resourceId());
+            sourceIdsBySlug.put(source.slug(), seeded.sourceId());
         }
 
         // Pass 1: every unit exists before any parent link is resolved, so seed files can be
@@ -167,13 +180,22 @@ public class CurriculumSeeder {
             linkCount += rewriteResourceLinks(entity, nullSafe(unit.resources()), resourceIdsBySourceSlug);
         }
 
+        checkEveryPublishedUnitIsContained(seedUnits, bySlug);
+        int edgeCount = rewriteEdges(seedEdges, bySlug, sourceIdsBySlug);
+
         int waypointCount = 0;
         for (SeedPath path : seedPaths) {
             waypointCount += upsertPath(path, bySlug);
         }
 
         SeedReport report = new SeedReport(
-                seedSources.size(), seedUnits.size(), blockCount, linkCount, seedPaths.size(), waypointCount);
+                seedSources.size(),
+                seedUnits.size(),
+                blockCount,
+                linkCount,
+                edgeCount,
+                seedPaths.size(),
+                waypointCount);
         log.info("Curriculum seed applied: {}", report);
         return report;
     }
@@ -201,7 +223,11 @@ public class CurriculumSeeder {
         }
     }
 
-    private UUID upsertSource(SeedSource seed) {
+    /** A seeded source and the teaching-side resource row that wraps it. */
+    private record SeededSource(UUID sourceId, UUID resourceId) {
+    }
+
+    private SeededSource upsertSource(SeedSource seed) {
         SourceEntity source = sources.findBySlug(seed.slug()).orElseGet(() -> {
             SourceEntity fresh = new SourceEntity();
             fresh.setId(UUID.randomUUID());
@@ -228,7 +254,7 @@ public class CurriculumSeeder {
         });
         resource.setDifficulty(seed.difficulty());
         resources.save(resource);
-        return resource.getId();
+        return new SeededSource(source.getId(), resource.getId());
     }
 
     private LearningUnitEntity upsertUnit(SeedUnit seed) {
@@ -390,6 +416,124 @@ public class CurriculumSeeder {
         }
         unitResources.saveAll(rows);
         return rows.size();
+    }
+
+    /**
+     * The seed owns {@code concept_edges} for now: edges in the files are upserted by
+     * (from, to, type), and any edge no longer in the files is removed, so deleting a line
+     * from a seed file actually deletes the relationship. When the studio in Phase 13 lets
+     * anyone else author edges, this needs an authorship column to tell the two apart.
+     */
+    private int rewriteEdges(
+            List<SeedEdge> seedEdges,
+            Map<String, LearningUnitEntity> bySlug,
+            Map<String, UUID> sourceIdsBySlug) {
+        rejectPrerequisiteCycles(seedEdges);
+
+        Set<UUID> keep = new HashSet<>();
+        for (SeedEdge seed : seedEdges) {
+            LearningUnitEntity from = requireUnit(bySlug, seed.from(), seed);
+            LearningUnitEntity to = requireUnit(bySlug, seed.to(), seed);
+            if (from.getId().equals(to.getId())) {
+                throw new IllegalStateException("Edge '" + seed.type() + "' points '" + seed.from() + "' at itself");
+            }
+            EdgeType type = parseEdgeType(seed);
+
+            ConceptEdgeEntity edge = edges
+                    .findByFromIdAndToIdAndEdgeType(from.getId(), to.getId(), type)
+                    .orElseGet(() -> {
+                        ConceptEdgeEntity fresh = new ConceptEdgeEntity();
+                        fresh.setId(UUID.randomUUID());
+                        fresh.setFromId(from.getId());
+                        fresh.setToId(to.getId());
+                        fresh.setEdgeType(type);
+                        return fresh;
+                    });
+            edge.setWeight(seed.weight() == null ? BigDecimal.ONE : BigDecimal.valueOf(seed.weight()));
+            edge.setStatus(ContentStatus.fromCode(seed.status() == null ? "published" : seed.status()));
+            edge.setNote(seed.note());
+            edge.setEvidenceSourceIds(evidenceIds(seed, sourceIdsBySlug));
+            edge.setUpdatedAt(Instant.now());
+            edges.save(edge);
+            keep.add(edge.getId());
+        }
+
+        List<ConceptEdgeEntity> stale = edges.findAll().stream()
+                .filter(edge -> !keep.contains(edge.getId()))
+                .toList();
+        edges.deleteAll(stale);
+        return keep.size();
+    }
+
+    /**
+     * Prerequisites must stay acyclic, and the check runs before anything is written so a bad
+     * file cannot leave half a ring in the database. Checked on slugs, so the message names
+     * the units rather than their identifiers.
+     */
+    static void rejectPrerequisiteCycles(List<SeedEdge> seedEdges) {
+        Map<String, List<String>> precedes = new LinkedHashMap<>();
+        for (SeedEdge seed : seedEdges) {
+            if (parseEdgeType(seed).isGating()) {
+                precedes.computeIfAbsent(seed.from(), key -> new ArrayList<>()).add(seed.to());
+            }
+        }
+        PrerequisiteDag.findCycle(precedes).ifPresent(cycle -> {
+            throw new IllegalStateException(
+                    "Prerequisite cycle in the seed: " + String.join(" -> ", cycle)
+                            + ". A learner could never start any unit on that ring.");
+        });
+    }
+
+    /**
+     * Every published unit that is not a domain must sit inside something. An orphan would be
+     * unreachable from the map and from any breadcrumb, which is a content bug rather than a
+     * design choice.
+     */
+    private static void checkEveryPublishedUnitIsContained(
+            List<SeedUnit> seedUnits, Map<String, LearningUnitEntity> bySlug) {
+        for (SeedUnit seed : seedUnits) {
+            LearningUnitEntity unit = bySlug.get(seed.slug());
+            if (unit.getStatus() == ContentStatus.PUBLISHED
+                    && unit.getUnitKind() != UnitKind.DOMAIN
+                    && unit.getParentId() == null) {
+                throw new IllegalStateException(
+                        "Published unit '" + seed.slug() + "' has no parent, so nothing contains it");
+            }
+        }
+    }
+
+    private static LearningUnitEntity requireUnit(
+            Map<String, LearningUnitEntity> bySlug, String slug, SeedEdge seed) {
+        LearningUnitEntity unit = bySlug.get(slug);
+        if (unit == null) {
+            throw new IllegalStateException(
+                    "Edge '" + seed.from() + "' " + seed.type() + " '" + seed.to()
+                            + "' references unknown unit '" + slug + "'");
+        }
+        return unit;
+    }
+
+    private static EdgeType parseEdgeType(SeedEdge seed) {
+        try {
+            return EdgeType.valueOf(seed.type());
+        } catch (IllegalArgumentException unknown) {
+            throw new IllegalStateException(
+                    "Unknown edge type '" + seed.type() + "' on '" + seed.from() + "' -> '" + seed.to() + "'");
+        }
+    }
+
+    private static UUID[] evidenceIds(SeedEdge seed, Map<String, UUID> sourceIdsBySlug) {
+        List<String> slugs = nullSafe(seed.sources());
+        UUID[] ids = new UUID[slugs.size()];
+        for (int i = 0; i < slugs.size(); i++) {
+            UUID id = sourceIdsBySlug.get(slugs.get(i));
+            if (id == null) {
+                throw new IllegalStateException("Edge '" + seed.from() + "' -> '" + seed.to()
+                        + "' cites unknown source '" + slugs.get(i) + "'");
+            }
+            ids[i] = id;
+        }
+        return ids;
     }
 
     private int upsertPath(SeedPath seed, Map<String, LearningUnitEntity> bySlug) {
