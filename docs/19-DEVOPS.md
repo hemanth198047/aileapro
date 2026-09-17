@@ -54,8 +54,29 @@ Pinned sandbox images. Deploy separately. Resilience4j circuit breaker from API.
 
 ## Local DX
 
-- `make up` — Compose: postgres, redis, minio, api, worker, web  
-- `./gradlew :api:bootRun`  
-- `pnpm --filter web dev`  
-- `./gradlew :api:seed` — seed curriculum  
-- JDK 21 and Node 22 on PATH (WSL2 recommended on Windows)
+One script owns the whole local stack, so nobody has to remember the order:
+
+- `.\scripts\dev.ps1` — containers, seed if the database is empty, API, web; waits
+  for each part to answer before starting the next and prints where everything is
+- `.\scripts\dev.ps1 status` — what is up, on which port, with row counts
+- `.\scripts\dev.ps1 down` — stop everything, keep the data
+- `.\scripts\dev.ps1 up -Clean` — drop the database volume and the Next.js cache, reseed
+- `.\scripts\dev.ps1 seed` — force a seed run
+- `.\scripts\dev.ps1 logs` — follow the API and web logs
+- `-WithSkeletons` also starts worker (8081) and executor (8082), health-only until Phase 9
+
+Ports: web 3000, API 8090, postgres 5432, redis 6379, minio 9000/9001. Logs and pids
+under `.run/`.
+
+Underneath, if you prefer the parts:
+
+- `docker compose -f infra/compose/docker-compose.yml up -d`
+- `./gradlew :api:seed` — migrations plus authored curriculum, assessments, AI catalogue
+- `./gradlew :api:bootRun`
+- `pnpm --filter web dev`
+
+Run a production build while a `next dev` server is up without fear: build and start
+write to `.next-prod`, and the dev server keeps using `.next`. Sharing one cache was
+what turned every route into a 500 whenever someone verified a build.
+
+JDK 21 and Node 22+ on PATH.

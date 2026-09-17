@@ -7,6 +7,7 @@ bin/
 
 node_modules/
 .next/
+.next-prod/
 dist/
 .turbo/
 *.tsbuildinfo
@@ -22,3 +23,6 @@ Thumbs.db
 
 minio-data/
 postgres-data/
+
+# scripts/dev.ps1 keeps background pids and service logs here
+.run/

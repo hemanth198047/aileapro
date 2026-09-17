@@ -1,5 +1,12 @@
 {
   "name": "aileapro",
   "private": true,
-  "packageManager": "pnpm@10.15.0"
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 up",
+    "dev:status": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 status",
+    "dev:down": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 down",
+    "dev:seed": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 seed",
+    "dev:logs": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 logs"
+  }
 }
