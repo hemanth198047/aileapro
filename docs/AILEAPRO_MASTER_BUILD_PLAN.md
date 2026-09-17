@@ -594,11 +594,60 @@ failure does not trigger a recalculation.
 
 ### GATE (Phase 7) — Milestone M4
 
-- [ ] Ask a question on a unit and get a teaching reply (fake or live)
-- [ ] `ai_usage` rows exist
-- [ ] PR CI green without vendor keys
+- [x] Ask a question on a unit and get a teaching reply (fake or live)
+- [x] `ai_usage` rows exist
+- [x] PR CI green without vendor keys
 
 **Phase log:**
+
+- **2026-09-17 — Phase 7 complete.** `V6__ai_tutor.sql` adds `model_providers`, `models`,
+  `model_profiles`, `model_profile_models`, `prompts`, `prompt_versions`, `ai_usage`,
+  `conversations`, and `messages`. Every assistant row stores the prompt version, the model, and
+  a `development` flag, so any reply can be traced back to the exact text and model that produced
+  it — a regression is answerable months later instead of being argued about.
+- The model is reached only through `libs:ai`, a module with no Spring and no vendor SDK in it:
+  `ChatPort`, `ChatMessage`, `ChatRequest`, `ChatResult`, `ProviderException`. Spring AI was not
+  used. Its abstraction is thinner than the port we need and would have put a vendor's release
+  cadence between us and our own teaching rules, so the port is ours and the OpenAI-compatible
+  HTTP client is one implementation behind it (ADR 0007's reasoning, applied a second time).
+- Messages carry a channel as well as a role. Curriculum text and learner notes travel as
+  `DATA`, fenced and labelled untrusted, never as `SYSTEM` — so retrieved content in Phase 8
+  cannot promote itself to an instruction. `Injection.looksLikeOverride` detects the attempt and
+  the tutor is told to discuss it rather than obey it, which is also what the walk shows.
+- `TutorPolicy` is a pure function and the only thing that decides what the learner is owed. It
+  is a reveal ladder: a question with no attempt in it earns a `HINT`, an attempt earns the
+  `GUIDED` method with the last step left open, and only work on the record earns `FULL`.
+  Demanding the answer does not skip a rung, because a ladder you can shout your way past is not
+  a ladder. Asking for answers to something graded is refused with `exam_answer` and an offer to
+  work the idea instead — the refusal is a teaching move, not a wall.
+- Prompts are authored in `prompts.yml`, seeded with a content hash, and immutable per version:
+  editing a version is rejected, publishing a new one is not. `PromptContractTest` renders the
+  live template with slots from `TutorPolicy.decide` and asserts the rules the policy enforces
+  are actually present in what the model receives, so a prompt edit cannot quietly drop them.
+- `ModelRouter` resolves profiles (`teach`, `cheap_chat`, `code`) to an ordered fallback chain
+  from the catalogue, and `FakeChatClient` is used only when no real provider is configured, so
+  a fixture can never silently stand in for a model. `AiStartupCheck` refuses to start under
+  `prod` with fixtures only. Every call — success, refusal, and failure — is metered into
+  `ai_usage` with tokens, latency, and estimated cost, and `AiBudget` stops the day at a per-user
+  USD and turn ceiling with `budget_exceeded`, which is a code the client can act on.
+- Persistence is split from orchestration: `TutorTranscript` owns the transactions and
+  `TutorService` owns the turn, because an SSE stream must not hold a transaction open for the
+  length of a model's reply. The dock streams tokens as they arrive, names the persona, offers
+  the actions, shows the day's budget, states what the tutor knows about the learner, and says
+  plainly when a reply came from a fixture.
+- Verified: `gradle check` (158 tests, 48 new), `pnpm -r typecheck`, `pnpm --filter web build`,
+  and the API walk in `backend/scripts/phase7-walk.ps1` end to end — hint before answer,
+  escalation on an attempt, an action, a refusal, metered turns, and a learner deleting their own
+  transcript. CI needs no vendor key: the fixture client is the default everywhere but `prod`.
+
+**Known gaps carried forward:** the tutor reads the page the learner is on and nothing else, so
+the Sources drawer is honest but empty until retrieval lands in Phase 8 — and the prompt tells it
+to cite nothing rather than invent a source. Cost is estimated from catalogue prices and token
+counts, not reconciled against a provider invoice. The reveal ladder reads effort from the
+learner's own messages and their graded history; it cannot see time spent thinking, so a
+thoughtful learner who types little is treated as one who typed little. Personas are authored
+instructions rather than evaluated teaching styles, and no fixture regression compares two model
+versions on the same question yet.
 
 ---
 

@@ -1,5 +1,6 @@
 package com.aileapro.api.curriculum.seed;
 
+import com.aileapro.api.ai.seed.AiSeeder;
 import com.aileapro.api.assessment.seed.AssessmentSeeder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +22,12 @@ public class SeedRunner implements ApplicationRunner {
 
     private final CurriculumSeeder seeder;
     private final AssessmentSeeder assessmentSeeder;
+    private final AiSeeder aiSeeder;
 
-    public SeedRunner(CurriculumSeeder seeder, AssessmentSeeder assessmentSeeder) {
+    public SeedRunner(CurriculumSeeder seeder, AssessmentSeeder assessmentSeeder, AiSeeder aiSeeder) {
         this.seeder = seeder;
         this.assessmentSeeder = assessmentSeeder;
+        this.aiSeeder = aiSeeder;
     }
 
     @Override
@@ -34,5 +37,8 @@ public class SeedRunner implements ApplicationRunner {
         // Items hang off unit slugs and the misconception catalog is derived from blocks the
         // curriculum seed just wrote, so this cannot run first.
         log.info("Assessment seed complete: {}", assessmentSeeder.seed());
+        // Models and prompts depend on nothing else, but they run last so that a bad price or
+        // an edited prompt version fails after the content is already safely in.
+        log.info("AI catalogue seed complete: {}", aiSeeder.seed());
     }
 }

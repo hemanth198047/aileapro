@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Brand,
   Button,
-  Callout,
   type Command,
   CommandPalette,
   ErrorAlert,
@@ -23,6 +22,7 @@ import {
 import { ApiError, api, csrfHeaders, type Me } from "@/lib/api";
 import { NotesPanel } from "@/components/notes-panel";
 import { OrientationEvidence } from "@/components/orientation-evidence";
+import { TutorDock } from "@/components/tutor-dock";
 import { SessionProvider } from "@/components/session";
 import { SPACES, SPACE_GROUPS, spaceForPath } from "@/lib/spaces";
 
@@ -306,26 +306,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             />
 
             {companionTab === "tutor" ? (
-              <>
-                <div className="card__head">
-                  <span className="card__title">Tutor</span>
-                  <span className="badge badge--brand">Phase 7</span>
-                </div>
-                <p className="hint">
-                  The tutor will sit here with the unit you are reading, the code in your lab, and
-                  the mistakes you have made before. It stays docked; it does not take the page.
-                </p>
-                <Callout>
-                  Retrieval off · No knowledge timestamp yet · No model configured
-                </Callout>
-                <div className="empty" style={{ padding: 16 }}>
-                  <strong>Nothing to discuss yet.</strong>
-                  <span>
-                    The units it will read from are published now, but no model is configured and
-                    retrieval is off. The tutor itself is Phase 7.
-                  </span>
-                </div>
-              </>
+              <TutorDock slug={unitSlug} />
             ) : (
               <NotesPanel slug={unitSlug} />
             )}

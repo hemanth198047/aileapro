@@ -441,6 +441,154 @@ export type Roadmap = {
   stops: RoadmapStop[];
 };
 
+/** Tutor reads. Mirrors TutorViews on the API. */
+export type TutorMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  action: string | null;
+  /** True when a fixture wrote it. The UI is required to say so, never to hide it. */
+  development: boolean;
+  refusalCode: string | null;
+  sources: string[];
+  model: string | null;
+  promptVersion: number | null;
+  createdAt: string;
+};
+
+export type TutorConversation = {
+  id: string;
+  unitSlug: string | null;
+  unitTitle: string | null;
+  persona: string;
+  title: string | null;
+  messages: TutorMessage[];
+};
+
+export type TutorConversationSummary = Omit<TutorConversation, "messages"> & {
+  messageCount: number;
+  createdAt: string;
+  lastMessageAt: string | null;
+};
+
+export type TutorStatus = {
+  available: boolean;
+  development: boolean;
+  retrieval: boolean;
+  providerSlug: string | null;
+  modelSlug: string | null;
+  usdSpent: number;
+  usdCap: number;
+  turnsUsed: number;
+  turnsCap: number;
+  actions: { slug: string; label: string; hint: string }[];
+  personas: { slug: string; title: string; hint: string }[];
+};
+
+export type TutorContext = {
+  unitSlug: string | null;
+  unitTitle: string | null;
+  masteryState: string;
+  readSolid: boolean;
+  openMisconceptions: string[];
+  recentMistakes: string[];
+};
+
+export type TutorSources = {
+  retrieval: boolean;
+  unitInContext: string;
+  blocks: string[];
+  note: string;
+};
+
+/** Events the turn endpoint sends, in the order they arrive. */
+export type TutorStreamEvent =
+  | { type: "token"; text: string }
+  | { type: "done"; messageId: string; development: boolean; refusalCode: string }
+  | { type: "error"; code: string; message: string };
+
+/**
+ * Sends one turn and yields events as they arrive.
+ *
+ * <p>Server-sent events read off a POST response rather than through `EventSource`, which
+ * cannot send a body or a CSRF header and would put the learner's question in a URL. The
+ * parsing is hand-rolled for the same reason: the format is four lines, and a dependency to
+ * read four lines is a dependency to keep updated forever.
+ */
+export async function tutorTurn(
+  conversationId: string,
+  body: { text?: string; action?: string },
+  onEvent: (event: TutorStreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`/v1/tutor/conversations/${conversationId}/messages`, {
+    method: "POST",
+    credentials: "include",
+    headers: await csrfHeaders(),
+    body: JSON.stringify(body),
+    signal,
+  });
+
+  if (!res.ok || !res.body) {
+    const failed = await res.json().catch(() => ({}));
+    throw new ApiError(
+      res.status,
+      failed?.error?.message ?? `The tutor could not be reached (${res.status})`,
+      failed?.error?.code,
+    );
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // Events are separated by a blank line. Anything after the last one is a partial event
+    // and stays in the buffer until the rest of it arrives.
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+    for (const part of parts) {
+      const event = parseEvent(part);
+      if (event) onEvent(event);
+    }
+  }
+}
+
+function parseEvent(raw: string): TutorStreamEvent | null {
+  let name = "";
+  const data: string[] = [];
+  for (const line of raw.split("\n")) {
+    if (line.startsWith("event:")) name = line.slice(6).trim();
+    if (line.startsWith("data:")) data.push(line.slice(5).trim());
+  }
+  if (!name || data.length === 0) return null;
+
+  try {
+    const payload = JSON.parse(data.join("\n"));
+    if (name === "token") return { type: "token", text: payload.text ?? "" };
+    if (name === "done") {
+      return {
+        type: "done",
+        messageId: payload.messageId,
+        development: Boolean(payload.development),
+        refusalCode: payload.refusalCode ?? "",
+      };
+    }
+    if (name === "error") {
+      return { type: "error", code: payload.code ?? "internal_error", message: payload.message ?? "" };
+    }
+  } catch {
+    // A half-written event is not worth surfacing: the next read completes it, and a parse
+    // error here would look to the learner like the tutor failed when it did not.
+    return null;
+  }
+  return null;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;

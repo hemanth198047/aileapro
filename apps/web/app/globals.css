@@ -1644,6 +1644,154 @@
   margin-top: var(--s2);
 }
 
+/* ---------- Tutor dock ---------- */
+
+/* The thread scrolls and the composer does not, so the box the learner types into stays put
+   while an answer streams in above it. A composer that walked down the pane as tokens arrived
+   was the first thing that made the panel feel broken. */
+.tutor__thread {
+  flex: 1 1 auto;
+  min-height: 120px;
+  max-height: 46vh;
+  overflow-y: auto;
+  display: grid;
+  gap: var(--s3);
+  align-content: start;
+  margin: var(--s3) 0;
+  padding-right: 2px;
+}
+
+.tutor__turn {
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.tutor__turn[data-role="user"] {
+  background: transparent;
+  border-style: dashed;
+}
+
+/* A declined turn is a teaching decision, not an error, so it is marked without being red. */
+.tutor__turn[data-refusal="true"] {
+  border-color: var(--warn, var(--line-strong));
+}
+
+.tutor__who {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.tutor__body {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.tutor__body > :first-child {
+  margin-top: 0;
+}
+
+.tutor__body > :last-child {
+  margin-bottom: 0;
+}
+
+/* The caret is the only animation here: it is load-bearing, because it distinguishes an answer
+   still arriving from one that stopped partway. */
+.tutor__turn[data-streaming="true"] .tutor__body::after {
+  content: "▌";
+  margin-left: 2px;
+  color: var(--brand);
+  animation: tutor-caret 1s steps(2) infinite;
+}
+
+@keyframes tutor-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutor__turn[data-streaming="true"] .tutor__body::after {
+    animation: none;
+  }
+}
+
+.tutor__context {
+  margin-bottom: var(--s2);
+}
+
+.tutor__contextToggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brand);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tutor__contextBody {
+  margin-top: var(--s2);
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.tutor__mistakes {
+  margin: var(--s2) 0 0;
+  padding-left: var(--s4);
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.tutor__actions {
+  margin-bottom: var(--s2);
+}
+
+.tutor__composer {
+  display: grid;
+  gap: var(--s2);
+}
+
+.tutor__input {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.tutor__composerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+
+/* Pushed to the end so the spend sits away from the button rather than next to it: a number
+   beside "Ask" reads like a price on the question. */
+.tutor__budget {
+  margin-left: auto;
+  font-size: 0.75rem;
+}
+
+.tutor__sources {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
 /* ---------- Splash ---------- */
 
 .splash {

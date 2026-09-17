@@ -1,0 +1,77 @@
+# The model catalogue: providers, models, and the routing profiles features ask for.
+#
+# This file is operator configuration rather than authored content, and it holds no secrets —
+# a provider names the environment variable its key comes from, never the key.
+#
+# The `fake` provider is listed last in every chain and is not a fallback. Whenever a real
+# provider is configured for a profile, the router drops the fake entries entirely: a fixture
+# quietly standing in for a model that failed is the one behaviour this whole design exists to
+# prevent. With no key configured at all, the fake serves and says so on every reply.
+
+providers:
+  - slug: fake
+    title: Development fixtures
+    apiKind: fake
+
+  - slug: openai
+    title: OpenAI
+    apiKind: openai_compatible
+    baseUrl: https://api.openai.com/v1
+    apiKeyEnv: AILEAPRO_OPENAI_API_KEY
+
+models:
+  - slug: fake-tutor
+    provider: fake
+    wireName: fixture
+    contextTokens: 16384
+    maxOutputTokens: 800
+
+  # Prices are USD per million tokens as published at the time of writing, and they are stored
+  # rather than hardcoded so that a price change is an operator edit and old usage rows keep
+  # the cost they were actually charged.
+  - slug: gpt-4o-mini
+    provider: openai
+    wireName: gpt-4o-mini
+    contextTokens: 128000
+    maxOutputTokens: 1024
+    priceInPerMtok: 0.15
+    priceOutPerMtok: 0.60
+
+  - slug: gpt-4o
+    provider: openai
+    wireName: gpt-4o
+    contextTokens: 128000
+    maxOutputTokens: 1024
+    priceInPerMtok: 2.50
+    priceOutPerMtok: 10.00
+
+profiles:
+  - slug: teach
+    title: Teaching
+    purpose: >
+      Socratic explanation, misconception repair, and anything where being wrong is expensive.
+      The most capable model we are willing to pay for on a normal turn.
+    params:
+      temperature: 0.4
+      maxOutputTokens: 900
+    models: [gpt-4o, gpt-4o-mini, fake-tutor]
+
+  - slug: cheap_chat
+    title: Cheap chat
+    purpose: >
+      Short, low-stakes work: titling a conversation, generating a flashcard, asking one quiz
+      question. Paying frontier prices for these is how an AI bill becomes indefensible.
+    params:
+      temperature: 0.3
+      maxOutputTokens: 400
+    models: [gpt-4o-mini, fake-tutor]
+
+  - slug: code
+    title: Code
+    purpose: >
+      Reading, reviewing, and debugging what the learner wrote. Routed separately because a
+      cheap model will confidently approve code that does not work.
+    params:
+      temperature: 0.2
+      maxOutputTokens: 1200
+    models: [gpt-4o, gpt-4o-mini, fake-tutor]

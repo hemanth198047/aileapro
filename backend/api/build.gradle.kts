@@ -7,6 +7,7 @@ dependencies {
     implementation(project(":libs:domain"))
     implementation(project(":libs:security"))
     implementation(project(":libs:persistence"))
+    implementation(project(":libs:ai"))
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.data.jpa)
