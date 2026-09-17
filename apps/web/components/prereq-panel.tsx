@@ -4,15 +4,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Callout, IconArrowRight, IconMap } from "@aileapro/ui";
 import { api, type Neighborhood, type Prerequisites } from "@/lib/api";
-import { edgePhrase, isDeadEnd } from "@/components/graph-canvas";
+import { edgePhrase, isDeadEnd, masteryMeaning } from "@/components/graph-canvas";
 
 /**
  * What a unit needs, and what else it touches.
  *
- * <p>The honest part is what this does not say. It knows the authored prerequisites; it does
- * not know which of them the reader already understands, because nothing records that until
- * Phase 5. So it warns without blocking, and it never labels a unit "missing" when the truth
- * is "unverified".
+ * <p>The honest part is what this does not say. It knows the authored prerequisites and it now
+ * knows which of them you have read, which is a weaker claim than knowing which you
+ * understand. So an unread prerequisite is marked as unread, a read one is not marked as
+ * understood, and neither blocks the page.
  */
 export function PrereqPanel({ slug }: { slug: string }) {
   const [prereqs, setPrereqs] = useState<Prerequisites | null>(null);
@@ -80,17 +80,25 @@ export function PrereqPanel({ slug }: { slug: string }) {
                     {step.unit.estimateMinutes ? (
                       <span className="badge">{step.unit.estimateMinutes} min</span>
                     ) : null}
-                    <span className="badge badge--warn">mastery {step.masteryState}</span>
+                    <span
+                      className="badge"
+                      data-mastery={step.masteryState}
+                      title={masteryMeaning(step.masteryState)}
+                    >
+                      {step.masteryState === "UNKNOWN"
+                        ? "not read yet"
+                        : step.masteryState.toLowerCase()}
+                    </span>
                   </p>
                 </div>
               </li>
             ))}
           </ol>
           <p className="hint">
-            Listed furthest-back first, which is study order. Whether you already know any of
-            them is genuinely unknown: no evidence is recorded yet, so nothing here is a gap and
-            nothing is blocked. Phase 5 turns this list into a real check, and Phase 6 into a
-            diagnostic that can skip what you can already do.
+            Listed furthest-back first, which is study order. The states are your own reading:
+            anything marked not read is a gap you can close today, and INTRODUCED means you read
+            it, not that you can do it. Nothing here blocks the page, and a diagnostic that can
+            skip what you already know arrives with the assessment engine.
           </p>
         </>
       ) : null}

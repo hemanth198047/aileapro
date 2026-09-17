@@ -1,9 +1,11 @@
 package com.aileapro.api.graph;
 
+import com.aileapro.api.auth.AileaproUserPrincipal;
 import com.aileapro.api.graph.GraphViews.Neighborhood;
 import com.aileapro.api.graph.GraphViews.Prerequisites;
 import com.aileapro.api.platform.ApiException;
 import com.aileapro.domain.EdgeType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,9 +26,11 @@ import java.util.Set;
 public class GraphController {
 
     private final GraphQueryService graph;
+    private final GraphViews.MasteryLookup mastery;
 
-    public GraphController(GraphQueryService graph) {
+    public GraphController(GraphQueryService graph, GraphViews.MasteryLookup mastery) {
         this.graph = graph;
+        this.mastery = mastery;
     }
 
     /**
@@ -37,15 +41,26 @@ public class GraphController {
      */
     @GetMapping("/units/{idOrSlug}/graph")
     public Neighborhood graph(
+            @AuthenticationPrincipal AileaproUserPrincipal principal,
             @PathVariable String idOrSlug,
             @RequestParam(required = false) Integer hops,
             @RequestParam(required = false) List<String> types) {
-        return graph.neighborhood(idOrSlug, hops, parseTypes(types));
+        Neighborhood neighborhood = graph.neighborhood(idOrSlug, hops, parseTypes(types));
+        return GraphViews.withMastery(
+                neighborhood,
+                mastery.statesFor(
+                        principal.getId(), neighborhood.nodes().stream().map(node -> node.unit()).toList()));
     }
 
     @GetMapping("/units/{idOrSlug}/prerequisites")
-    public Prerequisites prerequisites(@PathVariable String idOrSlug) {
-        return graph.prerequisites(idOrSlug);
+    public Prerequisites prerequisites(
+            @AuthenticationPrincipal AileaproUserPrincipal principal, @PathVariable String idOrSlug) {
+        Prerequisites prerequisites = graph.prerequisites(idOrSlug);
+        var units = java.util.stream.Stream.concat(
+                        prerequisites.required().stream(), prerequisites.advisory().stream())
+                .map(step -> step.unit())
+                .toList();
+        return GraphViews.withMastery(prerequisites, mastery.statesFor(principal.getId(), units));
     }
 
     /** Parsed by hand so a typo is a 400 that names the valid types, not a 500. */

@@ -66,9 +66,9 @@ export const SPACES: Space[] = [
     group: "Study",
     icon: <IconCompass />,
     purpose: "Your one recommended action, reviews that are due, and anything that needs attention.",
-    nextAction: "Start the first unit of the AI Engineer path",
+    nextAction: "Read the unit Today recommends, and see why it chose it",
     waitingOn:
-      "Ranking a recommendation needs mastery evidence, which starts being recorded in Phase 5. Until then Today points at the start of the authored path rather than pretending to know where you are.",
+      "The recommendation is rule-based: an unread prerequisite first, then the waypoint you are on. Overdue spaced review would outrank both, and there is no review schedule until graded items exist in Phase 6.",
   },
   {
     id: "learn",
@@ -77,9 +77,9 @@ export const SPACES: Space[] = [
     group: "Study",
     icon: <IconBook />,
     purpose: "Authored units: why it matters, explanations at the levels that exist, examples, and what mastery would take.",
-    nextAction: "Open the AI Engineer path and read a unit",
+    nextAction: "Open your path and read the first unit that is not read yet",
     waitingOn:
-      "Ten units are authored and published, each with its prerequisites drawn. Level selection, evidence chips, and the practice dock arrive in Phase 5.",
+      "Ten units are authored, each with prerequisites drawn and your reading recorded against it. Graded exercises, which are the only thing that can fill the Practice chip, arrive in Phase 6.",
   },
   {
     id: "map",
@@ -90,7 +90,7 @@ export const SPACES: Space[] = [
     purpose: "The knowledge graph: what a unit needs, what it leads to, and what it connects with.",
     nextAction: "Open the map and follow the prerequisite chain into neural networks",
     waitingOn:
-      "Typed edges are authored across the units that exist. Node colouring by mastery needs evidence, which starts in Phase 5 — until then the map describes the subject, not you.",
+      "Typed edges are authored across the units that exist, and nodes now carry your mastery state. Most will read UNKNOWN until there is evidence, which is the honest answer rather than a blank.",
   },
   {
     id: "assess",
@@ -134,11 +134,10 @@ export const SPACES: Space[] = [
     href: "/app/notes",
     group: "Practice",
     icon: <IconNotes />,
-    purpose: "Your own linked notes, tied back to the units that prompted them.",
-    arrivesIn: "Phase 5",
-    nextAction: "Nothing yet — notes arrive in Phase 5",
+    purpose: "Your own notes, tied back to the units that prompted them.",
+    nextAction: "Write a note while reading, from the Notes tab in the companion pane",
     waitingOn:
-      "Notes attach to a unit and a block. The blocks exist now; capture, linking, and the notes pane are Phase 5.",
+      "Notes attach to a unit and are yours alone. Linking them to each other and to individual blocks, and searching them beside the curriculum, comes with the search engine in Phase 8.",
   },
   {
     id: "research",

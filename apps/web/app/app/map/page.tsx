@@ -179,9 +179,8 @@ function MapView() {
           </fieldset>
         </div>
         <p className="hint">
-          Nothing on this page is personalised. The edges are authored claims about the subject,
-          not conclusions about you — which prerequisites you have actually met becomes knowable
-          in Phase 5.
+          The edges are authored claims about the subject; the node fills are yours. A fill says
+          what you have shown on that unit, so it moves when you do the work and not before.
         </p>
       </section>
 
@@ -238,8 +237,10 @@ function MapView() {
         </div>
         <p className="prose">
           Only authored units are nodes. Technologies, papers, and misconceptions get their own
-          node kinds later, and the 50-odd domains with no units yet have no edges to draw. Mastery
-          colouring arrives with evidence in Phase 5; impact analysis on content change is Phase 15.
+          node kinds later, and the 50-odd domains with no units yet have no edges to draw. The
+          fills can currently only reach INTRODUCED, because reading is the only evidence the
+          platform collects until graded work arrives; impact analysis on content change is
+          Phase 15.
         </p>
       </section>
     </>

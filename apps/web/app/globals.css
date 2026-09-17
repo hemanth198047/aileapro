@@ -811,7 +811,7 @@
 }
 
 /* Gating edges are the only ones drawn solid and in the brand colour: they are the claims
-   that will refuse a recommendation in Phase 5. Everything softer looks softer. */
+   that hold back a recommendation until they are read. Everything softer looks softer. */
 .gnode-edge--prerequisite-of {
   stroke: var(--brand);
   stroke-width: 2;
@@ -853,10 +853,11 @@
   outline: none;
 }
 
+/* The centre is marked by its outline only. Filling it would collide with the mastery fill
+   below and make "this is where the map is pointed" look like "you have shown something". */
 .gnode--focus rect {
-  fill: var(--brand-soft);
   stroke: var(--brand);
-  stroke-width: 1.5;
+  stroke-width: 2.5;
 }
 
 .gnode--focus text {
@@ -870,6 +871,109 @@
 
 .gnode--empty text {
   fill: var(--muted);
+}
+
+/* Mastery fill: one hue deepening up the ladder, so the order is legible without a key, and
+   UNKNOWN is left as the bare surface rather than given a shade of its own. */
+.gnode[data-mastery="INTRODUCED"] rect {
+  fill: rgba(91, 124, 250, 0.16);
+}
+
+.gnode[data-mastery="FAMILIAR"] rect {
+  fill: rgba(91, 124, 250, 0.28);
+}
+
+.gnode[data-mastery="UNDERSTOOD"] rect {
+  fill: rgba(91, 124, 250, 0.42);
+}
+
+.gnode[data-mastery="PRACTICED"] rect {
+  fill: rgba(62, 207, 142, 0.3);
+}
+
+.gnode[data-mastery="PROFICIENT"] rect {
+  fill: rgba(62, 207, 142, 0.46);
+}
+
+.gnode[data-mastery="MASTERED"] rect {
+  fill: rgba(227, 179, 65, 0.42);
+}
+
+.gnode:not([data-mastery="UNKNOWN"]) text {
+  fill: var(--ink);
+}
+
+/* The key only lists fills the current view actually uses. */
+.glegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s4);
+  margin: var(--s3) 0 var(--s2);
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+}
+
+.glegend__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.glegend__swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.glegend__swatch[data-mastery="INTRODUCED"] {
+  background: rgba(91, 124, 250, 0.16);
+}
+
+.glegend__swatch[data-mastery="FAMILIAR"] {
+  background: rgba(91, 124, 250, 0.28);
+}
+
+.glegend__swatch[data-mastery="UNDERSTOOD"] {
+  background: rgba(91, 124, 250, 0.42);
+}
+
+.glegend__swatch[data-mastery="PRACTICED"] {
+  background: rgba(62, 207, 142, 0.3);
+}
+
+.glegend__swatch[data-mastery="PROFICIENT"] {
+  background: rgba(62, 207, 142, 0.46);
+}
+
+.glegend__swatch[data-mastery="MASTERED"] {
+  background: rgba(227, 179, 65, 0.42);
+}
+
+.glegend__label {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+/* The same scale on the adjacency badges, so the list and the drawing agree. */
+.badge[data-mastery="UNKNOWN"] {
+  color: var(--muted);
+}
+
+.badge[data-mastery="INTRODUCED"],
+.badge[data-mastery="FAMILIAR"],
+.badge[data-mastery="UNDERSTOOD"] {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.badge[data-mastery="PRACTICED"],
+.badge[data-mastery="PROFICIENT"],
+.badge[data-mastery="MASTERED"] {
+  border-color: var(--success);
+  color: var(--success);
 }
 
 .adjacency {
@@ -1027,6 +1131,204 @@
   display: block;
   color: var(--muted);
   font-size: 0.8125rem;
+}
+
+/* ---------- Evidence: reading meter and level controls ---------- */
+
+.readmeter {
+  display: grid;
+  gap: 6px;
+  margin-top: var(--s3);
+}
+
+.readmeter__label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.hero__minutes {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.hero__evidence {
+  display: grid;
+  gap: var(--s2);
+  justify-items: start;
+}
+
+/* Simpler and Deeper stay visible when disabled: the control shows where authoring ends. */
+.levelctl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+}
+
+.levelctl .hint {
+  margin-left: auto;
+}
+
+/* ---------- Practice dock ---------- */
+
+.dock__body {
+  margin-top: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.dock__body summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s3);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dock__body summary::-webkit-details-marker {
+  display: none;
+}
+
+.dock__body[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.dock__set {
+  padding: var(--s3) var(--s4);
+}
+
+/* ---------- Roadmap overlay ---------- */
+
+/* A read waypoint is marked on the rail, never filled in as complete. */
+.waypoint[data-state="partial"] {
+  border-left: 3px solid var(--brand-soft);
+}
+
+.waypoint[data-state="solid"] {
+  border-left: 3px solid var(--brand);
+}
+
+.waypoint .chips {
+  margin-top: var(--s2);
+}
+
+/* ---------- Onboarding pickers ---------- */
+
+.pickers {
+  display: grid;
+  gap: var(--s2);
+}
+
+.picker {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: var(--s3);
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.picker:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-hover);
+}
+
+.picker[data-checked="true"] {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.picker__body {
+  display: grid;
+  gap: 4px;
+  font-size: 0.875rem;
+}
+
+.picker__note {
+  color: var(--ink-soft);
+}
+
+.chipset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.chipbtn {
+  padding: 7px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--fast), background var(--fast), color var(--fast);
+}
+
+.chipbtn:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.chipbtn[data-checked="true"] {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+/* ---------- Notes ---------- */
+
+.notes__input {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.notes__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin: var(--s2) 0 var(--s4);
+}
+
+.notelist {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.note {
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+/* Notes are stored verbatim, so whitespace the learner typed is kept. */
+.note__body {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.note__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-top: var(--s2);
 }
 
 /* ---------- Splash ---------- */

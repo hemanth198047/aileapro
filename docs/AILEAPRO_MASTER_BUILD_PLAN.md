@@ -421,11 +421,62 @@ UI; and impact analysis on content change is Phase 15.
 
 ### GATE (Phase 5)
 
-- [ ] Opening a page does **not** complete the unit
-- [ ] Today shows a specific next action
-- [ ] Learn is useful with AI turned off
+- [x] Opening a page does **not** complete the unit
+- [x] Today shows a specific next action
+- [x] Learn is useful with AI turned off
 
 **Phase log:**
+
+- **2026-09-17 — Phase 5 complete.** `V4__learner.sql` adds `learner_profiles`,
+  `mastery_events`, `mastery_records`, `learning_sessions`, `study_plans`, `plan_items`, and
+  `notes`. Evidence is stored twice on purpose: `mastery_events` is an append-only log of what
+  the learner did, and `mastery_records` is a projection of what that currently means. The
+  rules will change; the history must not have to. `study_plans` and `plan_items` are created
+  here but have no entities yet — plans need the diagnostic in Phase 6, and a table is cheaper
+  to migrate now than a table plus a rewrite later.
+- The state machine is a pure function (`MasteryPolicy`) over a snapshot, an event, and the
+  unit's own facts, so the rules are testable without a database and cannot quietly acquire
+  side effects. Reading can fill the Read chip and nothing else, and it stops the unit at
+  INTRODUCED however long the learner stays: the states above it are defined by work the
+  learner produces, which does not exist until the assessment engine. The read floor is
+  proportional to the author's estimate (40% of it, clamped to 90 seconds–12 minutes), a single
+  heartbeat cannot claim more than two minutes so a lost tab cannot bank an hour, and a
+  container unit with no authored levels is excluded from evidence entirely.
+- `POST /v1/units/:id/events` takes `unit_opened`, `dwell`, `explanation_level`,
+  `self_check_revealed`, and `exercise_viewed`. The last two are recorded as history and grant
+  no evidence, because revealing an answer is not recalling it. An unknown kind is a 400 naming
+  the accepted ones. A draft unit is a 404 and collects nothing. Dwell only accrues while the
+  tab is visible, and `learning_sessions` closes a session after an idle gap rather than
+  letting a forgotten tab read all night.
+- Recommendations are a pure ranking (`NextActionPolicy`) with the reason attached to the
+  result, rendered as verb + object + minutes. Order: no goal set → unread prerequisite of the
+  current waypoint → the current waypoint → reading exhausted. Overdue spaced review ranks
+  above all of these in the spec and is deliberately absent rather than faked; when every
+  waypoint has been read, the action says plainly that moving past INTRODUCED needs graded
+  work instead of inventing a fifth re-read. Minutes shrink as dwell accumulates, so the
+  estimate stops repeating itself.
+- Onboarding writes `learner_profiles` (target path, hours/week, modalities, experience,
+  goals) and is used only to choose *what* to recommend. Self-report never touches evidence: a
+  learner claiming ten years of experience still starts at UNKNOWN on every unit.
+- UI: the unit page reports dwell and level changes, shows the four chips with the date each
+  one last moved and a meter for what the Read chip still needs, and docks the exercises under
+  a "not graded yet" badge. Today renders the one action with its reason and the rule that
+  produced it. The roadmap lays the learner's state over the path waypoints against the
+  author's required state, so a read waypoint is marked on the rail and never filled in as
+  complete. The map and prerequisite panel now colour by recorded state, with a key that only
+  lists the fills present and copy that distinguishes "not read" from "not understood". Notes
+  v0 live in the companion pane and in a Notes space that groups by unit.
+- Verified: `gradle check` (59 tests, 31 new), `pnpm -r typecheck`, `pnpm --filter web build`
+  (Today 116 kB, learn unit 244 kB with KaTeX), and a browser walk of the gate as a fresh
+  learner: onboarding first, then a named next action, opening the unit leaving three chips
+  empty and the state UNKNOWN, reading to the floor reaching INTRODUCED and stopping there,
+  the recommendation advancing to the next waypoint with prerequisites reported as read, and a
+  note surviving a reload in both places it appears.
+
+**Known gaps carried forward:** Practice, Assess, and Apply cannot move, because nothing grades
+work yet; the score is a read-only placeholder; review scheduling, misconception tagging, and
+`study_plans` generation all wait on Phase 6; and the tutor that would explain a recommendation
+in prose is Phase 7.
 
 ---
 

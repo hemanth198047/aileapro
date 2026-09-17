@@ -3,11 +3,13 @@ package com.aileapro.api.curriculum;
 import com.aileapro.api.curriculum.CurriculumViews.Block;
 import com.aileapro.api.curriculum.CurriculumViews.PathDetail;
 import com.aileapro.api.curriculum.CurriculumViews.PathSummary;
+import com.aileapro.api.curriculum.CurriculumViews.PublishedUnit;
 import com.aileapro.api.curriculum.CurriculumViews.Resource;
 import com.aileapro.api.curriculum.CurriculumViews.UnitDetail;
 import com.aileapro.api.curriculum.CurriculumViews.UnitRef;
 import com.aileapro.api.curriculum.CurriculumViews.Waypoint;
 import com.aileapro.api.platform.ApiException;
+import com.aileapro.domain.BlockType;
 import com.aileapro.domain.ContentStatus;
 import com.aileapro.persistence.LearningPathEntity;
 import com.aileapro.persistence.LearningUnitEntity;
@@ -170,6 +172,22 @@ public class CurriculumQueryService {
     public UnitRef publishedRef(String idOrSlug) {
         LearningUnitEntity unit = publishedUnit(idOrSlug);
         return toRef(unit, blockCounts(List.of(unit.getId())), childCounts(List.of(unit.getId())));
+    }
+
+    /**
+     * A published unit with the authoring facts the mastery rules need, or 404. Learner
+     * progress resolves units through here so a draft can never accumulate evidence.
+     */
+    public PublishedUnit publishedUnitForProgress(String idOrSlug) {
+        LearningUnitEntity unit = publishedUnit(idOrSlug);
+        var unitBlocks = blocks.findByUnitIdAndLocaleOrderBySortAsc(unit.getId(), unit.getLocale());
+        int levels = (int) unitBlocks.stream()
+                .filter(block -> block.getBlockType().isExplanationLevel())
+                .count();
+        boolean exercises = unitBlocks.stream()
+                .anyMatch(block -> block.getBlockType() == BlockType.EXERCISE_SET);
+        return new PublishedUnit(
+                unit.getId(), unit.getSlug(), unit.getTitle(), unit.getEstimateMinutes(), levels, exercises);
     }
 
     /** References for the ids that are published, keyed by id. Ids in draft are simply absent. */

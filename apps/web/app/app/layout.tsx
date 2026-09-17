@@ -16,12 +16,13 @@ import {
   IconPanel,
   IconSearch,
   IconSpark,
-  MasteryChips,
   Tabs,
   ThemeToggle,
   useTheme,
 } from "@aileapro/ui";
 import { ApiError, api, csrfHeaders, type Me } from "@/lib/api";
+import { NotesPanel } from "@/components/notes-panel";
+import { OrientationEvidence } from "@/components/orientation-evidence";
 import { SessionProvider } from "@/components/session";
 import { SPACES, SPACE_GROUPS, spaceForPath } from "@/lib/spaces";
 
@@ -68,6 +69,9 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
 
   const isAdmin = me?.roles.includes("admin") ?? false;
   const space = spaceForPath(pathname);
+  // The companion needs to know what is being read to attach notes to it. The route is the
+  // only thing that knows, so it is read from there rather than threaded through the tree.
+  const unitSlug = pathname.startsWith("/app/learn/") ? pathname.slice("/app/learn/".length) : null;
 
   const visibleSpaces = useMemo(
     () => SPACES.filter((s) => !s.adminOnly || isAdmin),
@@ -98,7 +102,8 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
         label: "What should I learn today?",
         group: "Intents",
         icon: <IconArrowRight />,
-        hint: "Phase 5",
+        hint: "Today",
+        run: () => router.push("/app/today"),
       },
       {
         id: "theme",
@@ -259,21 +264,15 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             <div className="navgroup">
               <p className="kicker navgroup__label">Where you are</p>
               <p className="orient__why">{space?.purpose ?? "Pick a space to begin."}</p>
-              <div className="orient__row">
-                <span className="kicker">Evidence</span>
-                <MasteryChips />
-              </div>
-              <p className="hint">
-                No unit is open, so there is nothing to report. Chips fill only from real
-                evidence — reading never fills Assess.
-              </p>
+              <OrientationEvidence slug={unitSlug} />
               <div className="orient__row">
                 <span className="kicker">Prerequisites</span>
-                <span className="badge">Authored, unverified</span>
+                <span className="badge">Authored, read-checked</span>
               </div>
               <p className="hint">
-                The graph knows what each unit needs, and the unit page shows that chain. Whether
-                you have met it cannot be checked until evidence exists in Phase 5.
+                The graph knows what each unit needs, and the unit page shows that chain against
+                what you have read. Whether you have actually understood a prerequisite needs
+                graded evidence, which arrives in Phase 6.
               </p>
             </div>
           </div>
@@ -328,19 +327,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                 </div>
               </>
             ) : (
-              <>
-                <div className="card__head">
-                  <span className="card__title">Notes</span>
-                  <span className="badge badge--brand">Phase 5</span>
-                </div>
-                <p className="hint">
-                  Notes will capture against the block you are reading and link both ways.
-                </p>
-                <div className="empty" style={{ padding: 16 }}>
-                  <strong>No notes.</strong>
-                  <span>Capture against a unit and a block opens in Phase 5.</span>
-                </div>
-              </>
+              <NotesPanel slug={unitSlug} />
             )}
           </aside>
         </div>

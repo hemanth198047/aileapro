@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Callout,
   ErrorAlert,
@@ -12,9 +12,11 @@ import {
   IconMap,
   MasteryChips,
 } from "@aileapro/ui";
-import { ApiError, api, type UnitDetail } from "@/lib/api";
+import { Markdown } from "@aileapro/ui/markdown";
+import { ApiError, api, type UnitBlock, type UnitDetail } from "@/lib/api";
 import { UnitBody } from "@/components/unit-blocks";
 import { PrereqPanel } from "@/components/prereq-panel";
+import { UnitProgressProvider, readingProgress, useUnitProgress } from "@/components/unit-progress";
 
 /** Read mode for one unit. No AI is involved on this page — the text is authored. */
 export default function UnitPage() {
@@ -105,7 +107,9 @@ export default function UnitPage() {
   const isContainer = unit.kind === "domain" || unit.kind === "chapter" || unit.kind === "module";
 
   return (
-    <>
+    // Everything below is inside the reporter, so opening, level changes, and visible dwell
+    // are observed once, in one place, for the unit actually on screen.
+    <UnitProgressProvider slug={unit.slug}>
       <header className="space__head">
         <div className="space__titles">
           <nav className="unit__crumbs" aria-label="Unit location">
@@ -151,14 +155,7 @@ export default function UnitPage() {
             <dd>{formatDate(unit.lastReviewedAt)}</dd>
           </div>
         </dl>
-        <div className="unit__evidence">
-          <span className="kicker">Your evidence</span>
-          <MasteryChips />
-          <p className="hint">
-            Nothing is recorded yet. Reading is tracked from Phase 5 and it will only ever fill
-            Read — practice, assessment, and application have to be earned separately.
-          </p>
-        </div>
+        <UnitEvidence />
       </section>
 
       <PrereqPanel slug={unit.slug} />
@@ -177,6 +174,8 @@ export default function UnitPage() {
       ) : null}
 
       <UnitBody blocks={unit.blocks} />
+
+      <PracticeDock blocks={unit.blocks} />
 
       {isContainer ? (
         <section className="card">
@@ -260,9 +259,10 @@ export default function UnitPage() {
           <span className="card__title">What this page does not do yet</span>
         </div>
         <p className="prose">
-          Reading this unit records nothing, the exercises are not graded, and the tutor cannot
-          discuss it. Evidence and recommendations arrive in Phase 5, graded assessment in Phase 6,
-          and the grounded tutor in Phase 7.
+          Your reading is recorded and it fills the Read chip, which is as far as reading can go.
+          The exercises below are not graded, nothing here can raise Practice, Assess, or Apply,
+          and the tutor cannot discuss this unit. Graded assessment arrives in Phase 6 and the
+          grounded tutor in Phase 7.
         </p>
         <div className="space__actions" style={{ marginTop: 16 }}>
           <Link className="btn btn--outline" href="/app/learn">
@@ -271,7 +271,103 @@ export default function UnitPage() {
           </Link>
         </div>
       </section>
-    </>
+    </UnitProgressProvider>
+  );
+}
+
+/** The learner's evidence on this unit, and what the Read chip is still waiting for. */
+function UnitEvidence() {
+  const { mastery } = useUnitProgress();
+  const { percent, remainingMinutes } = readingProgress(mastery);
+
+  return (
+    <div className="unit__evidence">
+      <span className="kicker">Your evidence</span>
+      <MasteryChips evidence={mastery?.evidence} />
+      {mastery ? (
+        <>
+          <div className="readmeter" role="group" aria-label="Reading evidence">
+            <div className="progress">
+              <span className="progress__fill" style={{ width: `${percent}%` }} />
+            </div>
+            <span className="readmeter__label mono">
+              {mastery.evidence.read.state === "solid"
+                ? "Read: solid"
+                : `${remainingMinutes} min of reading left for a solid Read`}
+            </span>
+          </div>
+          <p className="hint">
+            State: <strong>{mastery.state}</strong>. Reading counts only while this tab is in
+            front of you, and it stops at INTRODUCED however long you stay — the states above it
+            need work you produce.
+          </p>
+        </>
+      ) : (
+        <p className="hint">Checking what you have shown on this unit…</p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The practice dock. It shows the authored exercises and says plainly that nobody is marking
+ * them yet, rather than offering a "mark as done" button that would turn self-report into
+ * evidence.
+ */
+function PracticeDock({ blocks }: { blocks: UnitBlock[] }) {
+  const { report } = useUnitProgress();
+  const exercises = blocks.filter((block) => block.type === "exercise_set");
+  const opened = useRef(false);
+
+  if (exercises.length === 0) {
+    return (
+      <section className="card dock" aria-label="Practice">
+        <div className="card__head">
+          <span className="card__title">Practice</span>
+          <span className="badge badge--warn">None authored</span>
+        </div>
+        <div className="empty">
+          <strong>No exercises are written for this unit.</strong>
+          <span>
+            Until there are, the Practice chip on this unit cannot move for anyone, which is why
+            it is empty rather than optimistic.
+          </span>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="card dock" aria-label="Practice">
+      <div className="card__head">
+        <span className="card__title">Practice</span>
+        <span className="badge">Not graded yet</span>
+      </div>
+      <p className="hint">
+        The exercises are authored and they are worth doing. Submitting them for a mark, and
+        filling the Practice chip, arrives with the assessment engine in Phase 6.
+      </p>
+      <details
+        className="dock__body"
+        onToggle={(event) => {
+          // Recorded as history, credited to nothing: looking at exercises is not practice.
+          if (event.currentTarget.open && !opened.current) {
+            opened.current = true;
+            report("exercise_viewed");
+          }
+        }}
+      >
+        <summary>
+          Open the exercises for this unit
+          <span className="muted mono">{exercises.length} set{exercises.length > 1 ? "s" : ""}</span>
+        </summary>
+        {exercises.map((block) => (
+          <div className="dock__set" key={block.id}>
+            {block.payload.markdown ? <Markdown>{block.payload.markdown}</Markdown> : null}
+          </div>
+        ))}
+      </details>
+    </section>
   );
 }
 

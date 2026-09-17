@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -23,7 +24,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,14 +42,20 @@ class GraphApiTest {
     @Autowired
     ObjectMapper json;
 
+    /** A signed-in learner with no evidence yet, which is what the graph overlay is read against. */
+    static MockHttpSession session;
+
     @BeforeEach
-    void seedOnce() {
+    void seedOnce() throws Exception {
         seeder.seed();
+        if (session == null) {
+            session = TestLearner.signIn(mockMvc, "graph@aileapro.dev");
+        }
     }
 
     @Test
     void prerequisiteChainIsTransitiveAndInStudyOrder() throws Exception {
-        mockMvc.perform(get("/v1/units/how-a-neuron-learns/prerequisites").with(user("ada").roles("LEARNER")))
+        mockMvc.perform(get("/v1/units/how-a-neuron-learns/prerequisites").session(session))
                 .andExpect(status().isOk())
                 // vectors -> matrices -> matmul, so the furthest ancestor is what to study first.
                 .andExpect(jsonPath("$.required[0].unit.slug").value("vectors"))
@@ -61,14 +67,15 @@ class GraphApiTest {
                 // DEPENDS_ON helps but does not block, so it is reported separately.
                 .andExpect(jsonPath("$.advisory[*].unit.slug").value(hasItem("python-functions")))
                 .andExpect(jsonPath("$.advisory[*].unit.slug").value(everyItem(not("matrix-multiplication"))))
-                // Nothing here claims to know what the learner has mastered.
-                .andExpect(jsonPath("$.masteryTracked").value(false))
-                .andExpect(jsonPath("$.required[*].masteryState").value(everyItem(equalTo("unknown"))));
+                // Mastery is tracked now, and for a learner who has shown nothing the honest
+                // answer on every step is UNKNOWN rather than a blank.
+                .andExpect(jsonPath("$.masteryTracked").value(true))
+                .andExpect(jsonPath("$.required[*].masteryState").value(everyItem(equalTo("UNKNOWN"))));
     }
 
     @Test
     void neighbourhoodExcludesDraftUnitsAndTheEdgesThatTouchThem() throws Exception {
-        mockMvc.perform(get("/v1/units/matrix-multiplication/graph?hops=1").with(user("ada").roles("LEARNER")))
+        mockMvc.perform(get("/v1/units/matrix-multiplication/graph?hops=1").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nodes[*].unit.slug").value(hasItem("matrices")))
                 .andExpect(jsonPath("$.nodes[*].unit.slug").value(hasItem("how-a-neuron-learns")))
@@ -121,8 +128,7 @@ class GraphApiTest {
 
     @Test
     void unknownEdgeTypeIsARequestErrorNotAServerError() throws Exception {
-        mockMvc.perform(get("/v1/units/matrix-multiplication/graph?types=IS_FRIENDS_WITH")
-                        .with(user("ada").roles("LEARNER")))
+        mockMvc.perform(get("/v1/units/matrix-multiplication/graph?types=IS_FRIENDS_WITH").session(session))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("validation_error"))
                 .andExpect(jsonPath("$.error.message").value(containsString("PREREQUISITE_OF")));
@@ -130,16 +136,15 @@ class GraphApiTest {
 
     @Test
     void draftUnitHasNoGraphOfItsOwn() throws Exception {
-        mockMvc.perform(get("/v1/units/scaled-dot-product-attention/graph").with(user("ada").roles("LEARNER")))
+        mockMvc.perform(get("/v1/units/scaled-dot-product-attention/graph").session(session))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/v1/units/scaled-dot-product-attention/prerequisites")
-                        .with(user("ada").roles("LEARNER")))
+        mockMvc.perform(get("/v1/units/scaled-dot-product-attention/prerequisites").session(session))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void unitWithNoPrerequisitesSaysSoWithoutInventingAny() throws Exception {
-        mockMvc.perform(get("/v1/units/instructions-and-state/prerequisites").with(user("ada").roles("LEARNER")))
+        mockMvc.perform(get("/v1/units/instructions-and-state/prerequisites").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.required").isEmpty())
                 .andExpect(jsonPath("$.advisory").isEmpty());
@@ -152,7 +157,7 @@ class GraphApiTest {
     }
 
     private Neighborhood neighborhood(String url) throws Exception {
-        MvcResult result = mockMvc.perform(get(url).with(user("ada").roles("LEARNER")))
+        MvcResult result = mockMvc.perform(get(url).session(session))
                 .andExpect(status().isOk())
                 .andReturn();
         return json.readValue(result.getResponse().getContentAsString(), Neighborhood.class);

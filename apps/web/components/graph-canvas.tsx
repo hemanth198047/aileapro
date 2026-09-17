@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import type { GraphEdge, GraphNode, Neighborhood, UnitRef } from "@/lib/api";
+import type { GraphEdge, GraphNode, MasteryState, Neighborhood, UnitRef } from "@/lib/api";
 
 /**
  * The neighbourhood drawn as rings around the focus unit: distance from the centre is hops,
- * nothing more. Node colour deliberately carries no meaning while mastery is unmeasured —
- * a green node would be a lie until Phase 5 records evidence.
+ * and fill is the learner's own state on that unit. The fill only ever reports recorded
+ * evidence, which is why most of a new map is plain: UNKNOWN is left uncoloured rather than
+ * shaded in, so an untouched unit cannot be mistaken for a started one.
  *
  * The canvas is decoration over the adjacency list, not a replacement for it. Every node here
  * is also a row in {@link GraphList}, which is what keyboard and screen reader users get, and
@@ -66,6 +67,24 @@ function edgeClass(edge: GraphEdge) {
  */
 export function isDeadEnd(unit: UnitRef) {
   return !unit.hasContent && unit.childCount === 0;
+}
+
+/**
+ * The states, in ladder order, with the sentence each one is allowed to claim. Reading stops
+ * at INTRODUCED, so everything above it is described as work the learner produces.
+ */
+const MASTERY_MEANING: Record<MasteryState, string> = {
+  UNKNOWN: "no evidence recorded",
+  INTRODUCED: "read, which is as far as reading counts",
+  FAMILIAR: "recalled correctly under grading",
+  UNDERSTOOD: "explained and applied to a new case",
+  PRACTICED: "practised until it is reliable",
+  PROFICIENT: "used in work of your own",
+  MASTERED: "taught or defended it",
+};
+
+export function masteryMeaning(state: MasteryState) {
+  return MASTERY_MEANING[state] ?? "no evidence recorded";
 }
 
 /**
@@ -149,11 +168,14 @@ export function GraphCanvas({ graph }: { graph: Neighborhood }) {
               className={`gnode${node.hops === 0 ? " gnode--focus" : ""}${
                 isDeadEnd(node.unit) ? " gnode--empty" : ""
               }`}
+              data-mastery={node.masteryState}
             >
               <title>
-                {node.hops === 0
-                  ? `${node.unit.title} — the unit this map is centred on`
-                  : `${node.unit.title} — ${node.hops} hop${node.hops === 1 ? "" : "s"} away`}
+                {`${node.unit.title} — ${
+                  node.hops === 0
+                    ? "the unit this map is centred on"
+                    : `${node.hops} hop${node.hops === 1 ? "" : "s"} away`
+                }, ${node.masteryState}: ${masteryMeaning(node.masteryState)}`}
               </title>
               <rect
                 x={node.x - NODE.width / 2}
@@ -169,11 +191,44 @@ export function GraphCanvas({ graph }: { graph: Neighborhood }) {
           ))}
         </g>
       </svg>
+      <MasteryLegend nodes={graph.nodes} />
       <figcaption className="graph__caption">
-        Distance from the centre is hops. Colour means nothing yet: mastery is not recorded until
-        Phase 5, so a coloured node would be a claim about you that no one has measured.
+        Distance from the centre is hops, and fill is your recorded state on that unit. Units with
+        no evidence stay plain, because shading one in would be a claim no one has measured.
       </figcaption>
     </figure>
+  );
+}
+
+/**
+ * A key for the fills actually used in this view. Listing the whole ladder would advertise
+ * states nothing on screen is in, so only the ones present are shown.
+ */
+const LADDER: MasteryState[] = [
+  "UNKNOWN",
+  "INTRODUCED",
+  "FAMILIAR",
+  "UNDERSTOOD",
+  "PRACTICED",
+  "PROFICIENT",
+  "MASTERED",
+];
+
+function MasteryLegend({ nodes }: { nodes: GraphNode[] }) {
+  const present = new Set(nodes.map((node) => node.masteryState));
+  const shown = LADDER.filter((state) => present.has(state));
+  if (shown.length < 2) return null;
+
+  return (
+    <ul className="glegend" aria-label="What the node fills mean">
+      {shown.map((state) => (
+        <li className="glegend__item" key={state}>
+          <span className="glegend__swatch" data-mastery={state} aria-hidden="true" />
+          <span className="glegend__label">{state.toLowerCase()}</span>
+          <span className="muted">{masteryMeaning(state)}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -208,7 +263,13 @@ export function GraphList({ graph }: { graph: Neighborhood }) {
                 ) : (
                   <span className="badge badge--warn">nothing to read yet</span>
                 )}
-                <span className="badge">mastery {node.masteryState}</span>
+                <span
+                  className="badge"
+                  data-mastery={node.masteryState}
+                  title={masteryMeaning(node.masteryState)}
+                >
+                  {node.masteryState.toLowerCase()}
+                </span>
               </span>
             </div>
             {related.length > 0 ? (

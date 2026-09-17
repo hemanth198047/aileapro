@@ -381,6 +381,10 @@ select {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   color: var(--ink);
+  /* Textareas and selects default to the browser's own font, which is monospace on some
+     platforms; the class has to state the family rather than rely on inheritance. */
+  font: inherit;
+  font-family: var(--font-sans);
   transition: border-color var(--fast), box-shadow var(--fast), background var(--fast);
 }
 

@@ -7,10 +7,27 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/** Read models for the catalog API. Nothing learner-specific lives here yet — that starts in Phase 5. */
+/** Read models for the catalog API. Learner-specific views live in {@code learning}. */
 public final class CurriculumViews {
 
     private CurriculumViews() {
+    }
+
+    /**
+     * A published unit plus the facts the mastery rules need about it. Kept separate from
+     * {@link UnitRef} because these fields are about how the unit is authored, not about how
+     * it is displayed.
+     *
+     * @param authoredLevels how many explanation levels exist; zero for a container unit
+     * @param hasExercises   whether anything is authored for the learner to produce
+     */
+    public record PublishedUnit(
+            UUID id,
+            String slug,
+            String title,
+            Integer estimateMinutes,
+            int authoredLevels,
+            boolean hasExercises) {
     }
 
     /** A unit reduced to what a list or a link needs. */

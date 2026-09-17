@@ -112,7 +112,7 @@ export type GraphNode = {
   unit: UnitRef;
   /** Distance from the focus unit, so the map can lay nodes out in rings. */
   hops: number;
-  masteryState: string;
+  masteryState: MasteryState;
 };
 
 export type GraphEdge = {
@@ -134,7 +134,7 @@ export type Neighborhood = {
   maxHops: number;
   nodeBudget: number;
   truncated: boolean;
-  /** False until Phase 5: node colour must not imply a mastery state nobody measured. */
+  /** True now that evidence is recorded; node states are the learner's own. */
   masteryTracked: boolean;
   edgeTypes: string[];
   nodes: GraphNode[];
@@ -145,7 +145,7 @@ export type PrerequisiteStep = {
   unit: UnitRef;
   depth: number;
   direct: boolean;
-  masteryState: string;
+  masteryState: MasteryState;
 };
 
 export type Prerequisites = {
@@ -153,6 +153,114 @@ export type Prerequisites = {
   masteryTracked: boolean;
   required: PrerequisiteStep[];
   advisory: PrerequisiteStep[];
+};
+
+/** Learner state. Mirrors LearningViews on the API. */
+export type MasteryState =
+  | "UNKNOWN"
+  | "INTRODUCED"
+  | "FAMILIAR"
+  | "UNDERSTOOD"
+  | "PRACTICED"
+  | "PROFICIENT"
+  | "MASTERED";
+
+export type EvidenceChipState = "empty" | "partial" | "solid";
+
+/** `at` is when the chip last moved, which is what makes it a claim rather than a colour. */
+export type EvidenceChip = { state: EvidenceChipState; at: string | null };
+
+export type Evidence = {
+  read: EvidenceChip;
+  practice: EvidenceChip;
+  assess: EvidenceChip;
+  apply: EvidenceChip;
+};
+
+export type Mastery = {
+  unitId: string;
+  unitSlug: string;
+  state: MasteryState;
+  /** Internal ranking score. Never rendered as a headline percentage. */
+  score: number;
+  evidence: Evidence;
+  dwellSeconds: number;
+  /** Visible reading time the Read chip needs before it goes solid. */
+  readFloorSeconds: number;
+  levelsSeen: string[];
+  openedCount: number;
+  firstOpenedAt: string | null;
+  lastEventAt: string | null;
+};
+
+/** The events the client is allowed to report. All of them are reading signals. */
+export type LearningEventKind =
+  | "unit_opened"
+  | "dwell"
+  | "explanation_level"
+  | "self_check_revealed"
+  | "exercise_viewed";
+
+export type NextAction = {
+  kind: "read" | "practice" | "assess" | "apply" | "setup" | "blocked";
+  verb: string;
+  object: string;
+  minutes: number | null;
+  /** One sentence the learner can argue with. Always rendered. */
+  reason: string;
+  rule: string;
+  href: string;
+  unit: UnitRef | null;
+  mastery: Mastery | null;
+};
+
+export type Today = {
+  next: NextAction;
+  pathSlug: string | null;
+  pathTitle: string | null;
+  waypointCount: number;
+  waypointsStarted: number;
+  waypointsIntroduced: number;
+  reviews: NextAction[];
+  /** Why the review queue is empty, so an empty list is never left unexplained. */
+  reviewsNote: string;
+  onboarded: boolean;
+};
+
+export type Profile = {
+  targetPathId: string | null;
+  targetPathSlug: string | null;
+  targetPathTitle: string | null;
+  hoursPerWeek: number | null;
+  modalities: string[];
+  experience: string | null;
+  goals: string | null;
+  onboardedAt: string | null;
+};
+
+export type Note = {
+  id: string;
+  unitId: string | null;
+  unitSlug: string | null;
+  unitTitle: string | null;
+  body: string;
+  createdAt: string;
+};
+
+export type RoadmapStop = {
+  sort: number;
+  requiredMasteryState: string | null;
+  requirementMet: boolean;
+  unit: UnitRef;
+  mastery: Mastery;
+};
+
+export type Roadmap = {
+  pathSlug: string;
+  pathTitle: string;
+  pathVersion: string;
+  estimateMinutes: number;
+  stops: RoadmapStop[];
 };
 
 export class ApiError extends Error {

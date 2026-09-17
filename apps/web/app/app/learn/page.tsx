@@ -2,16 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Callout, ErrorAlert, IconArrowRight, IconMap } from "@aileapro/ui";
-import { api, type PathDetail, type PathSummary } from "@/lib/api";
+import { Callout, ErrorAlert, IconArrowRight, IconMap, MasteryChips } from "@aileapro/ui";
+import { api, type PathDetail, type PathSummary, type Roadmap, type RoadmapStop } from "@/lib/api";
 import { SpaceHeader } from "@/components/space-view";
 
 /**
- * Learn's root is the catalog: the published paths and their waypoints. Everything shown
- * comes from /v1/paths, which returns published content only — a draft unit is absent from
- * the response, so there is nothing to filter client-side.
+ * Learn's root is the roadmap: the published waypoints of your path with your own evidence
+ * laid over them, followed by the other published paths as plain catalog.
+ *
+ * <p>The overlay is deliberately unflattering. A waypoint that asks for PRACTICED shows as
+ * unmet no matter how thoroughly it has been read, because reading is not practice, and the
+ * row says which of the two it is rather than colouring it green for effort.
  */
 export default function LearnPage() {
+  const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [paths, setPaths] = useState<PathDetail[] | null>(null);
   const [error, setError] = useState("");
 
@@ -26,6 +30,15 @@ export default function LearnPage() {
         if (!cancelled) setPaths(details);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Could not load the catalog");
+        return;
+      }
+
+      try {
+        const mine = await api<Roadmap>("/v1/me/roadmap");
+        if (!cancelled) setRoadmap(mine);
+      } catch {
+        // No target path and nothing published to fall back on. The catalog below is still
+        // worth showing, so this is not an error the learner needs to read about.
       }
     })();
     return () => {
@@ -34,6 +47,7 @@ export default function LearnPage() {
   }, []);
 
   const unitCount = paths?.reduce((total, path) => total + path.waypoints.length, 0) ?? 0;
+  const others = paths?.filter((path) => path.slug !== roadmap?.pathSlug) ?? [];
 
   return (
     <>
@@ -50,7 +64,9 @@ export default function LearnPage() {
         </section>
       ) : null}
 
-      {paths?.map((path) => (
+      {roadmap ? <RoadmapCard roadmap={roadmap} /> : null}
+
+      {others.map((path) => (
         <section className="card" key={path.id}>
           <div className="card__head">
             <span className="card__title">{path.title}</span>
@@ -60,7 +76,6 @@ export default function LearnPage() {
             </span>
           </div>
           {path.description ? <p className="prose">{path.description}</p> : null}
-
           <ol className="waypoints">
             {path.waypoints.map((waypoint, index) => (
               <li className="waypoint" key={waypoint.unit.id}>
@@ -75,25 +90,10 @@ export default function LearnPage() {
                   {waypoint.unit.description ? (
                     <p className="waypoint__desc">{waypoint.unit.description}</p>
                   ) : null}
-                  <p className="waypoint__meta">
-                    {waypoint.unit.estimateMinutes ? (
-                      <span className="badge">{waypoint.unit.estimateMinutes} min</span>
-                    ) : null}
-                    {waypoint.unit.difficulty ? (
-                      <span className="badge">Difficulty {waypoint.unit.difficulty}/5</span>
-                    ) : null}
-                    <span className="badge">{waypoint.unit.volatility} volatility</span>
-                  </p>
                 </div>
               </li>
             ))}
           </ol>
-
-          <p className="hint" style={{ marginTop: 16 }}>
-            The order is the author&apos;s. Prerequisite edges arrive in Phase 4 and a plan shaped
-            by what you already know in Phase 5 — nothing here is personalised yet, and reading a
-            unit does not yet record progress.
-          </p>
         </section>
       ))}
 
@@ -101,11 +101,11 @@ export default function LearnPage() {
         <section className="card">
           <div className="card__head">
             <span className="card__title">Beyond the authored slice</span>
-            <span className="badge badge--brand">Phase 4</span>
+            <span className="badge badge--brand">Authoring continues</span>
           </div>
           <Callout icon={<IconMap />}>
             All 57 domains of the taxonomy exist with real descriptions, but only the units above
-            are authored. Browsing the whole map, with prerequisites, is Phase 4.
+            are authored. The <Link href="/app/map">map</Link> shows how they connect.
           </Callout>
           <p className="hint" style={{ marginTop: 12 }}>
             To see what an unauthored domain looks like, open{" "}
@@ -116,5 +116,73 @@ export default function LearnPage() {
         </section>
       ) : null}
     </>
+  );
+}
+
+function RoadmapCard({ roadmap }: { roadmap: Roadmap }) {
+  const introduced = roadmap.stops.filter((stop) => stop.mastery.state !== "UNKNOWN").length;
+
+  return (
+    <section className="card">
+      <div className="card__head">
+        <span className="card__title">{roadmap.pathTitle}</span>
+        <span className="muted mono">
+          {introduced} of {roadmap.stops.length} started · {Math.round(roadmap.estimateMinutes / 60)}{" "}
+          h reading · v{roadmap.pathVersion}
+        </span>
+      </div>
+      <p className="hint">
+        Your path, in the author&apos;s order, with what you have shown on each stop. The required
+        state is the author&apos;s bar for the waypoint, not a box that reading can tick.
+      </p>
+
+      <ol className="waypoints">
+        {roadmap.stops.map((stop, index) => (
+          <RoadmapRow key={stop.unit.id} stop={stop} index={index} />
+        ))}
+      </ol>
+
+      <p className="hint" style={{ marginTop: 16 }}>
+        Every stop above will stay short of its required state until graded practice and
+        assessment exist, because those are the only things that can prove it. That is the
+        honest position, not a gap in the roadmap.
+      </p>
+    </section>
+  );
+}
+
+function RoadmapRow({ stop, index }: { stop: RoadmapStop; index: number }) {
+  const read = stop.mastery.evidence.read.state;
+
+  return (
+    <li className="waypoint" data-state={read}>
+      <span className="waypoint__n" aria-hidden>
+        {index + 1}
+      </span>
+      <div className="waypoint__body">
+        <Link className="waypoint__title" href={`/app/learn/${stop.unit.slug}`}>
+          {stop.unit.title}
+          <IconArrowRight />
+        </Link>
+        {stop.unit.description ? <p className="waypoint__desc">{stop.unit.description}</p> : null}
+        <p className="waypoint__meta">
+          <span className="badge" title="What you have shown on this unit">
+            {stop.mastery.state}
+          </span>
+          {stop.requiredMasteryState ? (
+            <span
+              className={stop.requirementMet ? "badge badge--ok" : "badge"}
+              title="The author's bar for this waypoint"
+            >
+              needs {stop.requiredMasteryState}
+            </span>
+          ) : null}
+          {stop.unit.estimateMinutes ? (
+            <span className="badge">{stop.unit.estimateMinutes} min</span>
+          ) : null}
+        </p>
+        <MasteryChips evidence={stop.mastery.evidence} />
+      </div>
+    </li>
   );
 }
