@@ -15,6 +15,8 @@ import com.aileapro.api.curriculum.CurriculumViews.Block;
 import com.aileapro.api.curriculum.CurriculumViews.UnitDetail;
 import com.aileapro.api.curriculum.CurriculumViews.UnitRef;
 import com.aileapro.api.platform.ApiException;
+import com.aileapro.api.search.ContentHit;
+import com.aileapro.api.search.SearchService;
 import com.aileapro.persistence.ConversationEntity;
 import org.springframework.stereotype.Service;
 
@@ -49,8 +51,10 @@ public class TutorService {
     private static final int UNIT_TEXT_BUDGET = 6000;
 
     /** Block kinds that are teaching material. Exercises and their keys are deliberately out. */
-    private static final List<String> TEACHING_BLOCKS =
-            List.of("prose", "definition", "example", "analogy", "misconception", "visual");
+    private static final List<String> TEACHING_BLOCKS = List.of(
+            "why", "eli5", "beginner", "intermediate", "advanced", "expert", "research",
+            "formal_definition", "math_intuition", "math_formal", "example", "counterexample",
+            "misconception", "common_mistake", "visual", "code", "application");
 
     private final TutorTranscript transcript;
     private final TutorContextService context;
@@ -60,6 +64,7 @@ public class TutorService {
     private final ModelRouter router;
     private final AiBudget budget;
     private final UsageMeter meter;
+    private final SearchService search;
 
     public TutorService(
             TutorTranscript transcript,
@@ -69,7 +74,8 @@ public class TutorService {
             AiGateway gateway,
             ModelRouter router,
             AiBudget budget,
-            UsageMeter meter) {
+            UsageMeter meter,
+            SearchService search) {
         this.transcript = transcript;
         this.context = context;
         this.curriculum = curriculum;
@@ -78,6 +84,7 @@ public class TutorService {
         this.router = router;
         this.budget = budget;
         this.meter = meter;
+        this.search = search;
     }
 
     /** What the caller needs once a turn is done. */
@@ -100,13 +107,19 @@ public class TutorService {
         budget.require(userId);
 
         TutorPolicy.UnitContext unitContext = context.contextFor(userId, conversation.getUnitId());
+        boolean retrievalOn = search.chunkCount() > 0;
+        List<ContentHit> retrieved = retrievalOn
+                ? search.retrieveForTutor(askText.isEmpty() ? actionLabel(action) : askText, conversation.getUnitId())
+                : List.of();
+
         TutorPolicy.Turn decision = TutorPolicy.decide(new TutorPolicy.Ask(
                 askText,
                 action,
                 Persona.fromSlug(conversation.getPersona()),
                 unitContext,
                 transcript.priorLearnerTurns(conversationId),
-                TutorPolicy.showsWork(askText)));
+                TutorPolicy.showsWork(askText),
+                retrievalOn && !retrieved.isEmpty()));
 
         String asked = askText.isEmpty() ? actionLabel(action) : askText;
         UUID learnerMessageId = transcript.storeLearner(conversationId, asked, action, titleFrom(asked));
@@ -120,7 +133,7 @@ public class TutorService {
                     userId, FEATURE, "teach", "none", "none", null, null, conversationId,
                     0, 0, 0, UsageMeter.Outcome.REFUSED));
             UUID messageId = transcript.storeAssistant(
-                    conversationId, reply, TutorTranscript.Attribution.refusal(), decision.refusal().code());
+                    conversationId, reply, TutorTranscript.Attribution.refusal(), decision.refusal().code(), List.of());
             return new TurnResult(messageId, reply, false, decision.refusal().code());
         }
 
@@ -131,6 +144,11 @@ public class TutorService {
         if (unitText != null) {
             wire.add(ChatMessage.data("unit:" + unitContext.slug(), unitText));
         }
+        for (ContentHit hit : retrieved) {
+            wire.add(ChatMessage.data(
+                    "block:" + hit.blockId(),
+                    retrievedBlockText(hit)));
+        }
         wire.addAll(transcript.history(conversationId, learnerMessageId));
         wire.add(ChatMessage.user(Injection.fenceSafe(asked)));
 
@@ -139,13 +157,24 @@ public class TutorService {
                         userId, FEATURE, decision.profileSlug(), wire, prompt.versionId(), conversationId),
                 onChunk);
 
+        List<UUID> cited = retrieved.stream().map(ContentHit::blockId).distinct().toList();
         UUID messageId = transcript.storeAssistant(
                 conversationId,
                 answer.text(),
                 new TutorTranscript.Attribution(
                         answer.modelId(), prompt.versionId(), answer.development(), decision.reveal().name()),
-                null);
+                null,
+                cited);
         return new TurnResult(messageId, answer.text(), answer.development(), null);
+    }
+
+    private static String retrievedBlockText(ContentHit hit) {
+        return "blockId=" + hit.blockId()
+                + "\nunit=" + hit.unitSlug()
+                + "\nblockType=" + hit.blockType()
+                + "\nknowledgeClass=" + hit.knowledgeClass()
+                + "\nupdatedAt=" + hit.updatedAt()
+                + "\n" + hit.snippet();
     }
 
     /**
@@ -213,7 +242,7 @@ public class TutorService {
         return new TutorViews.Status(
                 best != null,
                 best != null && best.port().development(),
-                false,
+                search.chunkCount() > 0,
                 best == null ? null : best.providerSlug(),
                 best == null ? null : best.modelSlug(),
                 remaining.usdSpent(),
@@ -233,22 +262,29 @@ public class TutorService {
     /**
      * What the answers in a conversation were grounded in.
      *
-     * <p>Empty, and said plainly, until retrieval exists. The unit page is in context and is
-     * named here, but a page the learner is already reading is not a citation, and listing it
-     * as one would put a source list under answers that had no sources.
+     * <p>When retrieval is on, every cited block id is listed with its knowledge timestamp.
+     * Fabricating a source that was never retrieved is impossible here: the list is the set of
+     * ids stored on assistant messages, nothing else.
      */
     public Map<String, Object> sources(UUID userId, UUID conversationId) {
         ConversationEntity conversation = transcript.owned(userId, conversationId);
         UnitRef unit = transcript.unitOf(conversation);
+        boolean retrievalOn = search.chunkCount() > 0;
+        List<TutorViews.SourceBlock> blocks = transcript.citedSourceBlocks(conversationId);
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("retrieval", false);
+        out.put("retrieval", retrievalOn);
         out.put("unitInContext", unit == null ? "" : unit.slug());
-        out.put("blocks", transcript.citedBlocks(conversationId));
+        out.put("blocks", blocks);
         out.put(
                 "note",
-                "Retrieval arrives in the next phase. Until then the tutor reads the page you are "
-                        + "on and nothing else, so it has no sources to cite — and it is told not to "
-                        + "invent any.");
+                retrievalOn
+                        ? (blocks.isEmpty()
+                                ? "Retrieval is on, but this conversation has not cited a block yet."
+                                : "Only block ids that were retrieved for an answer appear here. "
+                                        + "Nothing is invented.")
+                        : "Retrieval is off for this build. The tutor reads the page you are on "
+                                + "and nothing else, so it has no sources to cite — and it is told "
+                                + "not to invent any.");
         return out;
     }
 

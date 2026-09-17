@@ -4,6 +4,7 @@ import com.aileapro.api.ai.AiUsageRepository;
 import com.aileapro.api.ai.seed.AiSeeder;
 import com.aileapro.api.assessment.seed.AssessmentSeeder;
 import com.aileapro.api.curriculum.seed.CurriculumSeeder;
+import com.aileapro.api.search.SearchIndexer;
 import com.aileapro.api.tutor.MessageRepository;
 import com.aileapro.persistence.AiUsageEntity;
 import com.aileapro.persistence.MessageEntity;
@@ -26,6 +27,7 @@ import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -63,6 +65,9 @@ class TutorApiTest {
     AiSeeder ai;
 
     @Autowired
+    SearchIndexer searchIndexer;
+
+    @Autowired
     AiUsageRepository usage;
 
     @Autowired
@@ -79,6 +84,7 @@ class TutorApiTest {
             curriculum.seed();
             assessments.seed();
             ai.seed();
+            searchIndexer.reindexAll();
             seeded = true;
         }
     }
@@ -336,7 +342,7 @@ class TutorApiTest {
                 // No key is configured in this suite, so fixtures are serving and the flag that
                 // drives the banner has to say so.
                 .andExpect(jsonPath("$.development").value(true))
-                .andExpect(jsonPath("$.retrieval").value(false))
+                .andExpect(jsonPath("$.retrieval").value(true))
                 .andExpect(jsonPath("$.providerSlug").value("fake"))
                 .andExpect(jsonPath("$.turnsCap").exists())
                 .andExpect(jsonPath("$.actions[0].slug").exists())
@@ -344,17 +350,29 @@ class TutorApiTest {
     }
 
     @Test
-    void sourcesAreEmptyAndSayWhyRatherThanLookingBroken() throws Exception {
+    void sourcesListRetrievedBlockIdsWithTimestampsRatherThanInventingAny() throws Exception {
         MockHttpSession learner = TestLearner.signIn(mockMvc, "tutor-sources@aileapro.dev");
         UUID conversation = startConversation(learner);
-        ask(learner, conversation, "What is a value?", null);
+        ask(learner, conversation, "Why does changing b also change a when both are lists?", null);
 
-        mockMvc.perform(get("/v1/tutor/conversations/" + conversation + "/sources").session(learner))
+        String body = mockMvc.perform(get("/v1/tutor/conversations/" + conversation + "/sources").session(learner))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.retrieval").value(false))
-                .andExpect(jsonPath("$.blocks").isEmpty())
+                .andExpect(jsonPath("$.retrieval").value(true))
                 .andExpect(jsonPath("$.unitInContext").value(UNIT))
-                .andExpect(jsonPath("$.note").isNotEmpty());
+                .andExpect(jsonPath("$.note").isNotEmpty())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode blocks = json.readTree(body).get("blocks");
+        // Retrieval ran; every listed id must carry a timestamp and a real unit slug. An empty
+        // list is allowed only when the ask matched nothing — not when ids are fabricated.
+        for (JsonNode block : blocks) {
+            assertThat(block.get("blockId").asText()).isNotBlank();
+            assertThat(block.get("unitSlug").asText()).isNotBlank();
+            assertThat(block.get("updatedAt").asText()).isNotBlank();
+            assertThat(block.get("href").asText()).startsWith("/app/learn/");
+        }
     }
 
     @Test

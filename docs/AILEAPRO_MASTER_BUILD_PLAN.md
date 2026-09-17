@@ -667,11 +667,41 @@ versions on the same question yet.
 
 ### GATE (Phase 8)
 
-- [ ] Search finds seed curriculum
-- [ ] Tutor message can list `blockId` / source used
-- [ ] Timestamp shown for retrieved knowledge
+- [x] Search finds seed curriculum
+- [x] Tutor message can list `blockId` / source used
+- [x] Timestamp shown for retrieved knowledge
 
 **Phase log:**
+
+- **2026-09-17 — Phase 8 complete.** `V7__search_and_rag.sql` adds `search_tsv` on published
+  units and blocks, `content_chunks` with a 64-dimensional `vector` column, and enables
+  `pgvector` plus `pg_trgm`. Compose moves to `pgvector/pgvector:pg16` because stock Postgres
+  does not ship the extension. Local starts that find curriculum but no chunks reseed so the
+  index cannot stay silently empty after a failed first run.
+- Search is Postgres FTS first (ADR 0006). OpenSearch is still deferred. Embeddings are written
+  through `EmbeddingPort`; the default is `FakeEmbeddingClient`, a deterministic bag-of-words
+  vector labelled as a fixture, so CI never needs a paid key. Hybrid retrieval fuses keyword
+  and vector ranks with reciprocal rank fusion and prefers the open unit without inventing ids.
+- The corpus is abstracted behind `ContentIndex`. `JdbcContentIndex` speaks FTS and pgvector;
+  `MemoryContentIndex` stands in for H2 tests. `SearchIndexer` runs at the end of seed and skips
+  exercise keys on purpose — the tutor must not retrieve answers it is forbidden to hand over.
+- `GET /v1/search?q=&types=` returns ranked units and blocks with snippets, knowledge class, and
+  the block's updated timestamp. The search space is live: type chips, debounced query, linked
+  results. Notes search is still later.
+- The tutor attaches retrieved chunks as `DATA` channel messages named by block id, stores those
+  ids on the assistant row, and the Sources drawer lists only those ids with their knowledge
+  timestamps. `TutorPolicy` now distinguishes foundational explain from latest-state asks:
+  latest without retrieval says so and teaches the foundational idea; with retrieval it may
+  cite only retrieved block ids. Prompt catalogue gains version 2 for the same rules.
+- Also fixed: the teaching-block filter on the open unit used invented type names (`prose`,
+  `definition`) and so skipped almost every authored block; it now matches `BlockType` codes.
+- Verified: `gradle :api:test`, `pnpm -r typecheck`, and `backend/scripts/phase8-walk.ps1` end to
+  end — seed title findable, `retrieval=true`, six cited blocks each with an `updatedAt`.
+
+**Known gaps carried forward:** the fake embedder is not a substitute for a real model, and a
+real model will need its own dimension and a rebuild migration. There is still no separate
+publish pipeline — seeding is what indexes. Paths are not a search type yet. Notes are not in
+the corpus. Approximate vector indexes wait until the chunk count justifies them.
 
 ---
 

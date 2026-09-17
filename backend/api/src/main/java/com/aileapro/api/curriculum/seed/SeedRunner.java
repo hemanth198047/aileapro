@@ -2,6 +2,7 @@ package com.aileapro.api.curriculum.seed;
 
 import com.aileapro.api.ai.seed.AiSeeder;
 import com.aileapro.api.assessment.seed.AssessmentSeeder;
+import com.aileapro.api.search.SearchIndexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -23,11 +24,17 @@ public class SeedRunner implements ApplicationRunner {
     private final CurriculumSeeder seeder;
     private final AssessmentSeeder assessmentSeeder;
     private final AiSeeder aiSeeder;
+    private final SearchIndexer searchIndexer;
 
-    public SeedRunner(CurriculumSeeder seeder, AssessmentSeeder assessmentSeeder, AiSeeder aiSeeder) {
+    public SeedRunner(
+            CurriculumSeeder seeder,
+            AssessmentSeeder assessmentSeeder,
+            AiSeeder aiSeeder,
+            SearchIndexer searchIndexer) {
         this.seeder = seeder;
         this.assessmentSeeder = assessmentSeeder;
         this.aiSeeder = aiSeeder;
+        this.searchIndexer = searchIndexer;
     }
 
     @Override
@@ -40,5 +47,8 @@ public class SeedRunner implements ApplicationRunner {
         // Models and prompts depend on nothing else, but they run last so that a bad price or
         // an edited prompt version fails after the content is already safely in.
         log.info("AI catalogue seed complete: {}", aiSeeder.seed());
+        // The search corpus is derived from published units: it can only run after the
+        // curriculum seed has written them.
+        log.info("Search index rebuild complete: {}", searchIndexer.reindexAll());
     }
 }

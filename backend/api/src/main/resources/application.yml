@@ -37,6 +37,9 @@ aileapro:
     origin: ${AILEAPRO_WEB_ORIGIN:http://localhost:3000}
   ai:
     provider: ${AILEAPRO_AI_PROVIDER:fake}
+  search:
+    # jdbc = Postgres FTS + pgvector. Tests override to memory.
+    backend: ${AILEAPRO_SEARCH_BACKEND:jdbc}
 
 management:
   endpoints:

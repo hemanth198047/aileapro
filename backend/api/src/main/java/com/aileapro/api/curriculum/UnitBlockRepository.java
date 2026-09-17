@@ -13,6 +13,8 @@ public interface UnitBlockRepository extends JpaRepository<UnitBlockEntity, UUID
 
     List<UnitBlockEntity> findByUnitIdAndLocaleOrderBySortAsc(UUID unitId, String locale);
 
+    List<UnitBlockEntity> findByUnitIdOrderBySortAsc(UUID unitId);
+
     /** Block counts for a batch of units, so listing a path does not fan out into N queries. */
     @Query("select b.unitId, count(b) from UnitBlockEntity b where b.unitId in :ids group by b.unitId")
     List<Object[]> countByUnitIds(@Param("ids") Collection<UUID> ids);

@@ -66,7 +66,9 @@ Write-Host ("   available={0} fixtures={1} retrieval={2} provider={3} model={4}"
     $status.available, $status.development, $status.retrieval, $status.providerSlug, $status.modelSlug)
 Write-Host ("   budget: {0}/{1} turns, `$0 of `${2}" -f $status.turnsUsed, $status.turnsCap, $status.usdCap)
 if (-not $status.available) { throw "No model is configured, so there is nothing to walk" }
-if ($status.retrieval) { throw "Retrieval claims to be on, and it does not exist until Phase 8" }
+if ($status.retrieval) {
+    Write-Host "   retrieval is on (Phase 8+)"
+}
 Write-Host ("   actions: {0}" -f (($status.actions | ForEach-Object { $_.slug }) -join ", "))
 
 Step "what the tutor knows about this learner on $unit"

@@ -1792,6 +1792,45 @@
   background: var(--surface-2);
 }
 
+.tutor__sourceBlocks {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+
+.tutor__sourceBlock {
+  padding-top: var(--s2);
+  border-top: 1px solid var(--line);
+}
+
+.tutor__sourceBlock:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.search__results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s3);
+}
+
+.search__hit .card__title {
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.search__hit .card__title:hover {
+  color: var(--brand);
+}
+
+.search__chips {
+  margin-top: var(--s2);
+}
+
 /* ---------- Splash ---------- */
 
 .splash {

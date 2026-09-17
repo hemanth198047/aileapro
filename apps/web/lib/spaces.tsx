@@ -180,11 +180,8 @@ export const SPACES: Space[] = [
     href: "/app/search",
     group: "Workspace",
     icon: <IconSearch size={16} />,
-    purpose: "One query across units, notes, papers, and code — with sources attached.",
-    arrivesIn: "Phase 8",
-    nextAction: "Nothing yet — search arrives in Phase 8",
-    waitingOn:
-      "There are now published blocks to index. Phase 8 embeds them into pgvector and adds the query API, so search stays off until it can return real results with sources.",
+    purpose: "Find published units and blocks across the curriculum — with snippets and links back to the source.",
+    nextAction: "Search by title or concept.",
   },
   {
     id: "settings",

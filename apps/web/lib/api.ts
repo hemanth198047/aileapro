@@ -494,10 +494,43 @@ export type TutorContext = {
   recentMistakes: string[];
 };
 
+export type TutorSourceBlock = {
+  blockId: string;
+  unitSlug: string;
+  unitTitle: string;
+  blockType: string;
+  knowledgeClass: string;
+  updatedAt: string | null;
+  href: string;
+};
+
 export type TutorSources = {
   retrieval: boolean;
   unitInContext: string;
-  blocks: string[];
+  blocks: TutorSourceBlock[];
+  note: string;
+};
+
+export type SearchHit = {
+  type: "unit" | "block" | "path";
+  id: string;
+  slug: string;
+  title: string;
+  snippet: string;
+  href: string;
+  knowledgeClass: string;
+  updatedAt: string | null;
+  score: number;
+  unitId: string | null;
+  unitSlug: string | null;
+  blockType: string | null;
+};
+
+export type SearchPage = {
+  query: string;
+  results: SearchHit[];
+  types: string[];
+  total: number;
   note: string;
 };
 
@@ -599,6 +632,13 @@ export class ApiError extends Error {
     this.status = status;
     this.code = code;
   }
+}
+
+export function searchCurriculum(q: string, types?: string[]): Promise<SearchPage> {
+  const params = new URLSearchParams();
+  params.set("q", q);
+  if (types?.length) params.set("types", types.join(","));
+  return api<SearchPage>(`/v1/search?${params}`);
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {

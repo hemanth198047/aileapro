@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Callout, ErrorAlert } from "@aileapro/ui";
 import { Markdown } from "@aileapro/ui/markdown";
@@ -36,6 +37,8 @@ export function TutorDock({ slug, title }: { slug: string | null; title?: string
   const [showSources, setShowSources] = useState(false);
   const [showContext, setShowContext] = useState(false);
   const scroller = useRef<HTMLDivElement | null>(null);
+  const showSourcesRef = useRef(showSources);
+  showSourcesRef.current = showSources;
 
   useEffect(() => {
     let live = true;
@@ -129,6 +132,14 @@ export function TutorDock({ slug, title }: { slug: string | null; title?: string
       setConversation(await api<TutorConversation>(`/v1/tutor/conversations/${active.id}`));
       setStreaming("");
       setStatus(await api<TutorStatus>("/v1/tutor/status"));
+      setSources(null);
+      if (showSourcesRef.current) {
+        try {
+          setSources(await api<TutorSources>(`/v1/tutor/conversations/${active.id}/sources`));
+        } catch {
+          // Same as openSources: a failed refresh should not cover the answer.
+        }
+      }
     } catch (err) {
       const message =
         err instanceof ApiError && err.code === "budget_exceeded"
@@ -212,8 +223,9 @@ export function TutorDock({ slug, title }: { slug: string | null; title?: string
                 </ul>
               ) : null}
               <p className="hint">
-                It reads this page and your record on it. Nothing from anyone else, and no
-                search — so it has no sources to cite.
+                {status?.retrieval
+                  ? "It reads this page, your record on it, and can cite published curriculum blocks it retrieves — nothing from anyone else."
+                  : "It reads this page and your record on it. Nothing from anyone else, and no search — so it has no sources to cite."}
               </p>
             </div>
           ) : null}
@@ -343,6 +355,24 @@ export function TutorDock({ slug, title }: { slug: string | null; title?: string
               tutor is told not to invent a source it cannot point to.
             </p>
           ) : null}
+          {sources && sources.blocks.length > 0 ? (
+            <ul className="tutor__sourceBlocks">
+              {sources.blocks.map((block) => (
+                <li key={block.blockId} className="tutor__sourceBlock">
+                  <Link className="inline-link" href={block.href}>
+                    {block.unitTitle}
+                  </Link>
+                  <p className="hint">
+                    <span className="mono">{block.blockType}</span>
+                    {" · "}
+                    <span className="badge">{block.knowledgeClass}</span>
+                    {" · "}
+                    Updated {formatLocaleDate(block.updatedAt)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       ) : null}
     </>
@@ -352,4 +382,11 @@ export function TutorDock({ slug, title }: { slug: string | null; title?: string
 function actionLabel(status: TutorStatus | null, slug?: string): string {
   if (!slug) return "";
   return status?.actions.find((action) => action.slug === slug)?.label ?? slug;
+}
+
+function formatLocaleDate(value: string | null) {
+  if (!value) return "date not recorded";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "date not recorded";
+  return date.toLocaleDateString(undefined, { dateStyle: "medium" });
 }

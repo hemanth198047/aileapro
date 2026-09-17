@@ -1,6 +1,8 @@
 services:
+  # pgvector image: Phase 8 retrieval needs the vector type. The official
+  # postgres:16-alpine image does not ship the extension.
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: aileapro
       POSTGRES_USER: aileapro

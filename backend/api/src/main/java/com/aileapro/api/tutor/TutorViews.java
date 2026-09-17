@@ -95,4 +95,19 @@ public final class TutorViews {
 
     public record PersonaOption(String slug, String title, String hint) {
     }
+
+    /**
+     * One cited curriculum block in the Sources drawer.
+     *
+     * @param updatedAt knowledge timestamp — when the authored block last changed
+     */
+    public record SourceBlock(
+            UUID blockId,
+            String unitSlug,
+            String unitTitle,
+            String blockType,
+            String knowledgeClass,
+            Instant updatedAt,
+            String href) {
+    }
 }

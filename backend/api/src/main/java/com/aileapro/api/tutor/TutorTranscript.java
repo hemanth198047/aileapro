@@ -8,11 +8,15 @@ import com.aileapro.api.ai.ModelRepository;
 import com.aileapro.api.ai.PromptVersionRepository;
 import com.aileapro.api.curriculum.CurriculumQueryService;
 import com.aileapro.api.curriculum.CurriculumViews.UnitRef;
+import com.aileapro.api.curriculum.LearningUnitRepository;
+import com.aileapro.api.curriculum.UnitBlockRepository;
 import com.aileapro.api.platform.ApiException;
 import com.aileapro.persistence.ConversationEntity;
+import com.aileapro.persistence.LearningUnitEntity;
 import com.aileapro.persistence.MessageEntity;
 import com.aileapro.persistence.ModelEntity;
 import com.aileapro.persistence.PromptVersionEntity;
+import com.aileapro.persistence.UnitBlockEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,10 +25,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Conversations and messages: everything that touches the transcript.
@@ -52,18 +58,24 @@ public class TutorTranscript {
     private final CurriculumQueryService curriculum;
     private final ModelRepository models;
     private final PromptVersionRepository promptVersions;
+    private final UnitBlockRepository blockRepository;
+    private final LearningUnitRepository unitRepository;
 
     public TutorTranscript(
             ConversationRepository conversations,
             MessageRepository messages,
             CurriculumQueryService curriculum,
             ModelRepository models,
-            PromptVersionRepository promptVersions) {
+            PromptVersionRepository promptVersions,
+            UnitBlockRepository blockRepository,
+            LearningUnitRepository unitRepository) {
         this.conversations = conversations;
         this.messages = messages;
         this.curriculum = curriculum;
         this.models = models;
         this.promptVersions = promptVersions;
+        this.blockRepository = blockRepository;
+        this.unitRepository = unitRepository;
     }
 
     // ------------------------------------------------------------------
@@ -208,7 +220,12 @@ public class TutorTranscript {
     }
 
     @Transactional
-    public UUID storeAssistant(UUID conversationId, String text, Attribution about, String refusalCode) {
+    public UUID storeAssistant(
+            UUID conversationId,
+            String text,
+            Attribution about,
+            String refusalCode,
+            List<UUID> retrievalIds) {
         MessageEntity row = new MessageEntity();
         row.setId(UUID.randomUUID());
         row.setConversationId(conversationId);
@@ -219,6 +236,9 @@ public class TutorTranscript {
         row.setDevelopment(about.development());
         row.setReveal(about.reveal());
         row.setRefusalCode(refusalCode);
+        row.setRetrievalIds(retrievalIds == null || retrievalIds.isEmpty()
+                ? new UUID[0]
+                : retrievalIds.toArray(UUID[]::new));
         row.setSort(messages.maxSort(conversationId) + 1);
         messages.save(row);
 
@@ -257,13 +277,54 @@ public class TutorTranscript {
         return wire;
     }
 
-    /** Every block id any answer in this conversation cited. Empty until retrieval exists. */
+    /** Every block id any answer in this conversation cited. */
     @Transactional(readOnly = true)
     public List<UUID> citedBlocks(UUID conversationId) {
         return messages.findByConversationIdOrderBySortAsc(conversationId).stream()
                 .flatMap(message -> Arrays.stream(message.getRetrievalIds()))
                 .distinct()
                 .toList();
+    }
+
+    /**
+     * Cited blocks with enough metadata for the Sources drawer: title, type, and the knowledge
+     * timestamp. Unknown ids are dropped rather than fabricated.
+     */
+    @Transactional(readOnly = true)
+    public List<TutorViews.SourceBlock> citedSourceBlocks(UUID conversationId) {
+        List<UUID> ids = citedBlocks(conversationId);
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, UnitBlockEntity> byId = new LinkedHashMap<>();
+        for (UnitBlockEntity block : blockRepository.findAllById(ids)) {
+            byId.put(block.getId(), block);
+        }
+        Set<UUID> unitIds = byId.values().stream().map(UnitBlockEntity::getUnitId).collect(Collectors.toSet());
+        Map<UUID, LearningUnitEntity> unitsById = new LinkedHashMap<>();
+        for (LearningUnitEntity unit : unitRepository.findAllById(unitIds)) {
+            unitsById.put(unit.getId(), unit);
+        }
+        List<TutorViews.SourceBlock> out = new ArrayList<>();
+        for (UUID id : ids) {
+            UnitBlockEntity block = byId.get(id);
+            if (block == null) {
+                continue;
+            }
+            LearningUnitEntity unit = unitsById.get(block.getUnitId());
+            if (unit == null) {
+                continue;
+            }
+            out.add(new TutorViews.SourceBlock(
+                    block.getId(),
+                    unit.getSlug(),
+                    unit.getTitle(),
+                    block.getBlockType().code(),
+                    unit.getKnowledgeClass() == null ? "STABLE" : unit.getKnowledgeClass().name(),
+                    block.getUpdatedAt(),
+                    "/app/learn/" + unit.getSlug()));
+        }
+        return out;
     }
 
     // ------------------------------------------------------------------
