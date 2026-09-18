@@ -190,7 +190,7 @@ export const SPACES: Space[] = [
     arrivesIn: "Phase 13",
     nextAction: "Nothing yet — the content studio arrives in Phase 13",
     waitingOn:
-      "Access is already enforced by the API: /v1/admin requires the admin role. Drafts will never surface in Learn until published.",
+      "Access is already enforced by the API: /v1/admin requires the admin role. List drafts, run the critic, publish with audit, and roll back to a snapshot. Drafts never surface in Learn until published.",
     adminOnly: true,
   },
 ];

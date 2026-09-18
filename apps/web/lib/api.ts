@@ -726,6 +726,76 @@ export type CareerGaps = {
   note: string;
 };
 
+/** Admin content studio. Mirrors AdminViews — drafts never appear on learner catalog routes. */
+export type AdminUnitSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  status: string;
+  version: string;
+  kind: string;
+  difficulty: number | null;
+  blockCount: number;
+  updatedAt: string;
+};
+
+export type AdminCriticFinding = {
+  severity: string;
+  code: string;
+  message: string;
+};
+
+export type AdminCriticReport = {
+  findings: AdminCriticFinding[];
+  publishable: boolean;
+};
+
+export type AdminBlock = {
+  id: string;
+  type: string;
+  sort: number;
+  payload: string;
+};
+
+export type AdminUnitDetail = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  status: string;
+  version: string;
+  kind: string;
+  difficulty: number | null;
+  estimateMinutes: number | null;
+  objectives: string[];
+  tags: string[];
+  blocks: AdminBlock[];
+  critic: AdminCriticReport;
+  effectiveAt: string | null;
+  updatedAt: string;
+};
+
+export type AdminChange = {
+  id: string;
+  action: string;
+  fromVersion: string | null;
+  toVersion: string;
+  fromStatus: string | null;
+  toStatus: string;
+  reason: string | null;
+  createdAt: string;
+};
+
+export type AdminPublishResult = {
+  slug: string;
+  fromVersion: string;
+  toVersion: string;
+  status: string;
+  changeId: string;
+  auditId: string;
+  critic: AdminCriticReport;
+};
+
 /** Events the turn endpoint sends, in the order they arrive. */
 export type TutorStreamEvent =
   | { type: "token"; text: string }

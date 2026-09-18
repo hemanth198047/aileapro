@@ -1,22 +1,58 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Callout, IconArrowRight, IconShield } from "@aileapro/ui";
-import { ApiError, api } from "@/lib/api";
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { Button, Callout, ErrorAlert, IconArrowRight, IconShield } from "@aileapro/ui";
+import {
+  ApiError,
+  api,
+  csrfHeaders,
+  type AdminChange,
+  type AdminUnitDetail,
+  type AdminUnitSummary,
+} from "@/lib/api";
 import { SpaceHeader } from "@/components/space-view";
 
 type Access = "checking" | "granted" | "denied" | "error";
 
+/**
+ * Thin content studio: list any status, open a draft, run critic, publish with audit.
+ * Learner Learn routes stay published-only — drafts never leak through this UI.
+ */
 export default function AdminPage() {
   const [access, setAccess] = useState<Access>("checking");
   const [message, setMessage] = useState("");
+  const [units, setUnits] = useState<AdminUnitSummary[]>([]);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selected, setSelected] = useState<AdminUnitDetail | null>(null);
+  const [changelog, setChangelog] = useState<AdminChange[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [createSlug, setCreateSlug] = useState("");
+  const [createTitle, setCreateTitle] = useState("");
 
-  // The API is the authority on this, not the role we happen to hold client-side.
+  const loadList = useCallback(async (filter: string) => {
+    const q = filter === "all" ? "" : `?status=${encodeURIComponent(filter)}`;
+    const rows = await api<AdminUnitSummary[]>(`/v1/admin/units${q}`);
+    setUnits(rows);
+  }, []);
+
+  const openUnit = useCallback(async (slug: string) => {
+    const detail = await api<AdminUnitDetail>(`/v1/admin/units/${slug}`);
+    const changes = await api<AdminChange[]>(`/v1/admin/units/${slug}/changelog`);
+    setSelected(detail);
+    setChangelog(changes);
+  }, []);
+
   useEffect(() => {
+    let live = true;
     api<{ ok: string }>("/v1/admin/ping")
-      .then(() => setAccess("granted"))
+      .then(async () => {
+        if (!live) return;
+        setAccess("granted");
+        await loadList("all");
+      })
       .catch((err) => {
+        if (!live) return;
         if (err instanceof ApiError && (err.status === 403 || err.status === 401)) {
           setAccess("denied");
           return;
@@ -24,7 +60,107 @@ export default function AdminPage() {
         setMessage(err instanceof Error ? err.message : "Could not reach the admin API");
         setAccess("error");
       });
-  }, []);
+    return () => {
+      live = false;
+    };
+  }, [loadList]);
+
+  const onFilter = async (next: string) => {
+    setStatusFilter(next);
+    setMessage("");
+    try {
+      await loadList(next);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not load units");
+    }
+  };
+
+  const onPublish = async () => {
+    if (!selected || busy) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const headers = await csrfHeaders();
+      const res = await fetch(`/v1/admin/units/${selected.slug}/publish`, {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: JSON.stringify({ reason: "Published from content studio" }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        throw new Error(body?.error?.message ?? "Publish failed");
+      }
+      await openUnit(selected.slug);
+      await loadList(statusFilter);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Publish failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onRollback = async () => {
+    if (!selected || busy) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const headers = await csrfHeaders();
+      const res = await fetch(`/v1/admin/units/${selected.slug}/rollback`, {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: "{}",
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        throw new Error(body?.error?.message ?? "Rollback failed");
+      }
+      await openUnit(selected.slug);
+      await loadList(statusFilter);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Rollback failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onCreate = async (event: FormEvent) => {
+    event.preventDefault();
+    if (busy || !createSlug.trim() || !createTitle.trim()) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const headers = await csrfHeaders();
+      const res = await fetch("/v1/admin/units", {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: JSON.stringify({
+          slug: createSlug.trim(),
+          title: createTitle.trim(),
+          difficulty: 2,
+          objectives: ["Write the learning objective"],
+          blocks: [
+            { type: "why", markdown: "Why this unit matters." },
+            { type: "beginner", markdown: "First explanation." },
+          ],
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        throw new Error(body?.error?.message ?? "Could not create draft");
+      }
+      setCreateSlug("");
+      setCreateTitle("");
+      await loadList(statusFilter);
+      await openUnit(body.slug);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not create draft");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <>
@@ -58,13 +194,8 @@ export default function AdminPage() {
             <span className="muted mono">403</span>
           </div>
           <p className="prose">
-            The API refused this request. Content authoring, version workflow, and the update review
-            queue are restricted to the admin role, and the check happens on the server — hiding the
-            link would not have been enough.
-          </p>
-          <p className="hint" style={{ marginTop: 12 }}>
-            If you should have access, an existing admin has to grant your account the role. There
-            is no self-service escalation.
+            The API refused this request. Content authoring and publish are restricted to the admin
+            role on the server — hiding the link would not have been enough.
           </p>
           <div className="space__actions" style={{ marginTop: 16 }}>
             <Link className="btn btn--outline" href="/app/today">
@@ -77,26 +208,134 @@ export default function AdminPage() {
 
       {access === "granted" ? (
         <>
+          {message ? <ErrorAlert message={message} /> : null}
+
+          <Callout icon={<IconShield />} tone="neutral">
+            Drafts listed here never appear in Learn until publish. Publish writes an audit row and a
+            restore snapshot; rollback returns the unit to draft (learner 404).
+          </Callout>
+
           <section className="card">
             <div className="card__head">
-              <span className="card__title">Admin API reachable</span>
-              <span className="badge badge--brand">Phase 13</span>
+              <span className="card__title">New draft</span>
+              <span className="badge badge--brand">Studio</span>
             </div>
-            <Callout icon={<IconShield />}>
-              <code className="mono">GET /v1/admin/ping</code> answered for your session. The
-              editors themselves are not built yet.
-            </Callout>
-            <p className="hint" style={{ marginTop: 12 }}>
-              Phase 13 brings unit and block editors, graph edge editing, the item bank, the
-              generation critic, and the update queue. A draft will never be visible in Learn until
-              it is explicitly published.
-            </p>
+            <form className="stack" onSubmit={onCreate} style={{ gap: 12 }}>
+              <label className="field">
+                <span className="field__label">Slug</span>
+                <input
+                  className="input"
+                  value={createSlug}
+                  onChange={(e) => setCreateSlug(e.target.value)}
+                  placeholder="my-new-unit"
+                  required
+                />
+              </label>
+              <label className="field">
+                <span className="field__label">Title</span>
+                <input
+                  className="input"
+                  value={createTitle}
+                  onChange={(e) => setCreateTitle(e.target.value)}
+                  placeholder="Unit title"
+                  required
+                />
+              </label>
+              <Button type="submit" disabled={busy}>
+                Create draft
+              </Button>
+            </form>
           </section>
 
-          <section className="empty">
-            <strong>No content to administer.</strong>
-            <span>The curriculum tables are empty until the Phase 3 seed loader runs.</span>
+          <section className="card">
+            <div className="card__head">
+              <span className="card__title">Units</span>
+              <select
+                className="input"
+                style={{ width: "auto" }}
+                value={statusFilter}
+                onChange={(e) => void onFilter(e.target.value)}
+              >
+                <option value="all">All statuses</option>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="deprecated">Deprecated</option>
+              </select>
+            </div>
+            {units.length === 0 ? (
+              <p className="hint">No units match this filter.</p>
+            ) : (
+              <ul className="studio__list" style={{ marginTop: 12 }}>
+                {units.map((unit) => (
+                  <li key={unit.id}>
+                    <button
+                      type="button"
+                      className={`studio__pick${selected?.slug === unit.slug ? " is-active" : ""}`}
+                      onClick={() => void openUnit(unit.slug).catch((err) =>
+                        setMessage(err instanceof Error ? err.message : "Could not open unit"),
+                      )}
+                    >
+                      <strong>{unit.title}</strong>
+                      <span className="muted mono">
+                        {unit.slug} · {unit.status} · v{unit.version} · {unit.blockCount} blocks
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
+
+          {selected ? (
+            <section className="card">
+              <div className="card__head">
+                <span className="card__title">{selected.title}</span>
+                <span className="muted mono">
+                  {selected.status} · v{selected.version}
+                </span>
+              </div>
+              <p className="hint">
+                {selected.blocks.length} blocks · critic{" "}
+                {selected.critic.publishable ? "ready" : "blocked"}
+              </p>
+              <ul className="studio__list" style={{ marginTop: 12 }}>
+                {selected.critic.findings.map((f) => (
+                  <li key={f.code} className="hint">
+                    <span className="mono">{f.severity}</span> — {f.message}
+                  </li>
+                ))}
+              </ul>
+              <div className="space__actions" style={{ marginTop: 16 }}>
+                {selected.status !== "published" ? (
+                  <Button onClick={() => void onPublish()} disabled={busy || !selected.critic.publishable}>
+                    Publish
+                  </Button>
+                ) : (
+                  <Button onClick={() => void onRollback()} disabled={busy}>
+                    Rollback to draft
+                  </Button>
+                )}
+                <Link className="btn btn--outline" href={`/app/learn/${selected.slug}`}>
+                  Open in Learn
+                  <IconArrowRight />
+                </Link>
+              </div>
+              {changelog.length > 0 ? (
+                <>
+                  <h3 className="studio__msTitle">Changelog</h3>
+                  <ul className="studio__list">
+                    {changelog.map((c) => (
+                      <li key={c.id} className="hint">
+                        <span className="mono">{c.action}</span> {c.fromVersion ?? "—"} → {c.toVersion}{" "}
+                        ({c.fromStatus ?? "—"} → {c.toStatus})
+                        {c.reason ? ` — ${c.reason}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </section>
+          ) : null}
         </>
       ) : null}
     </>

@@ -19,6 +19,10 @@ public interface LearningUnitRepository extends JpaRepository<LearningUnitEntity
 
     List<LearningUnitEntity> findByIdInAndStatus(Collection<UUID> ids, ContentStatus status);
 
+    List<LearningUnitEntity> findAllByOrderByTitleAsc();
+
+    List<LearningUnitEntity> findByStatusOrderByTitleAsc(ContentStatus status);
+
     /** Published child counts for a batch of units, used to show "contains N units" without N queries. */
     @Query("""
             select u.parentId, count(u) from LearningUnitEntity u

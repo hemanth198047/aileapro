@@ -865,11 +865,25 @@ Apply / MASTERED still waits on Project Studio (Phase 10).
 
 ### GATE (Phase 13)
 
-- [ ] Draft unit 404 for learner
-- [ ] Publish is audited
-- [ ] Rollback of publish documented (DB previous version)
+- [x] Draft unit 404 for learner
+- [x] Publish is audited
+- [x] Rollback of publish documented (DB previous version)
 
 **Phase log:**
+
+- **2026-09-18 — Phase 13 complete.** `V12__curriculum_studio.sql` adds `curriculum_changes`
+  (publish/rollback snapshots) plus an audit index. Admin studio API under `/v1/admin/units`
+  lists any status, creates/patches drafts, runs `ContentCritic`, publishes with version bump +
+  `audit_logs` row (`curriculum.publish`) + snapshot, and rolls back by restoring the last
+  publish snapshot then setting status to `draft` (learners see 404 until republish).
+- Critic errors (empty objectives, missing difficulty/title/why/explanation) block publish;
+  example/misconception/exercise_set are warnings only. Seeded draft
+  `scaled-dot-product-attention` stays unpublished in shared tests.
+- Web Admin: unit list, create draft, critic findings, publish/rollback, changelog. Author/reviewer
+  RBAC and full block editors deferred.
+- Gate: `AdminApiTest`, `ContentCriticTest`, `CatalogApiTest` (draft 404), `backend/scripts/phase13-walk.ps1`.
+  **Rollback procedure:** `POST /v1/admin/units/{slug}/rollback` (or restore `curriculum_changes.snapshot`
+  for the last `action='publish'` row) — never delete audit history.
 
 ---
 
