@@ -14,6 +14,8 @@ import com.aileapro.api.curriculum.CurriculumQueryService;
 import com.aileapro.api.curriculum.CurriculumViews.Block;
 import com.aileapro.api.curriculum.CurriculumViews.UnitDetail;
 import com.aileapro.api.curriculum.CurriculumViews.UnitRef;
+import com.aileapro.api.lab.LabService;
+import com.aileapro.api.lab.LabViews;
 import com.aileapro.api.platform.ApiException;
 import com.aileapro.api.search.ContentHit;
 import com.aileapro.api.search.SearchService;
@@ -65,6 +67,7 @@ public class TutorService {
     private final AiBudget budget;
     private final UsageMeter meter;
     private final SearchService search;
+    private final LabService lab;
 
     public TutorService(
             TutorTranscript transcript,
@@ -75,7 +78,8 @@ public class TutorService {
             ModelRouter router,
             AiBudget budget,
             UsageMeter meter,
-            SearchService search) {
+            SearchService search,
+            LabService lab) {
         this.transcript = transcript;
         this.context = context;
         this.curriculum = curriculum;
@@ -85,6 +89,7 @@ public class TutorService {
         this.budget = budget;
         this.meter = meter;
         this.search = search;
+        this.lab = lab;
     }
 
     /** What the caller needs once a turn is done. */
@@ -149,6 +154,10 @@ public class TutorService {
                     "block:" + hit.blockId(),
                     retrievedBlockText(hit)));
         }
+        LabViews.Run lastRun = lab.latestFinished(userId);
+        if (lastRun != null && (action == TutorAction.REVIEW_CODE || looksLikeCodeDebug(asked))) {
+            wire.add(ChatMessage.data("lab-run:" + lastRun.id(), labRunText(lastRun)));
+        }
         wire.addAll(transcript.history(conversationId, learnerMessageId));
         wire.add(ChatMessage.user(Injection.fenceSafe(asked)));
 
@@ -175,6 +184,34 @@ public class TutorService {
                 + "\nknowledgeClass=" + hit.knowledgeClass()
                 + "\nupdatedAt=" + hit.updatedAt()
                 + "\n" + hit.snippet();
+    }
+
+    private static String labRunText(LabViews.Run run) {
+        return "This is the learner's most recent lab run. Use the actual stdout/stderr; do not invent output.\n"
+                + "status=" + run.status()
+                + "\nexitCode=" + run.exitCode()
+                + "\ntimedOut=" + run.timedOut()
+                + "\nsourceHash=" + run.sourceHash()
+                + "\n--- source ---\n" + run.source()
+                + "\n--- stdout ---\n" + nullToEmpty(run.stdout())
+                + "\n--- stderr ---\n" + nullToEmpty(run.stderr());
+    }
+
+    private static boolean looksLikeCodeDebug(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        String lower = text.toLowerCase();
+        return lower.contains("traceback")
+                || lower.contains("my code")
+                || lower.contains("this error")
+                || lower.contains("stdout")
+                || lower.contains("why does this print")
+                || text.contains("```");
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     /**

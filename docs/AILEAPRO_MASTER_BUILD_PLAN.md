@@ -723,11 +723,32 @@ the corpus. Approximate vector indexes wait until the chunk count justifies them
 
 ### GATE (Phase 9)
 
-- [ ] Seed Python snippet runs and shows output
-- [ ] Timeout kills the job
-- [ ] Documented proof API does not exec user code
+- [x] Seed Python snippet runs and shows output
+- [x] Timeout kills the job
+- [x] Documented proof API does not exec user code
 
 **Phase log:**
+
+- **2026-09-18 — Phase 9 complete.** `V8__lab_runs.sql` records every attempt: source hash,
+  stdout/stderr, exit, duration, timeout, and which kind of executor answered. The API persists
+  the request and the result. It never executes the source.
+- The sandbox boundary is `ExecutorPort`. `FakeExecutorClient` is the CI default — deterministic
+  fixtures for the demo snippet and a forced-timeout marker, labelled as development so a canned
+  print cannot look like a real run. `HttpExecutorClient` talks to `backend/executor`, which is
+  the only process allowed to spawn Docker: `--network none`, memory/CPU/pids caps, read-only
+  root, no-new-privileges, source piped on stdin to `python -`. The executor has no Postgres and
+  no AI keys.
+- `POST /v1/lab/runs`, `GET`/`cancel`, history, status, and a per-user daily quota. The Lab page
+  is live: editor, run, stop, output, history, fixture banner. The tutor attaches the learner's
+  most recent finished run as `DATA` when they ask about code, so debug uses actual stdout.
+- Proof the API does not exec user code: `ApiDoesNotExecUserCodeTest` walks every API Java source
+  and fails if `ProcessBuilder` or `Runtime.exec` appears. Verified: `gradle check`,
+  `pnpm -r typecheck`, and `backend/scripts/phase9-walk.ps1`.
+
+**Known gaps carried forward:** the fake executor is not an interpreter. Real Docker runs need
+Docker Desktop and `AILEAPRO_LAB_EXECUTOR=http` with the executor process up. Only Python is
+supported. Coding assessment items are still string-compared stubs until they call this path.
+Apply / MASTERED still waits on Project Studio (Phase 10).
 
 ---
 

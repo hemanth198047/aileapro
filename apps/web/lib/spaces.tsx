@@ -109,11 +109,8 @@ export const SPACES: Space[] = [
     href: "/app/lab",
     group: "Practice",
     icon: <IconLab />,
-    purpose: "Write and run code against real datasets in an isolated container.",
-    arrivesIn: "Phase 9",
-    nextAction: "Nothing yet — the lab arrives in Phase 9",
-    waitingOn:
-      "The executor service exists but runs nothing yet. Phase 9 wires Python run/stop/output and history. The API process will never execute learner code.",
+    purpose: "Write and run Python in an isolated sandbox. The API never executes your source.",
+    nextAction: "Open the demo snippet and press Run",
   },
   {
     id: "studio",

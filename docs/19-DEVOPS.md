@@ -63,7 +63,10 @@ One script owns the whole local stack, so nobody has to remember the order:
 - `.\scripts\dev.ps1 up -Clean` — drop the database volume and the Next.js cache, reseed
 - `.\scripts\dev.ps1 seed` — force a seed run
 - `.\scripts\dev.ps1 logs` — follow the API and web logs
-- `-WithSkeletons` also starts worker (8081) and executor (8082), health-only until Phase 9
+- `-WithSkeletons` also starts worker (8081) and executor (8082). The executor is the only
+  process allowed to run learner Python (Docker, network denied). The API default is
+  `aileapro.lab.executor=fake` so CI needs no Docker; set `AILEAPRO_LAB_EXECUTOR=http` and
+  start the executor to use the real sandbox.
 
 Ports: web 3000, API 8090, postgres 5432, redis 6379, minio 9000/9001. Logs and pids
 under `.run/`.

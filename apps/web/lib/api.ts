@@ -534,6 +534,45 @@ export type SearchPage = {
   note: string;
 };
 
+/** Lab runs. Mirrors LabViews on the API. Source never executes in the browser or the API JVM. */
+export type LabRun = {
+  id: string;
+  language: string;
+  status: "queued" | "running" | "succeeded" | "failed" | "timed_out" | "cancelled";
+  source: string;
+  sourceHash: string;
+  stdin: string | null;
+  stdout: string | null;
+  stderr: string | null;
+  exitCode: number | null;
+  durationMs: number | null;
+  timedOut: boolean;
+  cancelled: boolean;
+  development: boolean;
+  executorKind: string;
+  errorCode: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+};
+
+export type LabHistory = {
+  runs: LabRun[];
+  note: string;
+  remainingToday: number;
+  dailyCap: number;
+};
+
+export type LabStatus = {
+  available: boolean;
+  development: boolean;
+  executorKind: string;
+  remainingToday: number;
+  dailyCap: number;
+  demoSource: string;
+};
+
 /** Events the turn endpoint sends, in the order they arrive. */
 export type TutorStreamEvent =
   | { type: "token"; text: string }

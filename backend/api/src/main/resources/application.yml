@@ -40,6 +40,14 @@ aileapro:
   search:
     # jdbc = Postgres FTS + pgvector. Tests override to memory.
     backend: ${AILEAPRO_SEARCH_BACKEND:jdbc}
+  lab:
+    # fake = deterministic fixtures (CI/default). http = Docker executor on 8082.
+    executor: ${AILEAPRO_LAB_EXECUTOR:fake}
+    executor-base-url: ${AILEAPRO_EXECUTOR_URL:http://localhost:8082}
+    daily-runs-per-user: 40
+    default-timeout-ms: 5000
+    max-timeout-ms: 15000
+    max-source-chars: 50000
 
 management:
   endpoints:

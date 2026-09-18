@@ -22,3 +22,6 @@ aileapro:
     origin: http://localhost:3000
   search:
     backend: memory
+  lab:
+    executor: fake
+    daily-runs-per-user: 40

@@ -10,3 +10,15 @@ management:
     web:
       exposure:
         include: health
+
+# No datasource. No Redis. No AI keys. The executor must stay runnable with nothing but
+# Docker (or disabled docker for health checks in CI).
+aileapro:
+  executor:
+    python-image: ${AILEAPRO_PYTHON_IMAGE:python:3.12-alpine}
+    default-timeout-ms: 5000
+    max-timeout-ms: 15000
+    memory-mb: 128
+    cpus: 0.5
+    pids-limit: 64
+    docker-enabled: ${AILEAPRO_EXECUTOR_DOCKER:true}
