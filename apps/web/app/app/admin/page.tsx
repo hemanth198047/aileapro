@@ -7,6 +7,7 @@ import {
   ApiError,
   api,
   csrfHeaders,
+  type AdminAnalytics,
   type AdminChange,
   type AdminUnitDetail,
   type AdminUnitSummary,
@@ -29,11 +30,17 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(false);
   const [createSlug, setCreateSlug] = useState("");
   const [createTitle, setCreateTitle] = useState("");
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
 
   const loadList = useCallback(async (filter: string) => {
     const q = filter === "all" ? "" : `?status=${encodeURIComponent(filter)}`;
     const rows = await api<AdminUnitSummary[]>(`/v1/admin/units${q}`);
     setUnits(rows);
+  }, []);
+
+  const loadAnalytics = useCallback(async () => {
+    const overview = await api<AdminAnalytics>("/v1/admin/analytics?days=30");
+    setAnalytics(overview);
   }, []);
 
   const openUnit = useCallback(async (slug: string) => {
@@ -49,7 +56,7 @@ export default function AdminPage() {
       .then(async () => {
         if (!live) return;
         setAccess("granted");
-        await loadList("all");
+        await Promise.all([loadList("all"), loadAnalytics()]);
       })
       .catch((err) => {
         if (!live) return;
@@ -63,7 +70,7 @@ export default function AdminPage() {
     return () => {
       live = false;
     };
-  }, [loadList]);
+  }, [loadList, loadAnalytics]);
 
   const onFilter = async (next: string) => {
     setStatusFilter(next);
@@ -211,9 +218,62 @@ export default function AdminPage() {
           {message ? <ErrorAlert message={message} /> : null}
 
           <Callout icon={<IconShield />} tone="neutral">
-            Drafts listed here never appear in Learn until publish. Publish writes an audit row and a
-            restore snapshot; rollback returns the unit to draft (learner 404).
+            Drafts listed here never appear in Learn until publish. Funnel and AI spend below are
+            read from users, diagnostic_priors, mastery_records, and ai_usage.
           </Callout>
+
+          {analytics ? (
+            <section className="card">
+              <div className="card__head">
+                <span className="card__title">Operator analytics</span>
+                <span className="badge badge--brand">Phase 14</span>
+              </div>
+              <dl className="facts">
+                <div>
+                  <dt>Registered</dt>
+                  <dd>{analytics.funnel.registered}</dd>
+                </div>
+                <div>
+                  <dt>Onboarded</dt>
+                  <dd>{analytics.funnel.onboarded}</dd>
+                </div>
+                <div>
+                  <dt>Diagnostic done</dt>
+                  <dd>{analytics.funnel.diagnosticCompleted}</dd>
+                </div>
+                <div>
+                  <dt>First PRACTICED+</dt>
+                  <dd>{analytics.funnel.firstPracticed}</dd>
+                </div>
+                <div>
+                  <dt>AI spend ({analytics.cost.windowDays}d)</dt>
+                  <dd>${Number(analytics.cost.costUsd).toFixed(4)}</dd>
+                </div>
+                <div>
+                  <dt>AI calls</dt>
+                  <dd>{analytics.cost.calls}</dd>
+                </div>
+              </dl>
+              <p className="hint" style={{ marginTop: 12 }}>
+                {analytics.funnel.note}
+              </p>
+              <p className="hint">{analytics.cost.note}</p>
+              {analytics.cost.byFeature.length > 0 ? (
+                <ul className="studio__list" style={{ marginTop: 12 }}>
+                  {analytics.cost.byFeature.map((f) => (
+                    <li key={f.feature} className="hint">
+                      <strong>{f.feature}</strong>
+                      <span className="muted mono">
+                        {" "}
+                        ${Number(f.costUsd).toFixed(4)} · {f.tokensIn}+{f.tokensOut} tok · {f.calls}{" "}
+                        calls
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          ) : null}
 
           <section className="card">
             <div className="card__head">

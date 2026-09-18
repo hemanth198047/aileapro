@@ -122,4 +122,45 @@ public final class LearningViews {
             int estimateMinutes,
             List<RoadmapStop> stops) {
     }
+
+    /**
+     * Learner analytics from mastery_records / reviews — never random, never vanity XP.
+     *
+     * @param velocityNote explains the window in one sentence so the UI does not invent meaning
+     */
+    public record Dashboard(
+            NextAction next,
+            int reviewsDue,
+            String reviewsNote,
+            int timeOnTaskSeconds,
+            int velocityWindowDays,
+            int practicedOrHigherInWindow,
+            String velocityNote,
+            List<WeakUnit> weak,
+            List<DomainRollup> domains,
+            String pathSlug,
+            String pathTitle,
+            int waypointCount,
+            int waypointsStarted,
+            int waypointsIntroduced,
+            boolean onboarded,
+            String note) {
+    }
+
+    public record WeakUnit(
+            String unitSlug,
+            String unitTitle,
+            String state,
+            int openMisconceptions,
+            String reason,
+            String href) {
+    }
+
+    public record DomainRollup(
+            String domainSlug,
+            String domainTitle,
+            int trackedUnits,
+            int introducedOrHigher,
+            int practicedOrHigher) {
+    }
 }

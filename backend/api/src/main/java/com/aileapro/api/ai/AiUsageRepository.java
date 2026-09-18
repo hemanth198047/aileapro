@@ -29,4 +29,23 @@ public interface AiUsageRepository extends JpaRepository<AiUsageEntity, UUID> {
     long turnsSince(@Param("userId") UUID userId, @Param("since") Instant since);
 
     List<AiUsageEntity> findByConversationIdOrderByAtAsc(UUID conversationId);
+
+    @Query("select coalesce(sum(u.costUsd), 0) from AiUsageEntity u where u.at >= :since")
+    BigDecimal totalSpentSince(@Param("since") Instant since);
+
+    @Query("select coalesce(sum(u.tokensIn), 0) from AiUsageEntity u where u.at >= :since")
+    long tokensInSince(@Param("since") Instant since);
+
+    @Query("select coalesce(sum(u.tokensOut), 0) from AiUsageEntity u where u.at >= :since")
+    long tokensOutSince(@Param("since") Instant since);
+
+    @Query("select count(u) from AiUsageEntity u where u.at >= :since")
+    long callCountSince(@Param("since") Instant since);
+
+    @Query("""
+            select u.feature, coalesce(sum(u.costUsd), 0), coalesce(sum(u.tokensIn), 0),
+                   coalesce(sum(u.tokensOut), 0), count(u)
+            from AiUsageEntity u where u.at >= :since group by u.feature order by u.feature
+            """)
+    List<Object[]> spendByFeatureSince(@Param("since") Instant since);
 }

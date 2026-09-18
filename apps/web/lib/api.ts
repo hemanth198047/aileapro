@@ -726,6 +726,75 @@ export type CareerGaps = {
   note: string;
 };
 
+/** Learner dashboard from mastery_records / reviews — no vanity XP. */
+export type DashboardWeak = {
+  unitSlug: string;
+  unitTitle: string;
+  state: string;
+  openMisconceptions: number;
+  reason: string;
+  href: string;
+};
+
+export type DashboardDomain = {
+  domainSlug: string;
+  domainTitle: string;
+  trackedUnits: number;
+  introducedOrHigher: number;
+  practicedOrHigher: number;
+};
+
+export type LearnerDashboard = {
+  next: NextAction;
+  reviewsDue: number;
+  reviewsNote: string;
+  timeOnTaskSeconds: number;
+  velocityWindowDays: number;
+  practicedOrHigherInWindow: number;
+  velocityNote: string;
+  weak: DashboardWeak[];
+  domains: DashboardDomain[];
+  pathSlug: string | null;
+  pathTitle: string | null;
+  waypointCount: number;
+  waypointsStarted: number;
+  waypointsIntroduced: number;
+  onboarded: boolean;
+  note: string;
+};
+
+export type AdminFunnel = {
+  registered: number;
+  onboarded: number;
+  diagnosticCompleted: number;
+  firstPracticed: number;
+  note: string;
+};
+
+export type AdminFeatureSpend = {
+  feature: string;
+  costUsd: number;
+  tokensIn: number;
+  tokensOut: number;
+  calls: number;
+};
+
+export type AdminCostBurn = {
+  windowDays: number;
+  since: string;
+  costUsd: number;
+  tokensIn: number;
+  tokensOut: number;
+  calls: number;
+  byFeature: AdminFeatureSpend[];
+  note: string;
+};
+
+export type AdminAnalytics = {
+  funnel: AdminFunnel;
+  cost: AdminCostBurn;
+};
+
 /** Admin content studio. Mirrors AdminViews — drafts never appear on learner catalog routes. */
 export type AdminUnitSummary = {
   id: string;

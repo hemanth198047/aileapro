@@ -10,45 +10,28 @@ import {
   IconArrowRight,
   MasteryChips,
 } from "@aileapro/ui";
-import { api, type NextAction, type Today } from "@/lib/api";
+import { api, type LearnerDashboard, type NextAction } from "@/lib/api";
 import { useSession } from "@/components/session";
 import { VerifyEmailForm } from "@/components/verify-email";
 import { SpaceHeader } from "@/components/space-view";
 
-/** Phases already delivered, so the learner can see where the product actually is. */
-const delivered = [
-  { label: "Account, session, and roles", state: "done", note: "Phase 1" },
-  { label: "Studio shell and every space routed", state: "done", note: "Phase 2" },
-  { label: "Authored curriculum, paths, and sources", state: "done", note: "Phase 3" },
-  { label: "Knowledge map with typed prerequisites", state: "done", note: "Phase 4" },
-  { label: "Recorded evidence and a real recommendation", state: "done", note: "Phase 5" },
-  { label: "Graded assessment, reports, and spaced review", state: "done", note: "Phase 6" },
-  {
-    label: "The grounded tutor, which must cite the units it reads",
-    state: "active",
-    note: "Phase 7",
-  },
-];
-
 /**
- * Today is one recommendation with its reasoning, then what is due, then what needs
- * attention. The recommendation comes from the API so the sentence the learner reads is the
- * same one the policy actually applied.
+ * Today: one recommendation, due reviews, then evidence-backed dashboard numbers from tables.
  */
 export default function TodayPage() {
   const { me } = useSession();
   const [verifying, setVerifying] = useState(false);
-  const [today, setToday] = useState<Today | null>(null);
+  const [dash, setDash] = useState<LearnerDashboard | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    api<Today>("/v1/me/today")
+    api<LearnerDashboard>("/v1/me/dashboard")
       .then((loaded) => {
-        if (!cancelled) setToday(loaded);
+        if (!cancelled) setDash(loaded);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load Today");
+        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load dashboard");
       });
     return () => {
       cancelled = true;
@@ -70,9 +53,8 @@ export default function TodayPage() {
 
       {error ? <ErrorAlert message={error} /> : null}
 
-      {/* Verification outranks the recommendation: it is the one thing blocking the account. */}
       {me.emailVerified ? (
-        <NextActionCard today={today} />
+        <NextActionCard dash={dash} />
       ) : (
         <section className="card card--hero">
           <p className="kicker">Your next action</p>
@@ -94,7 +76,7 @@ export default function TodayPage() {
       )}
 
       <div className="grid-2">
-        <ReviewsCard today={today} />
+        <ReviewsCard dash={dash} />
 
         <section className="card">
           <div className="card__head">
@@ -114,79 +96,132 @@ export default function TodayPage() {
         </section>
       </div>
 
-      {today?.pathSlug ? (
+      <section className="card">
+        <div className="card__head">
+          <span className="card__title">Your progress</span>
+          <span className="muted mono">From tables</span>
+        </div>
+        {dash ? (
+          <>
+            <dl className="facts">
+              <div>
+                <dt>Time on task</dt>
+                <dd>{formatSeconds(dash.timeOnTaskSeconds)}</dd>
+              </div>
+              <div>
+                <dt>Velocity ({dash.velocityWindowDays}d)</dt>
+                <dd>{dash.practicedOrHigherInWindow} to PRACTICED+</dd>
+              </div>
+              <div>
+                <dt>Reviews due</dt>
+                <dd>{dash.reviewsDue}</dd>
+              </div>
+            </dl>
+            <p className="hint" style={{ marginTop: 12 }}>
+              {dash.velocityNote}
+            </p>
+            <p className="hint">{dash.note}</p>
+          </>
+        ) : (
+          <p className="hint">Loading evidence…</p>
+        )}
+      </section>
+
+      {dash && dash.weak.length > 0 ? (
         <section className="card">
           <div className="card__head">
-            <span className="card__title">{today.pathTitle}</span>
+            <span className="card__title">Weak list</span>
+            <span className="muted mono">{dash.weak.length}</span>
+          </div>
+          <ul className="studio__list">
+            {dash.weak.map((w) => (
+              <li key={w.unitSlug}>
+                <Link className="studio__pick" href={w.href}>
+                  <strong>{w.unitTitle}</strong>
+                  <span className="muted mono">
+                    {w.state} · {w.reason}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {dash && dash.domains.length > 0 ? (
+        <section className="card">
+          <div className="card__head">
+            <span className="card__title">By domain</span>
+            <span className="muted mono">{dash.domains.length}</span>
+          </div>
+          <ul className="studio__list">
+            {dash.domains.map((d) => (
+              <li key={d.domainSlug} className="hint">
+                <strong>{d.domainTitle}</strong>
+                <span className="muted mono">
+                  {" "}
+                  {d.introducedOrHigher}/{d.trackedUnits} introduced · {d.practicedOrHigher} practiced+
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {dash?.pathSlug ? (
+        <section className="card">
+          <div className="card__head">
+            <span className="card__title">{dash.pathTitle}</span>
             <span className="muted mono">
-              {today.waypointsIntroduced} of {today.waypointCount} introduced
+              {dash.waypointsIntroduced} of {dash.waypointCount} introduced
             </span>
           </div>
           <p className="prose">
-            {today.waypointsStarted === 0
+            {dash.waypointsStarted === 0
               ? "You have not opened a waypoint on this path yet."
-              : `You have opened ${today.waypointsStarted} of ${today.waypointCount} waypoints, and ${today.waypointsIntroduced} have enough reading behind them to count as introduced.`}
+              : `You have opened ${dash.waypointsStarted} of ${dash.waypointCount} waypoints, and ${dash.waypointsIntroduced} have enough reading behind them to count as introduced.`}
           </p>
           <div className="space__actions" style={{ marginTop: 16 }}>
             <Link className="btn btn--outline" href="/app/learn">
               See the whole path with your evidence
               <IconArrowRight />
             </Link>
-            <Link className="btn btn--outline" href="/app/assess">
-              What is due and what is held against you
-            </Link>
           </div>
-          <p className="hint" style={{ marginTop: 12 }}>
-            Introduced is the ceiling that reading can reach. The states above it come from the
-            graded practice and quiz on each unit.
-          </p>
         </section>
       ) : null}
-
-      {/* Product progress, clearly labelled as such — never presented as your mastery. */}
-      <section className="card">
-        <div className="card__head">
-          <span className="card__title">What is live in AILEAPRO</span>
-          <span className="muted mono">Build progress, not yours</span>
-        </div>
-        <ul className="timeline">
-          {delivered.map((item) => (
-            <li className="timeline__item" key={item.label}>
-              <span className="timeline__dot" data-state={item.state} />
-              <span>{item.label}</span>
-              <span className="muted mono">{item.note}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
     </>
   );
 }
 
-/**
- * What is due for recall. Overdue review outranks everything else on this page, so when there
- * is any, the card says so rather than sitting quietly in the second column.
- */
-function ReviewsCard({ today }: { today: Today | null }) {
-  const due = today?.reviews ?? [];
+function formatSeconds(total: number): string {
+  if (total < 60) return `${total}s`;
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  if (m < 60) return s === 0 ? `${m}m` : `${m}m ${s}s`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
+function ReviewsCard({ dash }: { dash: LearnerDashboard | null }) {
+  const due = dash?.reviewsDue ?? 0;
 
   return (
     <section className="card">
       <div className="card__head">
         <span className="card__title">Reviews due</span>
-        <span className="muted mono">{due.length === 0 ? "0" : due[0].object}</span>
+        <span className="muted mono">{due}</span>
       </div>
-      {due.length === 0 ? (
+      {due === 0 ? (
         <div className="empty">
           <strong>Nothing is due.</strong>
-          <span>{today?.reviewsNote ?? "Checking your schedule…"}</span>
+          <span>{dash?.reviewsNote ?? "Checking your schedule…"}</span>
         </div>
       ) : (
         <>
-          <p className="prose">{due[0].reason}</p>
+          <p className="prose">{dash?.reviewsNote}</p>
           <div className="space__actions" style={{ marginTop: 16 }}>
-            <Link className="btn btn--primary" href={due[0].href}>
-              {due[0].verb} {due[0].object}
+            <Link className="btn btn--primary" href="/app/review">
+              Open review queue
               <IconArrowRight />
             </Link>
           </div>
@@ -196,9 +231,8 @@ function ReviewsCard({ today }: { today: Today | null }) {
   );
 }
 
-/** Verb, object, minutes, and the sentence explaining why this and not something else. */
-function NextActionCard({ today }: { today: Today | null }) {
-  if (!today) {
+function NextActionCard({ dash }: { dash: LearnerDashboard | null }) {
+  if (!dash) {
     return (
       <section className="card card--hero">
         <p className="kicker">Your next action</p>
@@ -207,7 +241,7 @@ function NextActionCard({ today }: { today: Today | null }) {
     );
   }
 
-  const next: NextAction = today.next;
+  const next: NextAction = dash.next;
   const actionable = next.kind !== "blocked";
 
   return (
@@ -238,7 +272,7 @@ function NextActionCard({ today }: { today: Today | null }) {
             <IconArrowRight />
           </Link>
         )}
-        {today.onboarded ? (
+        {dash.onboarded ? (
           <Link className="btn btn--outline" href="/app/onboarding">
             Change your goal
           </Link>
@@ -246,9 +280,7 @@ function NextActionCard({ today }: { today: Today | null }) {
       </div>
 
       <p className="hint" style={{ marginTop: 16 }}>
-        Chosen by rule <code className="mono">{next.rule}</code>. Overdue recall and a held false
-        belief both outrank anything new, so if either were outstanding you would be reading
-        about that instead.
+        Chosen by rule <code className="mono">{next.rule}</code>.
       </p>
     </section>
   );

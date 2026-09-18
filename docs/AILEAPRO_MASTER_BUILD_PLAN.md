@@ -902,10 +902,18 @@ Apply / MASTERED still waits on Project Studio (Phase 10).
 
 ### GATE (Phase 14)
 
-- [ ] Dashboard matches DB for a test user
-- [ ] Cost burn visible for operators
+- [x] Dashboard matches DB for a test user
+- [x] Cost burn visible for operators
 
 **Phase log:**
+
+- **2026-09-18 — Phase 14 complete.** `GET /v1/me/dashboard` rolls up dwell, weak list
+  (open misconceptions / below PRACTICED), 7-day PRACTICED+ velocity, domain rollups, next, and
+  reviews from `mastery_records` + review queue — explicitly no XP. Today UI consumes it.
+- Operator `GET /v1/admin/analytics` (funnel + cost): register → onboarded_at →
+  diagnostic_priors → PRACTICED+ users; estimated USD/tokens/calls from `ai_usage` by feature.
+  Admin UI shows the overview. Optional Grafana JSON under `infra/grafana/dashboards/`.
+- Gate: `AnalyticsApiTest`, `backend/scripts/phase14-walk.ps1`.
 
 ---
 

@@ -2,6 +2,7 @@ package com.aileapro.api.learning;
 
 import com.aileapro.api.auth.AileaproUserPrincipal;
 import com.aileapro.api.learning.LearnerProfileService.ProfileUpdate;
+import com.aileapro.api.learning.LearningViews.Dashboard;
 import com.aileapro.api.learning.LearningViews.NextAction;
 import com.aileapro.api.learning.LearningViews.Note;
 import com.aileapro.api.learning.LearningViews.Profile;
@@ -30,12 +31,17 @@ public class LearnerController {
     private final LearnerProfileService profiles;
     private final RecommendationService recommendations;
     private final NoteService notes;
+    private final DashboardService dashboards;
 
     public LearnerController(
-            LearnerProfileService profiles, RecommendationService recommendations, NoteService notes) {
+            LearnerProfileService profiles,
+            RecommendationService recommendations,
+            NoteService notes,
+            DashboardService dashboards) {
         this.profiles = profiles;
         this.recommendations = recommendations;
         this.notes = notes;
+        this.dashboards = dashboards;
     }
 
     /** Null until onboarding has been through once, which the client treats as "not set up". */
@@ -58,6 +64,12 @@ public class LearnerController {
     @GetMapping("/today")
     public Today today(@AuthenticationPrincipal AileaproUserPrincipal principal) {
         return recommendations.today(principal.getId());
+    }
+
+    /** Evidence-backed analytics for the dashboard — dwell, weak list, velocity from tables. */
+    @GetMapping("/dashboard")
+    public Dashboard dashboard(@AuthenticationPrincipal AileaproUserPrincipal principal) {
+        return dashboards.dashboard(principal.getId());
     }
 
     /** @param path optional; defaults to the learner's target path */
