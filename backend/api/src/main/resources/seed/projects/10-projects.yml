@@ -1,0 +1,81 @@
+# Phase 10 project briefs.
+# published = finishable with sandbox checks; outline = visible brief only.
+
+projects:
+  - slug: linear-regression-beginner
+    title: Build a linear regression model
+    summary: >
+      Fit a simple line to points with ordinary least squares, measure error with mean
+      squared error, and report predictions — the classic beginner ML project.
+    objective: >
+      Implement mse, fit, and predict in plain Python (no ML libraries). Pass each
+      automated milestone check in the sandbox. Completing the project fills Apply on
+      linked units and creates a private portfolio artifact.
+    status: published
+    sortOrder: 10
+    unit: classical-ml
+    applyUnits:
+      - python-functions
+      - classical-ml
+    starterSource: |
+      # Build a linear regression model — start here.
+      # Complete each milestone in order. The Studio runs automated checks in the lab sandbox.
+    milestones:
+      - slug: mean-squared-error
+        title: Mean squared error
+        sortOrder: 1
+        checkKey: mse
+        description: >
+          Write mse(y_true, y_pred) that returns the mean of squared residuals.
+        criteria: >
+          mse([3, -0.5, 2, 7], [2.5, 0, 2, 8]) must be 0.375 within 1e-6.
+        hint: Average the square of each (true - pred) pair. Do not import sklearn.
+        starterSource: |
+          def mse(y_true, y_pred):
+              # return the mean of (y_true[i] - y_pred[i]) ** 2
+              raise NotImplementedError
+      - slug: fit-line
+        title: Fit slope and intercept
+        sortOrder: 2
+        checkKey: fit_line
+        description: >
+          Write fit(xs, ys) returning (slope, intercept) for ordinary least squares on one feature.
+        criteria: >
+          fit([0, 1, 2, 3], [1, 3, 5, 7]) must return slope 2 and intercept 1 within 1e-6.
+        hint: Use the closed-form OLS formulas for slope and intercept. No gradient descent required.
+        starterSource: |
+          def fit(xs, ys):
+              # return (slope, intercept)
+              raise NotImplementedError
+      - slug: predict-and-report
+        title: Predict and report
+        sortOrder: 3
+        checkKey: predict_report
+        description: >
+          Keep fit, and add predict(x, slope, intercept). Predictions on the training xs must match ys.
+        criteria: >
+          After fit on [0,1,2,3]/[1,3,5,7], predict each x and recover the training ys within 1e-6.
+        hint: predict is slope * x + intercept. Reuse the fit you already wrote.
+        starterSource: |
+          def fit(xs, ys):
+              raise NotImplementedError
+
+          def predict(x, slope, intercept):
+              raise NotImplementedError
+
+  - slug: production-rag
+    title: Production RAG
+    summary: >
+      Outline only — retrieve, ground, and generate with citations in a small service shape.
+      Milestones and sandbox checks arrive when this brief is authored for real.
+    objective: >
+      Design a retrieval-augmented generation path that refuses to invent sources. This
+      stub exists so Studio can show what is coming without pretending it is finishable.
+    status: outline
+    sortOrder: 20
+    unit: rag-pipeline-basics
+    applyUnits: []
+    starterSource: |
+      # Production RAG — outline only.
+      # No milestones yet. Do not invent a submission path.
+    milestones: []

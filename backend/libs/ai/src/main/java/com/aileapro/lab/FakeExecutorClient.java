@@ -96,6 +96,19 @@ public final class FakeExecutorClient implements ExecutorPort {
         if (lower.contains("def mean") && lower.contains("print(mean(")) {
             return "2.0\n";
         }
+        // Phase 10 project milestone checks. Fixtures recognise the harness marker plus the
+        // required definition — they do not interpret Python, and missing defs fail loudly.
+        if (lower.contains("aileapro_check:mse")) {
+            return lower.contains("def mse") ? PASS : FAIL;
+        }
+        if (lower.contains("aileapro_check:fit_line")) {
+            return lower.contains("def fit") ? PASS : FAIL;
+        }
+        if (lower.contains("aileapro_check:predict_report")) {
+            boolean hasFit = lower.contains("def fit") || lower.contains("slope") || lower.contains("intercept");
+            boolean hasPredict = lower.contains("def predict") || lower.contains("y_hat") || lower.contains("yhat");
+            return hasFit && hasPredict ? PASS : FAIL;
+        }
         // echo a simple print("...") literal when present
         int p = indexOfPrint(source);
         if (p >= 0) {
@@ -106,6 +119,9 @@ public final class FakeExecutorClient implements ExecutorPort {
         }
         return "Fixture ran. Configure the Docker executor to execute this source for real.\n";
     }
+
+    public static final String PASS = "AILEAPRO_PASS\n";
+    public static final String FAIL = "AILEAPRO_FAIL\n";
 
     private static int indexOfPrint(String source) {
         int d = source.indexOf("print(\"");

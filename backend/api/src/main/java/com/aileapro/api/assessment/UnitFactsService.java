@@ -130,8 +130,7 @@ public class UnitFactsService {
             case PASS_THE_QUIZ -> "Passing the unit quiz at its own pass mark would move this to PROFICIENT.";
             case RETURN_ON_ANOTHER_DAY -> "Everything is passed, on one day. Consistency needs graded work on a"
                     + " second day, because one good afternoon is not evidence of durability.";
-            case BUILD_SOMETHING -> "MASTERED needs applied work, which arrives with projects. Until then this is the"
-                    + " top of what can be shown.";
+            case BUILD_SOMETHING -> "MASTERED needs applied work. Finish a linked project in Studio to fill Apply.";
             case PASS_A_SPACED_REVIEW -> "A retention check after a real interval is the last thing outstanding.";
             case CONTENT_CEILING -> ceilingReason(facts, ceiling);
             case NONE -> "Nothing is outstanding on this unit.";
@@ -146,8 +145,8 @@ public class UnitFactsService {
                     + " until items above that level are written.";
             case UNDERSTOOD -> "No practice set is authored for this unit, so PRACTICED is not reachable.";
             case PRACTICED -> "No quiz is authored for this unit, so PROFICIENT is not reachable.";
-            case PROFICIENT -> "PROFICIENT is the top of what the product can currently evidence: MASTERED needs"
-                    + " applied work and a retention check, which arrive with the lab.";
+            case PROFICIENT -> "PROFICIENT is as far as this unit's authored bank goes without a project and a"
+                    + " retention check — finish Studio work and spaced review to reach MASTERED.";
             case MASTERED, UNKNOWN -> "";
         };
     }

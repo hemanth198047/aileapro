@@ -266,9 +266,8 @@ export default function UnitPage() {
         </div>
         <p className="prose">
           Your reading fills the Read chip, and the graded practice and quiz above can fill
-          Practice and Assess. Nothing on this page can fill Apply — that takes a project you
-          build, which arrives in Phase 10 — and the tutor cannot discuss this unit until Phase
-          7.
+          Practice and Assess. Apply fills when you finish a linked project in{" "}
+          <Link href="/app/studio">Studio</Link> — quizzes alone never count as application.
         </p>
         <div className="space__actions" style={{ marginTop: 16 }}>
           <Link className="btn btn--outline" href="/app/learn">

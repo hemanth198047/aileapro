@@ -61,7 +61,7 @@
 | 7 | AI tutor | | |
 | 8 | RAG + search | | |
 | 9 | Lab / executor | | |
-| 10 | Project Studio | | |
+| 10 | Project Studio | done | 2026-09-18 |
 | 11 | Research | | |
 | 12 | Career | | |
 | 13 | Admin studio | | |
@@ -769,11 +769,22 @@ Apply / MASTERED still waits on Project Studio (Phase 10).
 
 ### GATE (Phase 10) — Milestone M5
 
-- [ ] Learner completes beginner project
-- [ ] Portfolio shows artifact
-- [ ] Mastery Apply chip can become solid
+- [x] Learner completes beginner project
+- [x] Portfolio shows artifact
+- [x] Mastery Apply chip can become solid
 
 **Phase log:**
+
+- **2026-09-18 — Phase 10 complete.** `V9__projects.sql` adds projects, milestones, apply-unit
+  links, submissions, and portfolio items. Completing every milestone of a published project
+  creates a private portfolio artifact and writes `project_completed` events that fill Apply on
+  linked units. Outline projects (Production RAG) are listed but reject submissions.
+- Seed: “Build a linear regression model” with mse / fit / predict checks through the lab
+  sandbox (`ProjectCheck` harness + FakeExecutor fixtures). Mentor comments are rule-based.
+- Web Studio lists projects, submits milestone source, shows mentor feedback, and toggles
+  portfolio visibility. Quizzes still cannot fill Apply.
+- Gate: `ProjectApiTest`, `GradedEvidencePolicyTest` (MASTERED needs Apply + retention),
+  `backend/scripts/phase10-walk.ps1`.
 
 ---
 

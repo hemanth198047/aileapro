@@ -573,6 +573,79 @@ export type LabStatus = {
   demoSource: string;
 };
 
+/** Project Studio. Completing a published project fills Apply and creates a portfolio artifact. */
+export type ProjectSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  status: "published" | "outline";
+  milestoneCount: number;
+  passedMilestones: number;
+  completed: boolean;
+  acceptsSubmissions: boolean;
+};
+
+export type ProjectMilestone = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  criteria: string;
+  hint: string;
+  sortOrder: number;
+  checkKey: string | null;
+  starterSource: string | null;
+  passed: boolean;
+  lastPassedAt: string | null;
+};
+
+export type ProjectDetail = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  objective: string;
+  status: "published" | "outline";
+  starterSource: string | null;
+  applyUnitSlugs: string[];
+  milestones: ProjectMilestone[];
+  passedMilestones: number;
+  completed: boolean;
+  acceptsSubmissions: boolean;
+  portfolioItemId: string | null;
+};
+
+export type ProjectSubmissionResult = {
+  id: string;
+  projectSlug: string;
+  milestoneSlug: string;
+  passed: boolean;
+  review: string;
+  mentorComment: string;
+  stdout: string | null;
+  development: boolean;
+  projectCompleted: boolean;
+  portfolioItemId: string | null;
+  applyUnitsUpdated: string[];
+};
+
+export type PortfolioItem = {
+  id: string;
+  projectSlug: string;
+  title: string;
+  summary: string;
+  reflection: string;
+  visibility: "private" | "public";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Portfolio = {
+  items: PortfolioItem[];
+  note: string;
+};
+
 /** Events the turn endpoint sends, in the order they arrive. */
 export type TutorStreamEvent =
   | { type: "token"; text: string }

@@ -251,15 +251,16 @@ function Seed-Data {
 
     $units = Row-Count 'learning_units'
     $chunks = Row-Count 'content_chunks'
-    if (-not $Force -and $units -gt 0 -and $chunks -gt 0) {
-        Note "curriculum already loaded, $units units, $chunks chunks; skipping the seed"
+    $projects = Row-Count 'projects'
+    if (-not $Force -and $units -gt 0 -and $chunks -gt 0 -and $projects -gt 0) {
+        Note "curriculum already loaded, $units units, $chunks chunks, $projects projects; skipping the seed"
         return
     }
-    if (-not $Force -and $units -gt 0 -and $chunks -le 0) {
-        Note "curriculum is loaded but the search index is empty; reseeding to rebuild it"
+    if (-not $Force -and $units -gt 0 -and ($chunks -le 0 -or $projects -le 0)) {
+        Note "curriculum is loaded but search index or projects are empty; reseeding"
     }
 
-    Step 'loading seed data: curriculum, assessments, AI catalogue, prompts'
+    Step 'loading seed data: curriculum, assessments, AI catalogue, projects, prompts'
     Note 'this applies pending Flyway migrations on the way through'
     $seedLog = Join-Path $LogDir 'seed.log'
     $backend = Join-Path $Root 'backend'
@@ -275,7 +276,7 @@ function Seed-Data {
         Get-Content $seedLog -Tail 30 | ForEach-Object { Write-Host "      $_" -ForegroundColor DarkRed }
         Fail 'the API would otherwise start against an unseeded database'
     }
-    Good "seeded: $(Row-Count 'learning_units') units, $(Row-Count 'question_bank') questions, $(Row-Count 'prompt_versions') prompt versions, $(Row-Count 'content_chunks') chunks"
+    Good "seeded: $(Row-Count 'learning_units') units, $(Row-Count 'question_bank') questions, $(Row-Count 'projects') projects, $(Row-Count 'prompt_versions') prompt versions, $(Row-Count 'content_chunks') chunks"
 }
 
 function Start-Api {

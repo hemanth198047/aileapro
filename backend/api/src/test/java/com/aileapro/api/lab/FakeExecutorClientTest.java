@@ -33,4 +33,24 @@ class FakeExecutorClientTest {
         assertThat(result.status()).isEqualTo("timed_out");
         assertThat(result.errorCode()).isEqualTo("sandbox_timeout");
     }
+
+    @Test
+    void projectMilestoneFixturesPassAndFailHonestly() {
+        FakeExecutorClient client = new FakeExecutorClient();
+        var pass = client.run(new ExecutorPort.RunRequest(
+                "python",
+                "# aileapro_check:mse\ndef mse(y_true, y_pred):\n    return 0.375\n",
+                null,
+                1000,
+                128));
+        assertThat(pass.stdout()).contains("AILEAPRO_PASS");
+
+        var fail = client.run(new ExecutorPort.RunRequest(
+                "python",
+                "# aileapro_check:mse\ndef other():\n    return 1\n",
+                null,
+                1000,
+                128));
+        assertThat(fail.stdout()).contains("AILEAPRO_FAIL");
+    }
 }

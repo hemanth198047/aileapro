@@ -2013,6 +2013,67 @@
 .lab__historyItem:hover {
   background: var(--surface-2, var(--surface));
 }
+
+/* Studio */
+.studio__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.studio__pick,
+.studio__milestone {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.studio__pick.is-active,
+.studio__milestone.is-active {
+  border-color: var(--ink);
+  background: var(--surface-2, var(--surface));
+}
+.studio__milestones {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.studio__msTitle {
+  margin: 20px 0 8px;
+  font-size: 1.05rem;
+}
+.studio__result {
+  margin-top: 16px;
+}
+.studio__portfolio {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.studio__artifact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;

@@ -29,10 +29,10 @@ import java.util.UUID;
  * The graded counterpart of {@link MasteryService}.
  *
  * <p>{@link MasteryService} can only raise the Read chip. This class is the only thing in the
- * system that can move Practice and Assess, and therefore the only thing that can take a unit
- * past INTRODUCED. Splitting them is not tidiness: it means no amount of page-opening can
- * reach the states that are supposed to require work, because the code that would do it does
- * not exist on that path.
+ * system that can move Practice, Assess, and Apply, and therefore the only thing that can take
+ * a unit past INTRODUCED. Splitting them is not tidiness: it means no amount of page-opening
+ * can reach the states that are supposed to require work, because the code that would do it
+ * does not exist on that path.
  *
  * <p>Like its counterpart, it decides nothing itself. Every judgement is delegated to
  * {@link GradedEvidencePolicy}, and this class only appends events and persists the
@@ -132,6 +132,24 @@ public class GradedMasteryService {
     }
 
     /**
+     * Completing a linked project fills Apply. Quizzes and lab runs cannot call this — only
+     * Project Studio after every milestone has passed.
+     */
+    public void recordProjectCompleted(
+            UUID userId, UUID unitId, UnitFacts facts, Volatility volatility, UUID projectId, UUID submissionId) {
+        MasteryRecordEntity record = record(userId, unitId);
+        Instant now = Instant.now();
+        if (record.getApplyState() != EvidenceState.SOLID) {
+            record.setApplyState(EvidenceState.SOLID);
+            record.setApplyAt(now);
+        }
+        append(userId, unitId, LearningEventKind.PROJECT_COMPLETED, Map.of(
+                "projectId", projectId.toString(),
+                "submissionId", submissionId.toString()));
+        persist(record, toGraded(record), facts, volatility);
+    }
+
+    /**
      * Sets how many named false beliefs are currently open on this unit, which is the one
      * input that can pull a state <em>down</em>.
      */
@@ -218,6 +236,14 @@ public class GradedMasteryService {
             record.setAssessState(evidence.assess());
             record.setAssessAt(now);
         }
+        // Apply is written by recordProjectCompleted before persist; keep the timestamp if it
+        // moved on this call, otherwise leave whatever was already stored.
+        if (evidence.apply() != before.apply()) {
+            record.setApplyState(evidence.apply());
+            if (record.getApplyAt() == null) {
+                record.setApplyAt(now);
+            }
+        }
 
         record.setState(state);
         record.setScore(BigDecimal.valueOf(score(record, after, volatility, now))
@@ -230,19 +256,20 @@ public class GradedMasteryService {
     /**
      * The composite score from 07, used for ranking rather than shown as a percentage.
      *
-     * <p>Application is zero throughout: nothing in the product can fill the Apply chip yet,
-     * and inventing a value for it would quietly inflate every score. The ceiling is reported
-     * separately so the number can be read against what is actually achievable.
+     * <p>Application is 1 only when the Apply chip is solid (a finished linked project). A
+     * guessed middle value would quietly inflate every score for learners who have never
+     * built anything.
      */
     private double score(MasteryRecordEntity record, Graded graded, Volatility volatility, Instant now) {
         Integer daysSince = record.getLastGradedAt() == null
                 ? null
                 : (int) java.time.Duration.between(record.getLastGradedAt(), now).toDays();
+        double application = record.getApplyState() == EvidenceState.SOLID ? 1.0 : 0.0;
         return CompositeScore.of(new CompositeScore.Signals(
                 graded.accuracyEma() == null ? 0 : graded.accuracyEma(),
                 CompositeScore.consistencyFrom(graded.gradedDays()),
                 CompositeScore.retentionFrom(graded.reviewsDuePassed(), graded.reviewsDueFailed()),
-                0,
+                application,
                 prerequisiteHealth.healthFor(record.getUserId(), record.getUnitId()),
                 CompositeScore.recencyFrom(daysSince == null ? 0 : daysSince, volatility),
                 CompositeScore.misconceptionLoadFrom(graded.openMisconceptions())));

@@ -44,7 +44,13 @@ public enum LearningEventKind {
     MISCONCEPTION_RAISED("misconception_raised"),
 
     /** A misconception was answered correctly after the reteach block was read. */
-    MISCONCEPTION_CLEARED("misconception_cleared");
+    MISCONCEPTION_CLEARED("misconception_cleared"),
+
+    /**
+     * A published project linked to this unit was completed. This is the only event that can
+     * fill the Apply chip — quizzes and labs do not count as application on their own.
+     */
+    PROJECT_COMPLETED("project_completed");
 
     private final String code;
 

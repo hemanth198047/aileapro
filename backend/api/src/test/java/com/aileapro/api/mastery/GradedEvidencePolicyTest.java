@@ -133,8 +133,8 @@ class GradedEvidencePolicyTest {
     void aUnitWithNoItemsAtAllStopsAtIntroduced() {
         assertThat(GradedEvidencePolicy.reachableCeiling(UnitFacts.none())).isEqualTo(MasteryState.INTRODUCED);
         assertThat(GradedEvidencePolicy.reachableCeiling(new UnitFacts(6, 4, true)))
-                .as("Apply cannot be filled yet, so PROFICIENT is the top of the product")
-                .isEqualTo(MasteryState.PROFICIENT);
+                .as("a full item bank plus projects can support MASTERED")
+                .isEqualTo(MasteryState.MASTERED);
     }
 
     @Test
@@ -189,11 +189,31 @@ class GradedEvidencePolicyTest {
         assertThat(evidence.practice()).isEqualTo(EvidenceState.SOLID);
         assertThat(evidence.assess()).isEqualTo(EvidenceState.SOLID);
         assertThat(evidence.apply())
-                .as("nothing in the product can fill Apply yet")
+                .as("quizzes and reviews never fill Apply — only a finished project does")
                 .isEqualTo(EvidenceState.EMPTY);
         assertThat(GradedEvidencePolicy.stateFor(evidence, everything, FACTS))
                 .as("no amount of quizzing is application")
                 .isEqualTo(MasteryState.PROFICIENT);
+    }
+
+    @Test
+    void masteredNeedsApplicationAndRetention() {
+        Graded everything = Graded.empty();
+        for (int i = 0; i < 6; i++) {
+            everything = GradedEvidencePolicy.apply(everything, quiz(true), i < 3);
+        }
+        for (int i = 0; i < 10; i++) {
+            everything = GradedEvidencePolicy.apply(everything, practice(true, BloomLevel.APPLY), false);
+        }
+        everything = GradedEvidencePolicy.applySubmission(everything, AssessmentKind.QUIZ, 1.0, true);
+        everything = GradedEvidencePolicy.applyReview(everything, true, true);
+        everything = GradedEvidencePolicy.applyReview(everything, true, true);
+
+        Evidence withApply = new Evidence(
+                EvidenceState.SOLID, EvidenceState.SOLID, EvidenceState.SOLID, EvidenceState.SOLID);
+        assertThat(GradedEvidencePolicy.stateFor(withApply, everything, FACTS))
+                .as("Apply solid plus retention is the only path to MASTERED")
+                .isEqualTo(MasteryState.MASTERED);
     }
 
     @Test

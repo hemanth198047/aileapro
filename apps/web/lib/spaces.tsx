@@ -79,7 +79,7 @@ export const SPACES: Space[] = [
     purpose: "Authored units: why it matters, explanations at the levels that exist, examples, and what mastery would take.",
     nextAction: "Open your path and read the first unit that is not read yet",
     waitingOn:
-      "Each authored unit carries its prerequisites, your reading, and the graded practice and quiz that can move the Practice and Assess chips. Apply needs a project, which arrives in Phase 10.",
+      "Each authored unit carries its prerequisites, your reading, and the graded practice and quiz that can move the Practice and Assess chips. Apply fills when you finish a linked project in Studio.",
   },
   {
     id: "map",
@@ -119,10 +119,7 @@ export const SPACES: Space[] = [
     group: "Practice",
     icon: <IconStudio />,
     purpose: "Projects, milestones, and the portfolio you can show someone.",
-    arrivesIn: "Phase 10",
-    nextAction: "Nothing yet — projects arrive in Phase 10",
-    waitingOn:
-      "Phase 10 ships the first two project briefs with milestones and submissions. Completing one is what fills the Apply evidence chip.",
+    nextAction: "Open Build a linear regression model and pass the first milestone",
   },
   {
     id: "notes",

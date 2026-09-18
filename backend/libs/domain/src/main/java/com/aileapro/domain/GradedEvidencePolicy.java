@@ -20,8 +20,8 @@ package com.aileapro.domain;
  *   <li><strong>PROFICIENT</strong> — a cold assessment passed, on more than one day. One
  *       good afternoon is not consistency.
  *   <li><strong>MASTERED</strong> — application plus a retention check after a real interval.
- *       Nothing can currently fill the Apply chip, so this rung is unreachable by design
- *       rather than by omission: "never jump to MASTERED from a single quiz."
+ *       Application means a finished project linked to the unit. Quizzes alone never reach
+ *       this rung: "never jump to MASTERED from a single quiz."
  * </ul>
  */
 public final class GradedEvidencePolicy {
@@ -402,14 +402,16 @@ public final class GradedEvidencePolicy {
         if (facts.assessItemCount() == 0) {
             return MasteryState.PRACTICED;
         }
-        // Apply is unfillable for now, so PROFICIENT is the top of the product, not of the
-        // ladder. MASTERED waits for the lab and projects.
-        return MasteryState.PROFICIENT;
+        // Practice, Assess, and Apply are all fillable for a unit with a full item bank.
+        // MASTERED still needs a finished project plus spaced retention — the ceiling names
+        // what the content and product can support, not what this learner has shown yet.
+        return MasteryState.MASTERED;
     }
 
     /**
-     * The four chips together. Read is passed through from the reading policy untouched, and
-     * Apply stays empty because nothing in the product can fill it yet.
+     * The four chips together. Read is passed through from the reading policy untouched.
+     * Apply is also passed through: only {@code PROJECT_COMPLETED} writes it, never graded
+     * practice or quizzes.
      */
     public static Evidence evidenceFor(Evidence current, Graded graded, UnitFacts facts) {
         return new Evidence(
