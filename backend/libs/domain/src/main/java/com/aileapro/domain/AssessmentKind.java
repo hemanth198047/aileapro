@@ -24,7 +24,13 @@ public enum AssessmentKind {
      * has been taught anything, and calling that evidence of competence would be the exact
      * dishonesty this product is built against.
      */
-    DIAGNOSTIC("diagnostic");
+    DIAGNOSTIC("diagnostic"),
+
+    /**
+     * Career interview rehearsal (text). Fills nothing: practising interview answers is not
+     * the same as demonstrated mastery on a unit, and must not shrink skill gaps.
+     */
+    INTERVIEW("interview");
 
     private final String code;
 
@@ -41,7 +47,7 @@ public enum AssessmentKind {
         return switch (this) {
             case PRACTICE -> EvidenceChip.PRACTICE;
             case QUIZ, EXAM -> EvidenceChip.ASSESS;
-            case DIAGNOSTIC -> null;
+            case DIAGNOSTIC, INTERVIEW -> null;
         };
     }
 

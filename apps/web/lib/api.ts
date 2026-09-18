@@ -700,6 +700,32 @@ export type LiteratureMap = {
   note: string;
 };
 
+/** Career gaps from demonstrated mastery only. */
+export type CareerGap = {
+  unitId: string;
+  unitSlug: string;
+  unitTitle: string;
+  currentState: string;
+  requiredBar: string;
+  pathRequiredState: string;
+  href: string;
+};
+
+export type CareerGaps = {
+  pathSlug: string;
+  pathTitle: string;
+  roleTarget: string | null;
+  readyBar: string;
+  requiredUnitCount: number;
+  readyUnitCount: number;
+  gapCount: number;
+  readyForRole: boolean;
+  honesty: string;
+  gaps: CareerGap[];
+  interviewPersona: string;
+  note: string;
+};
+
 /** Events the turn endpoint sends, in the order they arrive. */
 export type TutorStreamEvent =
   | { type: "token"; text: string }

@@ -63,7 +63,7 @@
 | 9 | Lab / executor | | |
 | 10 | Project Studio | done | 2026-09-18 |
 | 11 | Research | done | 2026-09-18 |
-| 12 | Career | | |
+| 12 | Career | done | 2026-09-18 |
 | 13 | Admin studio | | |
 | 14 | Analytics | | |
 | 15 | Intelligence + harden | | |
@@ -834,10 +834,17 @@ Apply / MASTERED still waits on Project Studio (Phase 10).
 
 ### GATE (Phase 12)
 
-- [ ] Gaps change only when mastery events change
-- [ ] Self-reported onboarding skills do not appear as mastered
+- [x] Gaps change only when mastery events change
+- [x] Self-reported onboarding skills do not appear as mastered
 
 **Phase log:**
+
+- **2026-09-18 — Phase 12 complete.** `GET /v1/me/career/gaps` lists path waypoints below
+  PROFICIENT from `mastery_records` only. Onboarding `experience` never shrinks the list.
+  Honesty copy states “not job-ready until …” rather than inventing a readiness percent.
+- Interview practice: persona `interview_coach` plus assessment kind `interview` (grades no
+  evidence). Resume parser left as P2.
+- Gate: `CareerApiTest`, `backend/scripts/phase12-walk.ps1`.
 
 ---
 

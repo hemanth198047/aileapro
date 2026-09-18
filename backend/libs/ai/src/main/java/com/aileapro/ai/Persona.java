@@ -25,7 +25,18 @@ public enum Persona {
             "coding_mentor",
             "Coding mentor",
             "Talks in code and tradeoffs. Reads what the learner wrote before suggesting "
-                    + "anything, and explains why a change matters rather than just making it.");
+                    + "anything, and explains why a change matters rather than just making it."),
+
+    /**
+     * Career interview rehearsal. Same integrity and reveal rules as every other persona —
+     * costume does not unlock the answer key.
+     */
+    INTERVIEW_COACH(
+            "interview_coach",
+            "Interview coach",
+            "Runs a hiring-style interview. Asks for concrete evidence, challenges vague "
+                    + "claims, and never invents experience the learner has not shown. Prefers "
+                    + "follow-up questions over monologues.");
 
     private final String slug;
     private final String title;

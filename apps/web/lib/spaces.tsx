@@ -160,10 +160,7 @@ export const SPACES: Space[] = [
     group: "Horizon",
     icon: <IconCareer />,
     purpose: "Role readiness, skill gaps, and interview practice drawn from your evidence.",
-    arrivesIn: "Phase 12",
-    nextAction: "Nothing yet — career tools arrive in Phase 12",
-    waitingOn:
-      "Gaps are computed from assessed mastery against a target role. With no assessments recorded, any readiness score would be fiction.",
+    nextAction: "Open Career and read which path units are still below PROFICIENT",
   },
   {
     id: "search",
