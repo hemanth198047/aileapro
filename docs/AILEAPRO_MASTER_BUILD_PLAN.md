@@ -62,7 +62,7 @@
 | 8 | RAG + search | | |
 | 9 | Lab / executor | | |
 | 10 | Project Studio | done | 2026-09-18 |
-| 11 | Research | | |
+| 11 | Research | done | 2026-09-18 |
 | 12 | Career | | |
 | 13 | Admin studio | | |
 | 14 | Analytics | | |
@@ -803,10 +803,20 @@ Apply / MASTERED still waits on Project Studio (Phase 10).
 
 ### GATE (Phase 11)
 
-- [ ] Explainer lists only seeded sources
-- [ ] Automated test fails if response contains unsourced invented paper titles
+- [x] Explainer lists only seeded sources
+- [x] Automated test fails if response contains unsourced invented paper titles
 
 **Phase log:**
+
+- **2026-09-18 — Phase 11 complete.** `V10__research_papers.sql` adds `doi` and
+  `abstract_text` on `sources`. Five real papers are seeded (backprop, attention, RAG,
+  word2vec, BERT) with DOIs and short AILEAPRO summaries for retrieval — not publisher
+  abstracts verbatim.
+- `ResearchPolicy` refuses when nothing is attached (`no_sources`). Fixture explainers cite
+  only attached slugs/DOIs. A deny-list of invented titles throws; unsourced DOIs are stripped.
+  Literature map v0 joins PAPER sources to units via `unit_resources`.
+- Web Research: reading list, explainer, map. PDF upload left as P1.
+- Gate: `ResearchApiTest`, `ResearchPolicyTest`, `backend/scripts/phase11-walk.ps1`.
 
 ---
 

@@ -44,6 +44,8 @@ public final class SeedModel {
             String authors,
             String publisher,
             String url,
+            String doi,
+            String abstractText,
             LocalDate publishedOn,
             String sourceType,
             String license,

@@ -139,10 +139,7 @@ export const SPACES: Space[] = [
     group: "Horizon",
     icon: <IconResearch />,
     purpose: "Papers with explainers that must cite their sources, plus a literature map.",
-    arrivesIn: "Phase 11",
-    nextAction: "Nothing yet — research arrives in Phase 11",
-    waitingOn:
-      "Explainers are held to forced citations and tested against fabricated-reference fixtures before this space opens.",
+    nextAction: "Open a seeded paper and ask the explainer a question it can cite",
   },
   {
     id: "evolve",

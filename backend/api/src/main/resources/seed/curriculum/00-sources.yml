@@ -121,6 +121,11 @@ sources:
     authors: "David E. Rumelhart, Geoffrey E. Hinton, Ronald J. Williams"
     publisher: Nature
     url: https://www.nature.com/articles/323533a0
+    doi: "10.1038/323533a0"
+    abstractText: >
+      AILEAPRO summary: Shows that multi-layer networks can learn internal
+      representations by propagating error derivatives backward through the network,
+      making deep non-linear models trainable with gradient descent.
     publishedOn: 1986-10-09
     sourceType: PAPER
     license: "Publisher paywall; cited, not reproduced"
@@ -133,6 +138,11 @@ sources:
     authors: "Patrick Lewis, Ethan Perez, Aleksandra Piktus, et al."
     publisher: "arXiv"
     url: https://arxiv.org/abs/2005.11401
+    doi: "10.48550/arXiv.2005.11401"
+    abstractText: >
+      AILEAPRO summary: Combines a parametric seq2seq model with a non-parametric
+      dense index so generation is conditioned on retrieved passages, improving
+      factuality on knowledge-intensive NLP tasks.
     publishedOn: 2020-05-22
     sourceType: PAPER
     license: "arXiv non-exclusive licence"
@@ -145,10 +155,49 @@ sources:
     authors: "Ashish Vaswani, Noam Shazeer, Niki Parmar, et al."
     publisher: "arXiv"
     url: https://arxiv.org/abs/1706.03762
+    doi: "10.48550/arXiv.1706.03762"
+    abstractText: >
+      AILEAPRO summary: Introduces the Transformer, an encoder-decoder architecture
+      based solely on multi-head self-attention and position-wise feed-forward layers,
+      without recurrence or convolution.
     publishedOn: 2017-06-12
     sourceType: PAPER
     license: "arXiv non-exclusive licence"
     lastVerifiedAt: 2026-09-16
+    httpStatus: 200
+    difficulty: 5
+
+  - slug: word2vec-2013
+    title: "Efficient Estimation of Word Representations in Vector Space"
+    authors: "Tomas Mikolov, Kai Chen, Greg Corrado, Jeffrey Dean"
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/1301.3781
+    doi: "10.48550/arXiv.1301.3781"
+    abstractText: >
+      AILEAPRO summary: Presents continuous bag-of-words and skip-gram architectures
+      that learn dense word vectors from large corpora with high computational
+      efficiency, capturing linear regularities between words.
+    publishedOn: 2013-01-16
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-18
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: bert-2018
+    title: "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding"
+    authors: "Jacob Devlin, Ming-Wei Chang, Kenton Lee, Kristina Toutanova"
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/1810.04805
+    doi: "10.48550/arXiv.1810.04805"
+    abstractText: >
+      AILEAPRO summary: Pre-trains deep bidirectional Transformer encoders with masked
+      language modeling and next-sentence prediction, then fine-tunes for a wide range
+      of NLP tasks with minimal task-specific architecture.
+    publishedOn: 2018-10-11
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-18
     httpStatus: 200
     difficulty: 5
 

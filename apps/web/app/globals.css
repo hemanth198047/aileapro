@@ -2074,6 +2074,14 @@
   padding: 12px 0;
   border-top: 1px solid var(--line);
 }
+
+.research__map {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;

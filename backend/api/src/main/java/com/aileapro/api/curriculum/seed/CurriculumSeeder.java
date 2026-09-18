@@ -238,6 +238,8 @@ public class CurriculumSeeder {
         source.setAuthors(seed.authors());
         source.setPublisher(seed.publisher());
         source.setUrl(seed.url());
+        source.setDoi(blankToNull(seed.doi()));
+        source.setAbstractText(blankToNull(seed.abstractText()));
         source.setPublishedOn(seed.publishedOn());
         source.setSourceType(SourceType.valueOf(seed.sourceType()));
         source.setLicense(seed.license());
@@ -583,6 +585,13 @@ public class CurriculumSeeder {
 
     private static Instant atStartOfDay(LocalDate date) {
         return date == null ? null : date.atTime(LocalTime.MIDNIGHT).toInstant(ZoneOffset.UTC);
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private static <T> List<T> nullSafe(List<T> value) {

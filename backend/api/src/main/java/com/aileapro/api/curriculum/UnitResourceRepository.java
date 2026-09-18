@@ -10,5 +10,7 @@ public interface UnitResourceRepository extends JpaRepository<UnitResourceEntity
 
     List<UnitResourceEntity> findByUnitIdOrderBySortAsc(UUID unitId);
 
+    List<UnitResourceEntity> findByResourceId(UUID resourceId);
+
     void deleteByUnitId(UUID unitId);
 }

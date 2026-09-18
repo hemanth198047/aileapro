@@ -646,6 +646,60 @@ export type Portfolio = {
   note: string;
 };
 
+/** Research papers and forced-citation explainers. */
+export type ResearchPaper = {
+  id: string;
+  slug: string;
+  title: string;
+  authors: string | null;
+  publisher: string | null;
+  url: string;
+  doi: string | null;
+  abstractText: string | null;
+  publishedOn: string | null;
+  relatedUnitSlugs: string[];
+};
+
+export type ResearchReadingList = {
+  papers: ResearchPaper[];
+  note: string;
+};
+
+export type ResearchCitation = {
+  slug: string;
+  title: string;
+  doi: string | null;
+  url: string;
+};
+
+export type ResearchExplainer = {
+  question: string;
+  answer: string;
+  refused: boolean;
+  refusalCode: string | null;
+  development: boolean;
+  citations: ResearchCitation[];
+};
+
+export type LiteratureMapNode = {
+  id: string;
+  kind: "paper" | "unit";
+  slug: string;
+  title: string;
+};
+
+export type LiteratureMapEdge = {
+  from: string;
+  to: string;
+  type: string;
+};
+
+export type LiteratureMap = {
+  nodes: LiteratureMapNode[];
+  edges: LiteratureMapEdge[];
+  note: string;
+};
+
 /** Events the turn endpoint sends, in the order they arrive. */
 export type TutorStreamEvent =
   | { type: "token"; text: string }

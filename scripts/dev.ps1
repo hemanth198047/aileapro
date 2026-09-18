@@ -252,12 +252,18 @@ function Seed-Data {
     $units = Row-Count 'learning_units'
     $chunks = Row-Count 'content_chunks'
     $projects = Row-Count 'projects'
-    if (-not $Force -and $units -gt 0 -and $chunks -gt 0 -and $projects -gt 0) {
-        Note "curriculum already loaded, $units units, $chunks chunks, $projects projects; skipping the seed"
+    $papersWithDoi = 0
+    try {
+        $papersWithDoi = [int](docker compose -f $Compose exec -T postgres psql -U aileapro -d aileapro -tAc "select count(*) from sources where source_type='PAPER' and doi is not null;" 2>$null)
+    } catch {
+        $papersWithDoi = 0
+    }
+    if (-not $Force -and $units -gt 0 -and $chunks -gt 0 -and $projects -gt 0 -and $papersWithDoi -ge 3) {
+        Note "curriculum already loaded, $units units, $chunks chunks, $projects projects, $papersWithDoi papers; skipping the seed"
         return
     }
-    if (-not $Force -and $units -gt 0 -and ($chunks -le 0 -or $projects -le 0)) {
-        Note "curriculum is loaded but search index or projects are empty; reseeding"
+    if (-not $Force -and $units -gt 0 -and ($chunks -le 0 -or $projects -le 0 -or $papersWithDoi -lt 3)) {
+        Note "curriculum is loaded but search index, projects, or research papers need a refresh; reseeding"
     }
 
     Step 'loading seed data: curriculum, assessments, AI catalogue, projects, prompts'

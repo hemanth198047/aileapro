@@ -33,6 +33,17 @@ public class SourceEntity {
     @Column(nullable = false, unique = true)
     private String url;
 
+    /** Crossref/arXiv-style DOI when the source is a paper. Null for docs and courses. */
+    @Column(length = 128)
+    private String doi;
+
+    /**
+     * Short authored summary for research retrieval. Not the publisher's abstract
+     * verbatim — enough for the explainer to ground claims without inventing papers.
+     */
+    @Column(name = "abstract_text", columnDefinition = "text")
+    private String abstractText;
+
     @Column(name = "published_on")
     private LocalDate publishedOn;
 
@@ -68,6 +79,10 @@ public class SourceEntity {
     public void setPublisher(String publisher) { this.publisher = publisher; }
     public String getUrl() { return url; }
     public void setUrl(String url) { this.url = url; }
+    public String getDoi() { return doi; }
+    public void setDoi(String doi) { this.doi = doi; }
+    public String getAbstractText() { return abstractText; }
+    public void setAbstractText(String abstractText) { this.abstractText = abstractText; }
     public LocalDate getPublishedOn() { return publishedOn; }
     public void setPublishedOn(LocalDate publishedOn) { this.publishedOn = publishedOn; }
     public SourceType getSourceType() { return sourceType; }
