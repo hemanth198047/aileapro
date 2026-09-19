@@ -11,6 +11,7 @@ import com.aileapro.api.curriculum.CurriculumViews.UnitRef;
 import com.aileapro.api.curriculum.LearningUnitRepository;
 import com.aileapro.api.curriculum.UnitBlockRepository;
 import com.aileapro.api.platform.ApiException;
+import com.aileapro.api.platform.FeatureFlagService;
 import com.aileapro.persistence.ConversationEntity;
 import com.aileapro.persistence.LearningUnitEntity;
 import com.aileapro.persistence.MessageEntity;
@@ -60,6 +61,7 @@ public class TutorTranscript {
     private final PromptVersionRepository promptVersions;
     private final UnitBlockRepository blockRepository;
     private final LearningUnitRepository unitRepository;
+    private final FeatureFlagService flags;
 
     public TutorTranscript(
             ConversationRepository conversations,
@@ -68,7 +70,8 @@ public class TutorTranscript {
             ModelRepository models,
             PromptVersionRepository promptVersions,
             UnitBlockRepository blockRepository,
-            LearningUnitRepository unitRepository) {
+            LearningUnitRepository unitRepository,
+            FeatureFlagService flags) {
         this.conversations = conversations;
         this.messages = messages;
         this.curriculum = curriculum;
@@ -76,6 +79,7 @@ public class TutorTranscript {
         this.promptVersions = promptVersions;
         this.blockRepository = blockRepository;
         this.unitRepository = unitRepository;
+        this.flags = flags;
     }
 
     // ------------------------------------------------------------------
@@ -84,6 +88,7 @@ public class TutorTranscript {
 
     @Transactional
     public TutorViews.ConversationDetail start(UUID userId, String unitSlug, String personaSlug) {
+        flags.require(FeatureFlagService.TUTOR, "The tutor is temporarily disabled");
         UnitRef unit = null;
         if (unitSlug != null && !unitSlug.isBlank()) {
             unit = curriculum.publishedRef(unitSlug);

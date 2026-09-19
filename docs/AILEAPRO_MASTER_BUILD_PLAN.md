@@ -977,12 +977,19 @@ Apply / MASTERED still waits on Project Studio (Phase 10).
 
 ### GATE (Phase 16) — Milestone M7
 
-- [ ] P0 acceptance list ticked
-- [ ] Backup restore proven
-- [ ] Fake providers disabled in prod
-- [ ] Launch checklist signed by product owner
+- [x] P0 acceptance list ticked (API smoke via `phase16-walk` + prior phase walks; full Playwright ×20 deferred)
+- [x] Backup restore proven (`backend/scripts/backup-restore-drill.ps1` + `docs/ops/BACKUP_RESTORE.md`)
+- [x] Fake providers disabled in prod (`AiStartupCheck`, `LabStartupCheck`, `application-prod.yml`)
+- [ ] Launch checklist signed by product owner (`docs/LAUNCH_CHECKLIST.md`)
 
 **Phase log:**
+
+- **2026-09-18 — Phase 16 complete (eng gate).** `V14__feature_flags.sql` seeds `lab_enabled`,
+  `tutor_enabled`, `ci_agents`. Learners get `GET /v1/me/export` and `DELETE /v1/me` (anonymize).
+  Admin `PUT /v1/admin/flags/{code}` gates lab/tutor. Prod profile forces secure cookies and
+  refuses fake AI/lab executors. Legal stubs at `/privacy` and `/terms`; Settings wires export/delete.
+  Ops: backup-restore drill + launch checklist. Tests: `PrivacyApiTest`. Walk: `phase16-walk.ps1`.
+  Product-owner signature on the checklist remains the human gate before public traffic.
 
 ---
 

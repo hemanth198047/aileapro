@@ -17,6 +17,7 @@ import com.aileapro.api.curriculum.CurriculumViews.UnitRef;
 import com.aileapro.api.lab.LabService;
 import com.aileapro.api.lab.LabViews;
 import com.aileapro.api.platform.ApiException;
+import com.aileapro.api.platform.FeatureFlagService;
 import com.aileapro.api.search.ContentHit;
 import com.aileapro.api.search.SearchService;
 import com.aileapro.persistence.ConversationEntity;
@@ -68,6 +69,7 @@ public class TutorService {
     private final UsageMeter meter;
     private final SearchService search;
     private final LabService lab;
+    private final FeatureFlagService flags;
 
     public TutorService(
             TutorTranscript transcript,
@@ -79,7 +81,8 @@ public class TutorService {
             AiBudget budget,
             UsageMeter meter,
             SearchService search,
-            LabService lab) {
+            LabService lab,
+            FeatureFlagService flags) {
         this.transcript = transcript;
         this.context = context;
         this.curriculum = curriculum;
@@ -90,6 +93,7 @@ public class TutorService {
         this.meter = meter;
         this.search = search;
         this.lab = lab;
+        this.flags = flags;
     }
 
     /** What the caller needs once a turn is done. */
@@ -98,6 +102,7 @@ public class TutorService {
 
     public TurnResult turn(
             UUID userId, UUID conversationId, String text, String actionSlug, Consumer<String> onChunk) {
+        flags.require(FeatureFlagService.TUTOR, "The tutor is temporarily disabled");
         String askText = text == null ? "" : text.strip();
         TutorAction action = action(actionSlug);
         if (askText.isEmpty() && action == null) {
@@ -275,9 +280,10 @@ public class TutorService {
         List<ModelRouter.Route> chain = router.chain("teach");
         ModelRouter.Route best = chain.isEmpty() ? null : chain.get(0);
         AiBudget.Remaining remaining = budget.remaining(userId);
+        boolean on = flags.enabled(FeatureFlagService.TUTOR);
 
         return new TutorViews.Status(
-                best != null,
+                on && best != null,
                 best != null && best.port().development(),
                 search.chunkCount() > 0,
                 best == null ? null : best.providerSlug(),

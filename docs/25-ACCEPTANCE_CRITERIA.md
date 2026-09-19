@@ -43,4 +43,11 @@ Each phase in [20-ROADMAP.md](20-ROADMAP.md) has a Gate line. Do not start the n
 
 ## Launch (Phase 16)
 
+- [x] Privacy policy + ToS stubs (`/privacy`, `/terms`)
+- [x] `GET /v1/me/export` + `DELETE /v1/me` anonymize
+- [x] Feature flags `lab_enabled` / `tutor_enabled` (+ admin PUT)
+- [x] Prod profile: secure cookies; FakeChat + fake lab refused at startup
+- [x] Backup restore drill script + runbook
+- [x] Launch checklist for product-owner sign-off (`docs/LAUNCH_CHECKLIST.md`)
+
 Privacy policy, backups, flags, error tracking, budget kill switch, executor network deny verified.

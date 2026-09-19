@@ -1,0 +1,20 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true
+        same-site: none
+
+aileapro:
+  # Prod must never answer with fixtures. AiStartupCheck / LabStartupCheck enforce this.
+  ai:
+    provider: ${AILEAPRO_AI_PROVIDER}
+    enabled: ${AILEAPRO_AI_ENABLED:true}
+  lab:
+    executor: ${AILEAPRO_LAB_EXECUTOR:http}
+    executor-base-url: ${AILEAPRO_EXECUTOR_URL}

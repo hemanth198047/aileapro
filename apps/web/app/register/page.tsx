@@ -66,8 +66,9 @@ export default function RegisterPage() {
           {busy ? "Creating account…" : "Create account"}
         </Button>
         <p className="auth__legal">
-          Your first path is generated after a short placement. You can change pace or depth at
-          any time.
+          By creating an account you agree to the{" "}
+          <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy</Link> stubs.
+          Your first path is generated after a short placement.
         </p>
         <p className="auth__foot">
           Already enrolled? <Link href="/login">Sign in</Link>

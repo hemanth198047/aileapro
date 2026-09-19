@@ -19,5 +19,7 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
 
     List<ConversationEntity> findTop20ByUserIdOrderByLastMessageAtDescCreatedAtDesc(UUID userId);
 
+    List<ConversationEntity> findByUserId(UUID userId);
+
     List<ConversationEntity> findByUserIdAndUnitIdOrderByCreatedAtDesc(UUID userId, UUID unitId);
 }

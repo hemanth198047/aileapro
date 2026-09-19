@@ -148,7 +148,7 @@ OTel, Sentry, budgets, injection tests, lab network deny
 ## Phase 16 — Production hardening (2 weeks)
 
 Load, backups, flags, privacy export/delete, ToS, threat review, Playwright full P0 list  
-**Gate:** launch checklist signed
+**Gate:** launch checklist signed (eng evidence complete; product-owner signature remaining)
 
 ---
 

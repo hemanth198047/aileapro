@@ -1,6 +1,7 @@
 package com.aileapro.api.lab;
 
 import com.aileapro.api.platform.ApiException;
+import com.aileapro.api.platform.FeatureFlagService;
 import com.aileapro.lab.ExecutorPort;
 import com.aileapro.lab.FakeExecutorClient;
 import com.aileapro.persistence.LabRunEntity;
@@ -25,6 +26,7 @@ public class LabService {
 
     private final LabRunRepository runs;
     private final ExecutorPort executor;
+    private final FeatureFlagService flags;
     private final int dailyCap;
     private final int defaultTimeoutMs;
     private final int maxTimeoutMs;
@@ -33,12 +35,14 @@ public class LabService {
     public LabService(
             LabRunRepository runs,
             ExecutorPort executor,
+            FeatureFlagService flags,
             @Value("${aileapro.lab.daily-runs-per-user:40}") int dailyCap,
             @Value("${aileapro.lab.default-timeout-ms:5000}") int defaultTimeoutMs,
             @Value("${aileapro.lab.max-timeout-ms:15000}") int maxTimeoutMs,
             @Value("${aileapro.lab.max-source-chars:50000}") int maxSourceChars) {
         this.runs = runs;
         this.executor = executor;
+        this.flags = flags;
         this.dailyCap = dailyCap;
         this.defaultTimeoutMs = defaultTimeoutMs;
         this.maxTimeoutMs = maxTimeoutMs;
@@ -46,8 +50,9 @@ public class LabService {
     }
 
     public LabViews.Status status(UUID userId) {
+        boolean on = flags.enabled(FeatureFlagService.LAB);
         return new LabViews.Status(
-                true,
+                on,
                 executor.development(),
                 executor.kind(),
                 remainingToday(userId),
@@ -57,6 +62,7 @@ public class LabService {
 
     @Transactional
     public LabViews.Run start(UUID userId, String language, String source, String stdin, Integer timeoutMs) {
+        flags.require(FeatureFlagService.LAB, "The lab is temporarily disabled");
         requireQuota(userId);
         if (source == null || source.isBlank()) {
             throw ApiException.validation("Source is required");
