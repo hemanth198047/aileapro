@@ -148,10 +148,9 @@ export const SPACES: Space[] = [
     group: "Horizon",
     icon: <IconEvolve />,
     purpose: "What changed in AI since you learned it, and whether it matters to you.",
-    arrivesIn: "Phase 15",
-    nextAction: "Nothing yet — the update feed arrives in Phase 15",
+    nextAction: "Read timestamped updates and their verification notes",
     waitingOn:
-      "The feed depends on watchers, proposals, and an admin review queue. Timestamped items only — no unreviewed claims.",
+      "Items are published only after verification. Pending proposals never appear here.",
   },
   {
     id: "career",

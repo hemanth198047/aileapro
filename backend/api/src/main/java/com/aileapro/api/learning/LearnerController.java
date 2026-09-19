@@ -10,6 +10,7 @@ import com.aileapro.api.learning.LearningViews.Roadmap;
 import com.aileapro.api.learning.LearningViews.Today;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,16 +33,19 @@ public class LearnerController {
     private final RecommendationService recommendations;
     private final NoteService notes;
     private final DashboardService dashboards;
+    private final com.aileapro.api.intelligence.IntelligenceService intelligence;
 
     public LearnerController(
             LearnerProfileService profiles,
             RecommendationService recommendations,
             NoteService notes,
-            DashboardService dashboards) {
+            DashboardService dashboards,
+            com.aileapro.api.intelligence.IntelligenceService intelligence) {
         this.profiles = profiles;
         this.recommendations = recommendations;
         this.notes = notes;
         this.dashboards = dashboards;
+        this.intelligence = intelligence;
     }
 
     /** Null until onboarding has been through once, which the client treats as "not set up". */
@@ -83,5 +87,12 @@ public class LearnerController {
     @GetMapping("/notes")
     public List<Note> notes(@AuthenticationPrincipal AileaproUserPrincipal principal) {
         return notes.all(principal.getId());
+    }
+
+    /** Curriculum publish/rollback rows after the learner's last event on the unit. */
+    @GetMapping("/units/{slug}/changes-since")
+    public com.aileapro.api.intelligence.IntelligenceViews.ChangesSince changesSince(
+            @AuthenticationPrincipal AileaproUserPrincipal principal, @PathVariable String slug) {
+        return intelligence.changesSince(principal.getId(), slug);
     }
 }

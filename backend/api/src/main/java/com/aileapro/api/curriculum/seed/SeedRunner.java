@@ -2,6 +2,7 @@ package com.aileapro.api.curriculum.seed;
 
 import com.aileapro.api.ai.seed.AiSeeder;
 import com.aileapro.api.assessment.seed.AssessmentSeeder;
+import com.aileapro.api.intelligence.seed.IntelligenceSeeder;
 import com.aileapro.api.project.seed.ProjectSeeder;
 import com.aileapro.api.search.SearchIndexer;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ public class SeedRunner implements ApplicationRunner {
     private final AssessmentSeeder assessmentSeeder;
     private final AiSeeder aiSeeder;
     private final ProjectSeeder projectSeeder;
+    private final IntelligenceSeeder intelligenceSeeder;
     private final SearchIndexer searchIndexer;
 
     public SeedRunner(
@@ -33,11 +35,13 @@ public class SeedRunner implements ApplicationRunner {
             AssessmentSeeder assessmentSeeder,
             AiSeeder aiSeeder,
             ProjectSeeder projectSeeder,
+            IntelligenceSeeder intelligenceSeeder,
             SearchIndexer searchIndexer) {
         this.seeder = seeder;
         this.assessmentSeeder = assessmentSeeder;
         this.aiSeeder = aiSeeder;
         this.projectSeeder = projectSeeder;
+        this.intelligenceSeeder = intelligenceSeeder;
         this.searchIndexer = searchIndexer;
     }
 
@@ -53,6 +57,8 @@ public class SeedRunner implements ApplicationRunner {
         log.info("AI catalogue seed complete: {}", aiSeeder.seed());
         // Projects link unit slugs for Apply evidence, so they run after curriculum.
         log.info("Project seed complete: {}", projectSeeder.seed());
+        // Manual AI updates for Evolve — after sources exist.
+        log.info("Intelligence seed complete: {}", intelligenceSeeder.seed());
         // The search corpus is derived from published units: it can only run after the
         // curriculum seed has written them.
         log.info("Search index rebuild complete: {}", searchIndexer.reindexAll());

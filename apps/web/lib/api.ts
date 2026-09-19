@@ -795,6 +795,37 @@ export type AdminAnalytics = {
   cost: AdminCostBurn;
 };
 
+/** Evolve feed — published updates only, with honest verification copy. */
+export type EvolveFeedItem = {
+  slug: string;
+  title: string;
+  summary: string;
+  occurredAt: string;
+  lifecycle: string;
+  verifiedAt: string | null;
+  verifiedSourceCount: number;
+  currentnessNote: string;
+  sourceSlugs: string[];
+};
+
+export type EvolveFeed = {
+  items: EvolveFeedItem[];
+  honesty: string;
+};
+
+export type AdminProposal = {
+  id: string;
+  updateId: string;
+  updateSlug: string;
+  title: string;
+  impactScore: number;
+  impactReasons: string[];
+  status: string;
+  rejectReason: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+};
+
 /** Admin content studio. Mirrors AdminViews — drafts never appear on learner catalog routes. */
 export type AdminUnitSummary = {
   id: string;

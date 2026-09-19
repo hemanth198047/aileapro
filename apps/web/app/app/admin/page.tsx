@@ -9,6 +9,7 @@ import {
   csrfHeaders,
   type AdminAnalytics,
   type AdminChange,
+  type AdminProposal,
   type AdminUnitDetail,
   type AdminUnitSummary,
 } from "@/lib/api";
@@ -31,6 +32,7 @@ export default function AdminPage() {
   const [createSlug, setCreateSlug] = useState("");
   const [createTitle, setCreateTitle] = useState("");
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
+  const [proposals, setProposals] = useState<AdminProposal[]>([]);
 
   const loadList = useCallback(async (filter: string) => {
     const q = filter === "all" ? "" : `?status=${encodeURIComponent(filter)}`;
@@ -41,6 +43,11 @@ export default function AdminPage() {
   const loadAnalytics = useCallback(async () => {
     const overview = await api<AdminAnalytics>("/v1/admin/analytics?days=30");
     setAnalytics(overview);
+  }, []);
+
+  const loadProposals = useCallback(async () => {
+    const rows = await api<AdminProposal[]>("/v1/admin/proposals?status=pending");
+    setProposals(rows);
   }, []);
 
   const openUnit = useCallback(async (slug: string) => {
@@ -56,7 +63,7 @@ export default function AdminPage() {
       .then(async () => {
         if (!live) return;
         setAccess("granted");
-        await Promise.all([loadList("all"), loadAnalytics()]);
+        await Promise.all([loadList("all"), loadAnalytics(), loadProposals()]);
       })
       .catch((err) => {
         if (!live) return;
@@ -70,7 +77,7 @@ export default function AdminPage() {
     return () => {
       live = false;
     };
-  }, [loadList, loadAnalytics]);
+  }, [loadList, loadAnalytics, loadProposals]);
 
   const onFilter = async (next: string) => {
     setStatusFilter(next);
@@ -127,6 +134,30 @@ export default function AdminPage() {
       await loadList(statusFilter);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Rollback failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rejectProposal = async (id: string) => {
+    if (busy) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const headers = await csrfHeaders();
+      const res = await fetch(`/v1/admin/proposals/${id}/reject`, {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: JSON.stringify({ reason: "Rejected from admin update center" }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        throw new Error(body?.error?.message ?? "Reject failed");
+      }
+      await loadProposals();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Reject failed");
     } finally {
       setBusy(false);
     }
@@ -274,6 +305,38 @@ export default function AdminPage() {
               ) : null}
             </section>
           ) : null}
+
+          <section className="card">
+            <div className="card__head">
+              <span className="card__title">Pending proposals</span>
+              <span className="muted mono">{proposals.length}</span>
+            </div>
+            {proposals.length === 0 ? (
+              <p className="hint">No pending curriculum change proposals.</p>
+            ) : (
+              <ul className="studio__list">
+                {proposals.map((p) => (
+                  <li key={p.id}>
+                    <div className="studio__pick" style={{ cursor: "default" }}>
+                      <strong>{p.title}</strong>
+                      <span className="muted mono">
+                        {p.updateSlug} · impact {Number(p.impactScore).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="space__actions" style={{ marginTop: 8 }}>
+                      <Button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void rejectProposal(p.id)}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
           <section className="card">
             <div className="card__head">

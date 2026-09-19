@@ -29,14 +29,17 @@ public class AiBudget {
     private final AiUsageRepository usage;
     private final BigDecimal dailyUsdPerUser;
     private final int dailyTurnsPerUser;
+    private final boolean enabled;
 
     public AiBudget(
             AiUsageRepository usage,
             @Value("${aileapro.ai.budget.daily-usd-per-user:0.50}") BigDecimal dailyUsdPerUser,
-            @Value("${aileapro.ai.budget.daily-turns-per-user:120}") int dailyTurnsPerUser) {
+            @Value("${aileapro.ai.budget.daily-turns-per-user:120}") int dailyTurnsPerUser,
+            @Value("${aileapro.ai.enabled:true}") boolean enabled) {
         this.usage = usage;
         this.dailyUsdPerUser = dailyUsdPerUser;
         this.dailyTurnsPerUser = dailyTurnsPerUser;
+        this.enabled = enabled;
     }
 
     /** What is left today. Shown in the UI, so a learner is never surprised by a wall. */
@@ -59,12 +62,16 @@ public class AiBudget {
     }
 
     /**
-     * Throws when the learner has spent their day.
-     *
-     * <p>The message says which ceiling was hit and when it resets, because "budget exceeded"
-     * with no number is indistinguishable from a bug to the person reading it.
+     * Throws when AI is globally disabled or the learner has spent their day.
      */
     public void require(UUID userId) {
+        if (!enabled) {
+            throw new ApiException(
+                    503,
+                    "ai_disabled",
+                    "AI features are temporarily disabled by an operator kill switch. "
+                            + "Units, practice, and reviews still work without a model.");
+        }
         Remaining remaining = remaining(userId);
         if (!remaining.exhausted()) {
             return;
@@ -78,5 +85,9 @@ public class AiBudget {
                 "budget_exceeded",
                 detail + " It resets at midnight UTC. The units, practice sets, and reviews are "
                         + "unaffected — none of them need a model.");
+    }
+
+    public boolean enabled() {
+        return enabled;
     }
 }

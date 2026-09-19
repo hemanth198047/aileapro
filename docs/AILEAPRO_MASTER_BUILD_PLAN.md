@@ -937,12 +937,23 @@ Apply / MASTERED still waits on Project Studio (Phase 10).
 
 ### GATE (Phase 15) — Milestone M6
 
-- [ ] Evolve shows timestamped items
-- [ ] Admin can reject a proposal
-- [ ] Lab cannot reach instance metadata IP
-- [ ] Currentness language is honest
+- [x] Evolve shows timestamped items
+- [x] Admin can reject a proposal
+- [x] Lab cannot reach instance metadata IP
+- [x] Currentness language is honest
 
 **Phase log:**
+
+- **2026-09-18 — Phase 15 complete.** `V13__continuous_intelligence.sql` adds `ai_updates`,
+  `ai_update_sources`, `curriculum_change_proposals`, `source_link_checks`. Manual seed: one
+  established attention update + one deprecation update with a pending proposal.
+- Learner `GET /v1/evolve/feed` returns published items with `occurredAt` / `verifiedAt` and
+  “Verified against N sources as of …” — never “fully up to date.” Admin can create updates/
+  proposals and **reject** pending proposals. Link-check job (scheduled + admin trigger) updates
+  `sources.last_verified_at`. Docs watcher is a [manual procedure](ops/DOCS_WATCHER.md).
+- Hardening: `aileapro.ai.enabled` kill switch; `DockerNetworkIsolationTest` asserts `--network none`
+  (blocks 169.254.169.254); `InjectionTest` + `CurriculumImpactScore`; `GET /v1/me/units/{slug}/changes-since`.
+- Gate: `IntelligenceApiTest`, `DockerNetworkIsolationTest`, `backend/scripts/phase15-walk.ps1`.
 
 ---
 

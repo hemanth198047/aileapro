@@ -71,28 +71,7 @@ public class DockerPythonRunner {
         int timeout = timeoutMs == null ? props.getDefaultTimeoutMs() : timeoutMs;
         timeout = Math.min(Math.max(timeout, 200), props.getMaxTimeoutMs());
 
-        List<String> cmd = new ArrayList<>();
-        cmd.add("docker");
-        cmd.add("run");
-        cmd.add("--rm");
-        cmd.add("-i");
-        cmd.add("--name");
-        cmd.add(id);
-        cmd.add("--network");
-        cmd.add("none");
-        cmd.add("--memory");
-        cmd.add(props.getMemoryMb() + "m");
-        cmd.add("--cpus");
-        cmd.add(String.valueOf(props.getCpus()));
-        cmd.add("--pids-limit");
-        cmd.add(String.valueOf(props.getPidsLimit()));
-        cmd.add("--read-only");
-        cmd.add("--tmpfs");
-        cmd.add("/tmp:rw,noexec,nosuid,size=16m");
-        cmd.add("--security-opt");
-        cmd.add("no-new-privileges");
-        cmd.add("--user");
-        cmd.add("65534:65534");
+        List<String> cmd = new ArrayList<>(dockerRunArgs(id));
         cmd.add(props.getPythonImage());
         cmd.add("python");
         cmd.add("-");
@@ -165,6 +144,36 @@ public class DockerPythonRunner {
         }
         destroy(executorId, process);
         return true;
+    }
+
+    /**
+     * Docker argv up to (but not including) the image. Exposed for tests that prove
+     * {@code --network none} is always present — that is what blocks 169.254.169.254.
+     */
+    public List<String> dockerRunArgs(String containerName) {
+        List<String> cmd = new ArrayList<>();
+        cmd.add("docker");
+        cmd.add("run");
+        cmd.add("--rm");
+        cmd.add("-i");
+        cmd.add("--name");
+        cmd.add(containerName);
+        cmd.add("--network");
+        cmd.add("none");
+        cmd.add("--memory");
+        cmd.add(props.getMemoryMb() + "m");
+        cmd.add("--cpus");
+        cmd.add(String.valueOf(props.getCpus()));
+        cmd.add("--pids-limit");
+        cmd.add(String.valueOf(props.getPidsLimit()));
+        cmd.add("--read-only");
+        cmd.add("--tmpfs");
+        cmd.add("/tmp:rw,noexec,nosuid,size=16m");
+        cmd.add("--security-opt");
+        cmd.add("no-new-privileges");
+        cmd.add("--user");
+        cmd.add("65534:65534");
+        return cmd;
     }
 
     private void destroy(String id, Process process) {

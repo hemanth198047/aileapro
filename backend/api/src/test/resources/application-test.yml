@@ -25,3 +25,7 @@ aileapro:
   lab:
     executor: fake
     daily-runs-per-user: 40
+  link-check:
+    enabled: false
+  ai:
+    enabled: true

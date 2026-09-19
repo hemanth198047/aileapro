@@ -37,6 +37,10 @@ aileapro:
     origin: ${AILEAPRO_WEB_ORIGIN:http://localhost:3000}
   ai:
     provider: ${AILEAPRO_AI_PROVIDER:fake}
+    enabled: ${AILEAPRO_AI_ENABLED:true}
+  link-check:
+    enabled: ${AILEAPRO_LINK_CHECK_ENABLED:true}
+    cron: "0 15 4 * * *"
   search:
     # jdbc = Postgres FTS + pgvector. Tests override to memory.
     backend: ${AILEAPRO_SEARCH_BACKEND:jdbc}
