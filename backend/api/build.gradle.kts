@@ -14,6 +14,7 @@ dependencies {
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.spring.boot.starter.data.redis)
+    implementation(libs.spring.boot.starter.mail)
     implementation(libs.spring.session.data.redis)
     implementation(libs.flyway.core)
     implementation(libs.flyway.database.postgresql)

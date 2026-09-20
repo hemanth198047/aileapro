@@ -2126,3 +2126,18 @@
   line-height: 1.55;
 }
 
+.legal__body ul {
+  margin: 0 0 var(--s3);
+  padding-left: 1.25rem;
+  line-height: 1.55;
+}
+
+.legal__body li {
+  margin-bottom: var(--s2);
+}
+
+.legal__body a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+

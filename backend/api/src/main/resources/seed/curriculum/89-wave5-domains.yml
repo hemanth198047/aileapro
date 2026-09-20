@@ -1,0 +1,831 @@
+# Wave 5: fill previously empty map domains + umbrella orientation chapters.
+# map-honesty-reserve (in 10-domains.yml) stays empty on purpose for CatalogApiTest.
+
+units:
+  # --- Umbrella orientations (domains that only had peer siblings before) ---
+  - slug: math-for-ai-orientation
+    title: Mathematics for AI — Orientation
+    kind: chapter
+    parent: mathematics-for-ai
+    status: published
+    version: 1.0.0
+    difficulty: 1
+    estimateMinutes: 20
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-20
+    tags: [mathematics, orientation]
+    objectives:
+      - Name the five math domains this map expects before deep ML.
+      - Explain why the math is taught for use, not for exam theatre.
+    description: >-
+      A map key: which maths you need, in what order, and what “enough” looks like for practice.
+    blocks:
+      - type: why
+        markdown: |
+          The map lists peer domains — linear algebra, calculus, probability, statistics,
+          optimisation — rather than nesting them under this umbrella. This chapter is the
+          orientation so the umbrella is not an empty room.
+
+  - slug: which-math-when
+    title: Which Math When
+    kind: knowledge_unit
+    parent: math-for-ai-orientation
+    status: published
+    version: 1.0.0
+    difficulty: 1
+    estimateMinutes: 25
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [mathematics, path]
+    objectives:
+      - Order linear algebra → calculus intuition → probability/statistics → optimisation for ML.
+      - Say what each domain unlocks in model reading and implementation.
+      - Avoid treating unused theorem lists as mastery.
+    description: >-
+      A practical order and purpose for the mathematics domains on this map.
+    blocks:
+      - type: why
+        markdown: |
+          Learners stall when they either skip maths entirely or try to finish a pure-math syllabus
+          before writing a single training loop. You need enough notation and intuition to read a
+          paper and debug a shape error — not a second undergraduate degree first.
+
+      - type: eli5
+        markdown: |
+          Before building with LEGO motors you learn: shapes that fit (linear algebra), how fast
+          things change (calculus), what “usually” means (probability), how to check a recipe
+          worked (statistics), and how to turn knobs to improve a score (optimisation).
+
+      - type: beginner
+        markdown: |
+          | Domain | You use it to… |
+          |--------|----------------|
+          | Linear algebra | Read weights, embeddings, attention as maps on vectors |
+          | Calculus | Understand gradients and why updates move loss |
+          | Probability | Talk about uncertainty, likelihood, sampling |
+          | Statistics | Evaluate estimates, confidence, experimental noise |
+          | Optimisation | Choose and debug training algorithms |
+
+          Study them as **tools for ML**, then return when a concrete bug demands more depth.
+
+      - type: intermediate
+        markdown: |
+          **Depth on demand.** Master matrix shapes and chain rule intuition early. Defer measure
+          theory, exotic proofs, and niche estimators until a paper or bug forces them.
+
+          **Signal of enough.** You can predict output shapes, explain a gradient step, and
+          interpret a simple A/B or eval confidence interval without hand-waving.
+
+      - type: misconception
+        payload:
+          code: math.all_or_nothing
+          claim: "Either finish all of undergrad maths or skip maths forever."
+          markdown: |
+            **The claim:** binary choice.
+
+            **What happens:** both extremes fail — opaque papers, or fragile intuition.
+
+            **How to catch yourself:** ask which concrete ML task is blocked, then study that slice.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. List the five math domains this map points to.
+            2. Which domain unlocks reading attention as matrix products?
+            3. When would you deepen statistics before more calculus?
+            4. What is a practical “enough” signal for linear algebra here?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Name three math domains on this map."
+              answer: "Any of: linear algebra, calculus, probability, statistics, optimisation."
+            - question: "What is maths-for-use?"
+              answer: "Learning the pieces that unlock reading and debugging models, not exam completeness."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can route yourself to the right math domain for a blocked ML task.
+    resources:
+      - source: numpy-absolute-basics
+        purpose: TOOL_REFERENCE
+        relevance: 0.6
+        excerpt: Practical numerical arrays — where linear algebra meets code.
+
+  - slug: ml-map-orientation
+    title: Machine Learning — Orientation
+    kind: chapter
+    parent: machine-learning
+    status: published
+    version: 1.0.0
+    difficulty: 1
+    estimateMinutes: 20
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [machine-learning, orientation]
+    objectives:
+      - Distinguish supervised, unsupervised, and RL settings at map level.
+      - Point to evaluation as a first-class sibling concern.
+    description: >-
+      How the ML domains on this map fit together before you pick a first algorithm chapter.
+    blocks:
+      - type: why
+        markdown: |
+          “Machine learning” on the map is an umbrella. The authored depth lives in classical ML,
+          neural nets, evaluation, and related domains. This chapter stops the umbrella looking empty.
+
+  - slug: ml-problem-settings
+    title: ML Problem Settings
+    kind: knowledge_unit
+    parent: ml-map-orientation
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 30
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [machine-learning, supervised, unsupervised, rl]
+    objectives:
+      - Classify a product idea as supervised, unsupervised, or RL-shaped.
+      - Explain why evaluation design belongs beside model choice.
+      - Avoid forcing every problem into classification.
+    description: >-
+      The three common learning settings and how they steer what you study next on this map.
+    blocks:
+      - type: why
+        markdown: |
+          Teams pick algorithms before naming the learning setting. The setting decides what data
+          you need, what “correct” means, and which chapters on this map matter first.
+
+      - type: eli5
+        markdown: |
+          Supervised: flashcards with answers on the back. Unsupervised: sort a messy drawer with
+          no labels. RL: learn by points and penalties while acting in a game.
+
+      - type: beginner
+        markdown: |
+          **Supervised** — inputs with labels; predict labels for new inputs.
+
+          **Unsupervised** — structure without labels (clusters, compression, density).
+
+          **Reinforcement** — actions over time; reward signal, not a fixed labelled table.
+
+          **Evaluation** is not optional decoration: it defines whether the setting was solved.
+
+      - type: intermediate
+        markdown: |
+          Many products are **hybrids** (supervised ranker + unsupervised embeddings + a thin
+          bandit). Name the dominant setting for the risky decision, then add supporting pieces.
+
+      - type: misconception
+        payload:
+          code: ml.everything_is_classification
+          claim: "If it is ML, it is classification."
+          markdown: |
+            **The claim:** pick a classifier.
+
+            **What happens:** ranking, generation, control, and clustering get forced into the wrong mould.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Classify: spam filter, customer segmentation, game-playing agent.
+            2. Why does evaluation sit beside model choice?
+            3. Give one hybrid product example.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does supervised learning need that unsupervised does not?"
+              answer: "Labels (or other supervised targets) paired with inputs."
+            - question: "What does RL optimise for?"
+              answer: "Cumulative reward from actions over time, not a fixed labelled table."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can name the learning setting before picking an algorithm chapter.
+    resources:
+      - source: model-cards-2018
+        purpose: BACKGROUND
+        relevance: 0.4
+        excerpt: Intended-use thinking pairs with choosing a learning setting honestly.
+
+  # --- AI Architecture ---
+  - slug: production-ai-architecture
+    title: Production AI Architecture
+    kind: chapter
+    parent: ai-architecture
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 45
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [architecture]
+    objectives:
+      - Separate model calls from retrieval, orchestration, and state.
+      - Design seams that let you replace a provider later.
+    description: >-
+      Structuring systems where a model is a component: boundaries, state, and replaceable providers.
+
+  - slug: seams-and-provider-abstraction
+    title: Seams and Provider Abstraction
+    kind: knowledge_unit
+    parent: production-ai-architecture
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [architecture, providers, seams]
+    objectives:
+      - Draw a boundary around the model client with typed inputs/outputs.
+      - Keep retrieval indexes and prompts versioned outside vendor SDKs.
+      - Explain why hiding the provider behind a seam reduces rewrite risk.
+    description: >-
+      How to keep an AI feature evolvable when models and vendors change underneath.
+    blocks:
+      - type: why
+        markdown: |
+          Provider SDKs change. Models deprecate. If prompts, retrieval, and business logic are
+          glued to one vendor client, every upgrade is a rewrite. Seams make the model a
+          replaceable worker.
+
+      - type: eli5
+        markdown: |
+          Use a power strip and a standard plug. When you buy a new lamp, you do not rewire the
+          house — you unplug and plug in.
+
+      - type: beginner
+        markdown: |
+          **Minimum seams:**
+
+          1. **Model client** — send messages / embeddings; receive text or vectors.
+          2. **Retrieval** — your index, chunking, and filters.
+          3. **Orchestration** — workflow, tools, retries, fallbacks.
+          4. **Product state** — user/session data in your database.
+
+          Keep prompts and eval suites in **your** repo, versioned with the feature.
+
+      - type: intermediate
+        markdown: |
+          Abstract **capabilities** (chat, embed, rerank) not one mega-SDK wrapper. Record model
+          id, prompt version, and retrieval corpus version on every answer for debugging.
+
+      - type: misconception
+        payload:
+          code: arch.sdk_is_architecture
+          claim: "Calling the vendor SDK from the controller is the architecture."
+          markdown: |
+            **The claim:** SDK in the request path = done.
+
+            **What happens:** product logic and vendor details fuse; swaps become archaeology.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. List four seams for a RAG chatbot.
+            2. What metadata would you log per answer?
+            3. Why version prompts with the feature?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What should a model client seam hide?"
+              answer: "Vendor-specific request/response details behind a stable capability API."
+            - question: "Where should prompt text live?"
+              answer: "In your versioned codebase (or config), not only in a vendor playground."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can sketch replaceable seams for model, retrieval, and orchestration.
+    resources:
+      - source: openai-evals
+        purpose: TOOL_REFERENCE
+        relevance: 0.55
+        excerpt: Versioned eval cases pair with versioned prompts behind architecture seams.
+
+  # --- AI Economics ---
+  - slug: cost-of-intelligence
+    title: Cost of Intelligence
+    kind: chapter
+    parent: ai-economics
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [economics, cost]
+    objectives:
+      - Break unit cost into tokens, accelerators, caching, and human review.
+      - Spot where margin actually comes from in an AI feature.
+    description: >-
+      The cost structure of model-backed features: what you pay per request and where margin hides.
+
+  - slug: token-gpu-and-margin
+    title: Tokens, GPUs, and Margin
+    kind: knowledge_unit
+    parent: cost-of-intelligence
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [economics, tokens, gpu, caching]
+    objectives:
+      - Estimate request cost from tokens and price tables (order of magnitude).
+      - Explain caching, batching, and smaller models as cost levers.
+      - Separate gross model spend from product margin after review and infra.
+    description: >-
+      How to think about money when every answer burns tokens or accelerator time.
+    blocks:
+      - type: why
+        markdown: |
+          A demo that costs $0.02 per clever answer can cost $20,000/day at product volume.
+          Economics is architecture: caching, routing to smaller models, and knowing when not to
+          call a model at all.
+
+      - type: eli5
+        markdown: |
+          Each AI answer is like a taxi ride billed by distance (tokens) and car type (model size).
+          Sharing a ride (batching) or remembering the route (caching) saves money.
+
+      - type: beginner
+        markdown: |
+          **Billable units:** input tokens, output tokens, sometimes embedding tokens, sometimes
+          GPU-seconds if you self-host.
+
+          **Levers:** shorter prompts, retrieval instead of huge context, cache repeated prefixes,
+          distill/ cascade to smaller models, batch offline jobs.
+
+          **Margin:** revenue or saved labour minus model + infra + human review + support.
+
+      - type: intermediate
+        markdown: |
+          Track **cost per successful task**, not cost per raw completion. Failed retries and
+          long-winded refusals are real spend. Put budgets and kill switches beside quality gates.
+
+      - type: misconception
+        payload:
+          code: econ.tokens_only
+          claim: "If token price drops, the feature is profitable."
+          markdown: |
+            **The claim:** cheaper tokens ⇒ margin.
+
+            **What happens:** review labour, support, and infra can dominate; volume amplifies waste.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Estimate cost for 1M requests at 2k tokens in + 500 out at $X/MTok (pick any table).
+            2. Name three cost levers besides “use a cheaper model”.
+            3. Why measure cost per successful task?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Name two billable units for LLM APIs."
+              answer: "Input tokens and output tokens (embeddings may also bill)."
+            - question: "Give one non-model cost that eats margin."
+              answer: "Human review, support, infra, or failed retries."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can estimate order-of-magnitude cost and name levers beyond model choice.
+    resources:
+      - source: iso-42001
+        purpose: BACKGROUND
+        relevance: 0.3
+        excerpt: Governance contexts often require cost and risk controls together.
+
+  # --- AI Entrepreneurship ---
+  - slug: building-on-models
+    title: Building on Models You Do Not Own
+    kind: chapter
+    parent: ai-entrepreneurship
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [business, entrepreneurship]
+    objectives:
+      - Name differentiation levers beyond “we wrapped a model”.
+      - List dependency risks when the foundation model is rented.
+    description: >-
+      Starting a product on top of foundation models: advantage, data, and vendor dependency.
+
+  - slug: moat-and-dependency-risk
+    title: Moat and Dependency Risk
+    kind: knowledge_unit
+    parent: building-on-models
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [business, moat, dependency]
+    objectives:
+      - Distinguish workflow, data, distribution, and brand advantages from raw model access.
+      - Plan for price changes, ToS changes, and model deprecations.
+      - Explain why “ChatGPT but for X” is usually not a moat.
+    description: >-
+      What can still be a durable business when anyone can call the same API.
+    blocks:
+      - type: why
+        markdown: |
+          If your only product is a thin prompt over a public model, a vendor update or a competitor
+          with the same idea erases you. Entrepreneurship here is about owned distribution, data
+          loops, and workflows — with eyes open on dependency.
+
+      - type: eli5
+        markdown: |
+          Anyone can buy the same flour. A bakery wins with recipes, location, and regulars — not
+          by claiming unique wheat.
+
+      - type: beginner
+        markdown: |
+          **Possible advantages:** proprietary data flywheels, deep workflow integration, regulated
+          trust, distribution, switching costs in the customer’s process.
+
+          **Dependency risks:** price hikes, rate limits, safety policy changes, model quality
+          regressions, region availability.
+
+          **Mitigations:** seams (see architecture), multi-provider options, offline eval gates,
+          contractual SLAs where real.
+
+      - type: intermediate
+        markdown: |
+          Prefer **problem ownership** over model ownership. Measure willingness-to-pay for the
+          job done, not for “AI”. Keep a kill-switch narrative: what you ship if the model worsens
+          overnight.
+
+      - type: misconception
+        payload:
+          code: biz.wrapper_moat
+          claim: "Access to GPT-class models is our moat."
+          markdown: |
+            **The claim:** API access = advantage.
+
+            **What happens:** competitors get the same API; your wrapper looks like a feature, not a company.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. List three non-model advantages for a vertical AI tool.
+            2. Write two dependency risks and a mitigation for each.
+            3. Why is “ChatGPT for X” a weak pitch alone?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Name one real moat candidate for an AI startup."
+              answer: "Data flywheel, workflow lock-in, distribution, or regulated trust — not raw API access."
+            - question: "Name one vendor dependency risk."
+              answer: "Price, ToS, deprecation, quality regression, or availability."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can pitch advantage without pretending the model itself is exclusive.
+    resources:
+      - source: model-cards-2018
+        purpose: BACKGROUND
+        relevance: 0.35
+        excerpt: Honest intended-use docs support trust — a real sales asset in regulated buys.
+
+  # --- AI Research ---
+  - slug: reading-ai-papers
+    title: Reading AI Papers
+    kind: chapter
+    parent: ai-research
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 45
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [research, papers]
+    objectives:
+      - Extract claim, method, evidence, and limits from a paper.
+      - Design a minimal reproduction check before trusting a result.
+    description: >-
+      How to read, criticise, and partially reproduce papers without drowning in PDFs.
+
+  - slug: claim-method-evidence
+    title: Claim, Method, Evidence
+    kind: knowledge_unit
+    parent: reading-ai-papers
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [research, literacy]
+    objectives:
+      - "Write a four-line paper brief: claim, method, evidence, limits."
+      - Spot missing baselines, data leakage, and overclaim.
+      - Choose a smallest experiment that would falsify the headline claim.
+    description: >-
+      A repeatable reading method so papers become decisions, not vibes.
+    blocks:
+      - type: why
+        markdown: |
+          Papers are marketing plus evidence. Without a reading method you either reject everything
+          or adopt hype. Engineers need a brief that drives whether to try, wait, or ignore.
+
+      - type: eli5
+        markdown: |
+          For a magic trick write: what they claim, how they say it works, what proof they showed,
+          and what they did not test. Then try the easiest version at home.
+
+      - type: beginner
+        markdown: |
+          **Four lines:**
+
+          1. **Claim** — what improves, for whom.
+          2. **Method** — the idea in one paragraph.
+          3. **Evidence** — datasets, metrics, baselines, ablations.
+          4. **Limits** — what they admit; what they omit.
+
+          Then ask: **what smallest run** would make me distrust the claim?
+
+      - type: intermediate
+        markdown: |
+          Check train/test contamination, hyperparameter tuning on the test set, and whether the
+          baseline is strong. Prefer papers with code and seeds — still verify.
+
+      - type: misconception
+        payload:
+          code: research.benchmark_equals_truth
+          claim: "State-of-the-art on a leaderboard means it will work in my product."
+          markdown: |
+            **The claim:** SOTA transfers.
+
+            **What happens:** distribution shift, cost, and latency kill the win.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write a four-line brief for Attention Is All You Need (from memory or skim).
+            2. Invent a one-evening falsification check for a RAG paper’s headline.
+            3. List two ways a baseline can be unfairly weak.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What are the four lines of a paper brief?"
+              answer: "Claim, method, evidence, limits."
+            - question: "What should you plan after the brief?"
+              answer: "A smallest experiment that could falsify the claim."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can brief a paper and name a falsifying check in under a page.
+    resources:
+      - source: attention-2017
+        purpose: EXAMPLE
+        relevance: 0.7
+        excerpt: Classic architecture paper — good practice target for the four-line brief.
+
+  # --- Frontier AI ---
+  - slug: living-with-uncertainty
+    title: Living with Frontier Uncertainty
+    kind: chapter
+    parent: frontier-ai
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: HIGH
+    knowledgeClass: EXPERIMENTAL
+    lastReviewedAt: 2026-09-20
+    tags: [frontier, uncertainty]
+    objectives:
+      - Label unsettled claims instead of teaching them as fact.
+      - Separate demo capability from production readiness.
+    description: >-
+      How to track edge-of-capability work without turning rumours into curriculum.
+
+  - slug: unsettled-vs-settled
+    title: Unsettled vs Settled
+    kind: knowledge_unit
+    parent: living-with-uncertainty
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 30
+    volatility: HIGH
+    knowledgeClass: EXPERIMENTAL
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [frontier, epistemology]
+    objectives:
+      - Tag a claim as settled practice, promising research, or rumour.
+      - Require eval evidence before promoting frontier tricks into production paths.
+      - Explain why HIGH volatility units need review dates.
+    description: >-
+      A discipline for frontier topics: explicit uncertainty, dated claims, no costume of certainty.
+    blocks:
+      - type: why
+        markdown: |
+          Frontier work moves weekly. Teaching yesterday’s rumour as eternal truth creates brittle
+          engineers. This domain exists to practise uncertainty labels — not to freeze a hype cycle.
+
+      - type: eli5
+        markdown: |
+          Some playground rules are fixed (settled). Some new tricks might work (promising). Some
+          are stories kids tell (rumour). Label them before you build a clubhouse on them.
+
+      - type: beginner
+        markdown: |
+          **Settled** — reproduced widely; appears in production runbooks.
+
+          **Promising** — strong paper/demo; limited independent replication.
+
+          **Rumour** — screenshots, anonymous posts, no method.
+
+          Promote content along that ladder only with dates and sources.
+
+      - type: intermediate
+        markdown: |
+          Product paths should prefer settled techniques. Research sandboxes can track promising
+          ideas behind feature flags. Never let rumour skip the queue.
+
+      - type: misconception
+        payload:
+          code: frontier.newest_is_best
+          claim: "The newest demo is the best approach for our users."
+          markdown: |
+            **The claim:** recency = quality.
+
+            **What happens:** you inherit instability, unknown failure modes, and support cost.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Tag three headlines you have seen this month as settled / promising / rumour.
+            2. What evidence would promote a promising idea to settled in your team?
+            3. Why do HIGH volatility units show review dates?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Name the three uncertainty labels."
+              answer: "Settled, promising, and rumour."
+            - question: "Where should rumour sit in a product path?"
+              answer: "Nowhere — keep it out of production curriculum until evidenced."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you refuse to teach rumour as fact and can date your frontier notes.
+    resources:
+      - source: nist-ai-rmf
+        purpose: BACKGROUND
+        relevance: 0.45
+        excerpt: Risk framing pairs well with explicit uncertainty about capability claims.
+
+  # --- AI Applications ---
+  - slug: ai-in-the-wild
+    title: AI in the Wild
+    kind: chapter
+    parent: ai-applications
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 40
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [applications]
+    objectives:
+      - Separate production wins from demo theatre by domain.
+      - Ask what was replaced and what still needs humans.
+    description: >-
+      Where AI is genuinely in production, what it replaced, and what it failed to replace.
+
+  - slug: production-vs-demo
+    title: Production vs Demo
+    kind: knowledge_unit
+    parent: ai-in-the-wild
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 35
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [applications, production]
+    objectives:
+      - List questions that distinguish a demo from a production system.
+      - Give examples of tasks AI often helps vs tasks it often fails.
+      - Explain why “human in the loop” is a design choice, not a confession.
+    description: >-
+      A checklist for reading industry claims without swallowing the press release.
+    blocks:
+      - type: why
+        markdown: |
+          Every domain has a flashy demo. Production means reliability, cost, integration, and a
+          clear job that got better. This unit trains the questions that separate the two.
+
+      - type: eli5
+        markdown: |
+          A magic show is a demo. A dishwasher that runs every night is production. Ask whether the
+          trick still works when guests spill juice and the power flickers.
+
+      - type: beginner
+        markdown: |
+          **Ask:** What metric moved? Who owns failures? What is the fallback? What data is needed
+          weekly? What is the cost per successful task?
+
+          **Often helps:** drafting, ranking, transcription, retrieval over large corpora, coding
+          assistance with review.
+
+          **Often fails alone:** high-stakes decisions without oversight, novel physical manipulation,
+          tasks needing guaranteed correctness.
+
+      - type: intermediate
+        markdown: |
+          Prefer case studies that admit failure modes. “Human in the loop” can be the product
+          (escalation) rather than a temporary shame.
+
+      - type: misconception
+        payload:
+          code: apps.demo_equals_deployed
+          claim: "If it is on a launch stage, it is in production."
+          markdown: |
+            **The claim:** stage demo = shipped.
+
+            **What happens:** you copy an architecture that never survived real traffic or liability.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write five questions you would ask a vendor claiming “AI for invoices”.
+            2. Name two task types that usually need human review.
+            3. When is human-in-the-loop a feature?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Name two production questions beyond model accuracy."
+              answer: "Ownership of failures, fallback, cost per success, data refresh, or liability."
+            - question: "Why can demos mislead?"
+              answer: "They hide cost, reliability, integration, and failure ownership."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can interrogate an industry claim with production questions.
+    resources:
+      - source: openai-evals
+        purpose: TOOL_REFERENCE
+        relevance: 0.4
+        excerpt: Eval discipline helps tell durable product wins from one-off demos.

@@ -35,6 +35,8 @@ server:
 aileapro:
   web:
     origin: ${AILEAPRO_WEB_ORIGIN:http://localhost:3000}
+  mail:
+    from: ${AILEAPRO_MAIL_FROM:noreply@aileapro.local}
   ai:
     provider: ${AILEAPRO_AI_PROVIDER:fake}
     enabled: ${AILEAPRO_AI_ENABLED:true}

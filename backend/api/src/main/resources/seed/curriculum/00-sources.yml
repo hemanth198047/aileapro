@@ -874,3 +874,19 @@ sources:
     lastVerifiedAt: 2026-09-20
     httpStatus: 200
     difficulty: 3
+
+  - slug: switch-transformers-2021
+    title: "Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity"
+    authors: "William Fedus, Barret Zoph, Noam Shazeer"
+    publisher: arXiv
+    url: https://arxiv.org/abs/2101.03961
+    doi: "10.48550/arXiv.2101.03961"
+    abstractText: >-
+      AILEAPRO summary: Sparse MoE routing with capacity constraints and load-balancing for large
+      language models; experts activate sparsely per token.
+    publishedOn: 2021-01-11
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 4

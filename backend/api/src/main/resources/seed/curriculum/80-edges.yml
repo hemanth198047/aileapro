@@ -622,10 +622,17 @@ edges:
     sources: [attention-2017]
 
   - from: transformer-block-overview
-    to: mixture-of-experts-draft
+    to: mixture-of-experts
     type: DEPENDS_ON
     weight: 0.5
-    note: MoE replaces the dense MLP inside the same block skeleton. Draft content.
+    note: MoE replaces the dense MLP inside the same block skeleton.
+    sources: [switch-transformers-2021, attention-2017]
+
+  - from: transformer-block-overview
+    to: authoring-queue-draft
+    type: DEPENDS_ON
+    weight: 0.1
+    note: Intentional draft edge — learners must not see this node.
 
   - from: next-token-prediction
     to: tokenization-and-vocab

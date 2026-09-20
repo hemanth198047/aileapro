@@ -34,3 +34,11 @@ jobs:
       - run: pnpm --filter @aileapro/ui typecheck
       - run: pnpm --filter web typecheck
       - run: pnpm --filter web build
+      - name: Install Playwright Chromium
+        run: pnpm --filter web exec playwright install --with-deps chromium
+      - name: Playwright public smokes
+        working-directory: frontend/web
+        run: pnpm exec playwright test -g "P0 public"
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          CI: "true"

@@ -5,14 +5,14 @@ import com.aileapro.api.EmailTokenRepository;
 import com.aileapro.api.RoleRepository;
 import com.aileapro.api.UserRepository;
 import com.aileapro.api.UserRoleRepository;
+import com.aileapro.api.mail.AppMailer;
 import com.aileapro.api.platform.ApiException;
 import com.aileapro.domain.RoleCodes;
 import com.aileapro.persistence.AuditLogEntity;
 import com.aileapro.persistence.EmailTokenEntity;
 import com.aileapro.persistence.UserEntity;
 import com.aileapro.persistence.UserRoleEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +29,6 @@ import java.util.UUID;
 
 @Service
 public class AuthService {
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final UserRepository users;
@@ -38,6 +37,8 @@ public class AuthService {
     private final EmailTokenRepository tokens;
     private final AuditLogRepository audits;
     private final PasswordEncoder passwords;
+    private final AppMailer mailer;
+    private final String webOrigin;
 
     public AuthService(
             UserRepository users,
@@ -45,7 +46,9 @@ public class AuthService {
             RoleRepository roles,
             EmailTokenRepository tokens,
             AuditLogRepository audits,
-            PasswordEncoder passwords
+            PasswordEncoder passwords,
+            AppMailer mailer,
+            @Value("${aileapro.web.origin:http://localhost:3000}") String webOrigin
     ) {
         this.users = users;
         this.userRoles = userRoles;
@@ -53,6 +56,8 @@ public class AuthService {
         this.tokens = tokens;
         this.audits = audits;
         this.passwords = passwords;
+        this.mailer = mailer;
+        this.webOrigin = webOrigin.endsWith("/") ? webOrigin.substring(0, webOrigin.length() - 1) : webOrigin;
     }
 
     @Transactional
@@ -78,7 +83,7 @@ public class AuthService {
         ur.setRoleCode(RoleCodes.LEARNER);
         userRoles.save(ur);
 
-        issueToken(user.getId(), "verify", 24);
+        issueToken(user, "verify", 24);
         audit(user.getId(), "auth.register", null);
         return user;
     }
@@ -108,7 +113,7 @@ public class AuthService {
 
     @Transactional
     public void forgotPassword(String email) {
-        users.findByEmailIgnoreCase(normalizeEmail(email)).ifPresent(user -> issueToken(user.getId(), "reset", 2));
+        users.findByEmailIgnoreCase(normalizeEmail(email)).ifPresent(user -> issueToken(user, "reset", 2));
     }
 
     @Transactional
@@ -138,18 +143,35 @@ public class AuthService {
         return token;
     }
 
-    private void issueToken(UUID userId, String purpose, int hours) {
+    private void issueToken(UserEntity user, String purpose, int hours) {
         byte[] buf = new byte[32];
         RANDOM.nextBytes(buf);
         String raw = HexFormat.of().formatHex(buf);
         EmailTokenEntity token = new EmailTokenEntity();
         token.setId(UUID.randomUUID());
-        token.setUserId(userId);
+        token.setUserId(user.getId());
         token.setPurpose(purpose);
         token.setTokenHash(hash(raw));
         token.setExpiresAt(Instant.now().plus(hours, ChronoUnit.HOURS));
         tokens.save(token);
-        log.info("DEV email token purpose={} user={} token={}", purpose, userId, raw);
+
+        if ("verify".equals(purpose)) {
+            mailer.send(
+                    user.getEmail(),
+                    "Verify your AILEAPRO email",
+                    "Welcome to AILEAPRO.\n\nVerify your email with this token (expires in "
+                            + hours + " hours):\n" + raw
+                            + "\n\nOr open: " + webOrigin + "/login?verify=" + raw
+                            + "\n\nIf you did not create an account, ignore this message.\n");
+        } else if ("reset".equals(purpose)) {
+            mailer.send(
+                    user.getEmail(),
+                    "Reset your AILEAPRO password",
+                    "A password reset was requested for your AILEAPRO account.\n\n"
+                            + "Reset token (expires in " + hours + " hours):\n" + raw
+                            + "\n\nOr open: " + webOrigin + "/login?reset=" + raw
+                            + "\n\nIf you did not request this, ignore this message.\n");
+        }
     }
 
     private void audit(UUID actor, String action, String ip) {

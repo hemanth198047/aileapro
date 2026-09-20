@@ -1,29 +1,161 @@
-# Intentionally unfinished — kept so CatalogApiTest / GraphApiTest can assert draft invisibility.
-# Do not publish until MoE routing, load balancing, and expert capacity are authored.
+# Mixture of Experts — published after Wave 5 authoring.
+# authoring-queue-draft stays unfinished so CatalogApiTest / GraphApiTest can assert draft invisibility.
 
 units:
-  - slug: mixture-of-experts-draft
-    title: Mixture of Experts (draft)
+  - slug: mixture-of-experts
+    title: Mixture of Experts
+    kind: knowledge_unit
+    parent: transformers
+    status: published
+    version: 1.0.0
+    difficulty: 5
+    estimateMinutes: 40
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [transformers, moe, sparse]
+    objectives:
+      - Explain router → top-k expert selection and how outputs are combined.
+      - State why load-balancing / capacity constraints matter for training stability.
+      - Contrast sparse MoE capacity growth with dense MLP cost per token.
+      - "Name failure modes: expert collapse, routing imbalance, and serving complexity."
+    description: >-
+      Sparse MoE layers grow model capacity by routing each token to a small set of experts
+      instead of paying for every parameter on every token.
+    blocks:
+      - type: why
+        markdown: |
+          Dense transformers pay for every feed-forward parameter on every token. Mixture-of-Experts
+          (MoE) layers try to grow total capacity without growing per-token compute: a router picks
+          a few experts, only those run, and their outputs are combined. That trade — more
+          parameters, similar FLOPs per token — shows up in large language models when teams want
+          scale without a matching latency bill.
+
+      - type: eli5
+        markdown: |
+          Imagine a hospital with many specialists. A receptionist (the router) reads your symptoms
+          and sends you to the two most relevant doctors (experts). You do not visit every doctor
+          in the building. The hospital can hire more specialists without making every patient wait
+          for all of them — as long as the receptionist does not send everyone to the same two
+          popular doctors.
+
+      - type: beginner
+        markdown: |
+          **Inside a transformer block**, the dense MLP can be replaced by an MoE layer:
+
+          1. A **router** scores each expert for the current token (often a small linear layer + softmax).
+          2. **Top-$k$** experts are selected (commonly $k=1$ or $k=2$).
+          3. Those experts run (each is typically an MLP).
+          4. Outputs are **combined** (weighted by router scores).
+
+          **Capacity** means how many tokens an expert is allowed to take in a batch. Without a
+          capacity limit and a load-balancing pressure, popular experts overflow and others starve.
+
+      - type: intermediate
+        markdown: |
+          **Load balance.** Training often adds an auxiliary loss so tokens spread across experts.
+          Collapse — one expert taking almost all traffic — wastes capacity and hurts quality.
+
+          **Serving.** Sparse models need expert parallelism, careful batching, and monitoring of
+          routing skew. A dense model of similar quality can be simpler to deploy even if it has
+          fewer total parameters.
+
+          **When to care.** MoE matters when you are reading papers or ops docs for sparse LLMs —
+          not as the first architecture you implement in a beginner lab.
+
+      - type: example
+        markdown: |
+          Token embedding $x$. Router logits $r = W_r x$. Softmax → probabilities $p_i$.
+          Pick top-2 experts $e_a, e_b$. Output ≈ $p_a\,e_a(x) + p_b\,e_b(x)$ (normalised over the
+          selected pair). If expert $e_a$ is already at capacity for this batch, the token may be
+          dropped or overflowed depending on the implementation — that is an ops concern, not a
+          footnote.
+
+      - type: misconception
+        payload:
+          code: moe.more_params_free
+          claim: "More MoE parameters always mean better quality at the same cost."
+          markdown: |
+            **The claim:** add experts → free quality.
+
+            **Why it feels right:** parameter count looks like scale.
+
+            **What happens:** bad routing, imbalance, and serving overhead can erase the win.
+            Quality depends on training recipe and load balance, not raw expert count.
+
+            **How to catch yourself:** ask for routing histograms and capacity overflow rates, not
+            only total parameter marketing numbers.
+
+      - type: common_mistake
+        markdown: |
+          Treating MoE as “just a bigger MLP” without capacity and balance.
+
+          Ignoring serving complexity when choosing a sparse checkpoint for production.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Sketch router → top-2 → combine for one token.
+            2. Why does expert collapse hurt training?
+            3. Name one reason a dense model might still be preferred in production.
+            4. What does “capacity” limit in a batch?
+            5. How does MoE differ from simply making the MLP wider for every token?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does the router decide?"
+              answer: "Which expert(s) process the current token (typically top-k)."
+            - question: "Why add a load-balancing loss?"
+              answer: "To discourage collapse onto a few popular experts."
+            - question: "What stays roughly similar when MoE grows total parameters?"
+              answer: "Per-token compute, if only k experts run per token."
+            - question: "Name one MoE serving concern."
+              answer: "Expert parallelism, routing skew, or capacity overflow handling."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Explain sparse routing vs dense MLP cost.
+            - Describe capacity and load balance in plain language.
+            - List failure modes that matter for training and serving.
+    resources:
+      - source: switch-transformers-2021
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          Sparse MoE routing with capacity and auxiliary load-balancing for large language models.
+      - source: attention-2017
+        purpose: BACKGROUND
+        relevance: 0.5
+        excerpt: >-
+          The transformer block skeleton MoE typically plugs into (replace the dense FFN).
+
+  - slug: authoring-queue-draft
+    title: Authoring queue (draft)
     kind: knowledge_unit
     parent: transformers
     status: draft
     version: 0.1.0
     difficulty: 5
-    estimateMinutes: 40
+    estimateMinutes: 20
     volatility: HIGH
     knowledgeClass: CURRENT
-    tags: [transformers, moe, draft]
+    tags: [draft, authoring]
     objectives:
-      - Explain router → expert selection at a high level.
+      - Reserved draft waypoint so learners never see unpublished queue items.
     description: >-
-      Sparse MoE layers route tokens to a subset of experts. Draft: needs a worked routing
-      example, load-balance loss, and failure modes before publish.
+      Intentionally unfinished. Exists so the platform can prove drafts stay invisible to learners.
     blocks:
       - type: why
         markdown: |
-          Dense transformers pay for every parameter on every token. MoE tries to grow capacity
-          without growing per-token compute. Draft note: this page is incomplete on purpose.
+          Draft note: this unit must remain unpublished. It is a test fixture for the authoring
+          queue, not learner content.
       - type: beginner
         markdown: |
-          A router scores experts; the top-$k$ run; their outputs are combined. Draft note: write
-          the capacity and load-balancing story before publishing.
+          Draft note: do not publish. Replace with real content only after full authoring review.

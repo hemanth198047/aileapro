@@ -1,9 +1,8 @@
 # Domain taxonomy A–BE from 06-CURRICULUM_MODEL.
 #
 # These are real domain definitions, not filler: each states what the domain covers so a
-# learner can tell whether it is what they need. Most have no published units yet, and the
-# UI says exactly that rather than implying depth that does not exist. Nothing here is
-# generated — 57 rows, one per domain in the spec.
+# learner can tell whether it is what they need. Wave 5 fills prior empty domains; only
+# map-honesty-reserve stays empty on purpose so the UI can prove honest empty states.
 
 units:
   - slug: computer-fundamentals
@@ -746,3 +745,16 @@ units:
     description: >-
       Domain-by-domain accounts of where AI is genuinely in production, what it replaced, and
       what it failed to replace.
+
+  - slug: map-honesty-reserve
+    title: Map Honesty Reserve
+    kind: domain
+    status: published
+    version: 1.0.0
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-20
+    tags: [map, honesty]
+    description: >-
+      Intentionally empty. Kept so the map can show an honest empty domain rather than implying
+      depth that does not exist. Not a learning goal — do not author units here.

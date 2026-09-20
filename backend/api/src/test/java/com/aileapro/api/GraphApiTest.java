@@ -81,7 +81,7 @@ class GraphApiTest {
                 .andExpect(jsonPath("$.nodes[*].unit.slug").value(hasItem("how-a-neuron-learns")))
                 // The seed authors an edge into the draft MoE unit; learners must not see it.
                 .andExpect(jsonPath("$.nodes[*].unit.slug")
-                        .value(everyItem(not("mixture-of-experts-draft"))));
+                        .value(everyItem(not("authoring-queue-draft"))));
 
         Neighborhood neighborhood = neighborhood("/v1/units/matrix-multiplication/graph?hops=1");
         Set<UUID> nodeIds = neighborhood.nodes().stream()
@@ -140,9 +140,9 @@ class GraphApiTest {
 
     @Test
     void draftUnitHasNoGraphOfItsOwn() throws Exception {
-        mockMvc.perform(get("/v1/units/mixture-of-experts-draft/graph").session(session))
+        mockMvc.perform(get("/v1/units/authoring-queue-draft/graph").session(session))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/v1/units/mixture-of-experts-draft/prerequisites").session(session))
+        mockMvc.perform(get("/v1/units/authoring-queue-draft/prerequisites").session(session))
                 .andExpect(status().isNotFound());
     }
 

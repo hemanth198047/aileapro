@@ -1,26 +1,27 @@
 # The seeded paths. Both contain exactly the units that are authored and published, in the order
 # they should be studied, and neither promises a curriculum that does not exist yet.
 #
-# ai-engineer-core is the full authored route after Wave 4 (~84 published knowledge units).
+# ai-engineer-core is the full authored route after Wave 5.
 # ai-engineer-abridged stays at ten published waypoints — pinned by CatalogApiTest.
 #
-# mixture-of-experts-draft is the authoring-queue waypoint: dropped for learners until published.
+# authoring-queue-draft is the authoring-queue waypoint: dropped for learners until published.
 
 paths:
   - slug: ai-engineer-core
     title: AI Engineer (core)
     roleTarget: AI Engineer
     status: published
-    version: 3.0.0
+    version: 4.0.0
     description: >-
-      The full authored route through the seed: programs and Python, DSA and interfaces, linear
+      The full authored route through the seed after Wave 5: programs and Python, DSA and interfaces, linear
       algebra and calculus, probability and statistics, optimisation, SQL and data engineering,
       EDA, classical ML (supervised, unsupervised, ensembles), evaluation, neural nets through
       CNNs and RNNs, RL intuition, generative models, attention and transformers, language models,
       embeddings and RAG quality, fine-tuning and LoRA, multimodal embeddings, vision and speech,
       agents, multi-agent handoffs and tool schemas, then evaluation, security, MLOps/LLMOps,
-      inference infra, system-design choices, and product/governance judgment. Authored pages
-      only — empty domains on the map still say they are empty.
+      inference infra, system-design choices, product/governance judgment, MoE, architecture
+      seams, AI economics, entrepreneurship, research literacy, frontier uncertainty labels, and
+      production-vs-demo judgment. Authored pages only — map-honesty-reserve stays empty on purpose.
     waypoints:
       - unit: instructions-and-state
         requiredMasteryState: PRACTICED
@@ -197,8 +198,26 @@ paths:
         requiredMasteryState: PRACTICED
       - unit: when-not-to-use-ai
         requiredMasteryState: PRACTICED
+      - unit: mixture-of-experts
+        requiredMasteryState: PRACTICED
+      - unit: which-math-when
+        requiredMasteryState: PRACTICED
+      - unit: ml-problem-settings
+        requiredMasteryState: PRACTICED
+      - unit: seams-and-provider-abstraction
+        requiredMasteryState: PRACTICED
+      - unit: token-gpu-and-margin
+        requiredMasteryState: PRACTICED
+      - unit: moat-and-dependency-risk
+        requiredMasteryState: PRACTICED
+      - unit: claim-method-evidence
+        requiredMasteryState: PRACTICED
+      - unit: unsettled-vs-settled
+        requiredMasteryState: PRACTICED
+      - unit: production-vs-demo
+        requiredMasteryState: PRACTICED
 
-      - unit: mixture-of-experts-draft
+      - unit: authoring-queue-draft
         requiredMasteryState: PRACTICED
 
   - slug: ai-engineer-abridged
@@ -231,5 +250,5 @@ paths:
         requiredMasteryState: PRACTICED
       - unit: rag-pipeline-basics
         requiredMasteryState: PRACTICED
-      - unit: mixture-of-experts-draft
+      - unit: authoring-queue-draft
         requiredMasteryState: PRACTICED

@@ -67,7 +67,7 @@ export default function RegisterPage() {
         </Button>
         <p className="auth__legal">
           By creating an account you agree to the{" "}
-          <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy</Link> stubs.
+          <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy</Link> policies.
           Your first path is generated after a short placement.
         </p>
         <p className="auth__foot">

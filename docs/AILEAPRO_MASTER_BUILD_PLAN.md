@@ -977,7 +977,10 @@ Apply / MASTERED still waits on Project Studio (Phase 10).
 
 ### GATE (Phase 16) — Milestone M7
 
-- [x] P0 acceptance list ticked (API smoke via `phase16-walk` + prior phase walks; full Playwright ×20 deferred)
+- [x] P0 acceptance list ticked (API smoke via `phase16-walk` + Playwright P0 suite)
+- [x] k6 load smoke script (`infra/scripts/k6-smoke.js`)
+- [x] Auth mail: SMTP when configured, otherwise log-only tokens
+- [ ] Cloud secrets manager wiring beyond env vars (still env / host secrets)
 - [x] Backup restore proven (`backend/scripts/backup-restore-drill.ps1` + `docs/ops/BACKUP_RESTORE.md`)
 - [x] Fake providers disabled in prod (`AiStartupCheck`, `LabStartupCheck`, `application-prod.yml`)
 - [ ] Launch checklist signed by product owner (`docs/LAUNCH_CHECKLIST.md`)
@@ -987,9 +990,12 @@ Apply / MASTERED still waits on Project Studio (Phase 10).
 - **2026-09-18 — Phase 16 complete (eng gate).** `V14__feature_flags.sql` seeds `lab_enabled`,
   `tutor_enabled`, `ci_agents`. Learners get `GET /v1/me/export` and `DELETE /v1/me` (anonymize).
   Admin `PUT /v1/admin/flags/{code}` gates lab/tutor. Prod profile forces secure cookies and
-  refuses fake AI/lab executors. Legal stubs at `/privacy` and `/terms`; Settings wires export/delete.
+  refuses fake AI/lab executors. Legal pages at `/privacy` and `/terms`; Settings wires export/delete.
   Ops: backup-restore drill + launch checklist. Tests: `PrivacyApiTest`. Walk: `phase16-walk.ps1`.
-  Product-owner signature on the checklist remains the human gate before public traffic.
+  **2026-09-20 — Launch completion slice.** Wave 5 fills empty domains; MoE published;
+  `authoring-queue-draft` + `map-honesty-reserve` keep honesty tests. Playwright P0 suite + k6 smoke;
+  SMTP-capable auth mail. Product-owner signature on the checklist remains the human gate before
+  public traffic.
 
 ---
 

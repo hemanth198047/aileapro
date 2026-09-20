@@ -74,11 +74,11 @@ class CatalogApiTest {
 
     @Test
     void draftUnitIsInvisibleToLearners() throws Exception {
-        assertThat(units.findBySlugAndLocale("mixture-of-experts-draft", "en"))
+        assertThat(units.findBySlugAndLocale("authoring-queue-draft", "en"))
                 .as("the draft unit exists in the database")
                 .isPresent();
 
-        mockMvc.perform(get("/v1/units/mixture-of-experts-draft").with(user("ada").roles("LEARNER")))
+        mockMvc.perform(get("/v1/units/authoring-queue-draft").with(user("ada").roles("LEARNER")))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("not_found"));
     }
@@ -95,13 +95,13 @@ class CatalogApiTest {
                 .andExpect(jsonPath("$.waypoints.length()").value(10))
                 .andExpect(jsonPath("$.waypoints[0].unit.slug").value("instructions-and-state"))
                 .andExpect(jsonPath("$.waypoints[*].unit.slug")
-                        .value(everyItem(not("mixture-of-experts-draft"))))
+                        .value(everyItem(not("authoring-queue-draft"))))
                 .andExpect(jsonPath("$.estimateMinutes").value(300));
     }
 
     @Test
     void domainWithoutContentIsHonestAboutIt() throws Exception {
-        mockMvc.perform(get("/v1/units/ai-entrepreneurship").with(user("ada").roles("LEARNER")))
+        mockMvc.perform(get("/v1/units/map-honesty-reserve").with(user("ada").roles("LEARNER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.kind").value("domain"))
                 .andExpect(jsonPath("$.description").isNotEmpty())
