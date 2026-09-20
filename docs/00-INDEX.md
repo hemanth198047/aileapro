@@ -46,7 +46,7 @@ These defaults exist so implementation does not stall on unstated choices:
 
 | Area | Decision |
 |---|---|
-| Repo | One git repo: Gradle multi-project (`backend/`) + pnpm (`apps/web`) |
+| Repo | One git repo: `frontend/` (pnpm) + `backend/` (Gradle) + `infra/` |
 | Web | Next.js (App Router) + TypeScript (UI only) |
 | API / worker / executor | **Java 21 + Spring Boot** (`backend/api`, `backend/worker`, `backend/executor`) |
 | DB | PostgreSQL 16 + Flyway + Spring Data JPA (+ JDBC for graph/pgvector) |

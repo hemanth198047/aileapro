@@ -5,61 +5,72 @@ The AI university, lab, and personal tutor. `aileapro` is the repository name.
 - Planning: [`docs/00-INDEX.md`](docs/00-INDEX.md)
 - Build script: [`docs/AILEAPRO_MASTER_BUILD_PLAN.md`](docs/AILEAPRO_MASTER_BUILD_PLAN.md)
 
-## Current stack (through Phase 2)
+## Repository layout
 
-| Piece | Path |
+| Tree | What lives here |
 |---|---|
-| API | `backend/api` Java 21 Spring Boot |
-| Worker stub | `backend/worker` (health only) |
-| Executor stub | `backend/executor` (health only — no learner code) |
-| Web | `apps/web` Next.js |
-| Design system | `packages/ui` (`@aileapro/ui`) tokens and primitives |
-| Data | Postgres 16, Redis 7, MinIO |
+| [`frontend/`](frontend/) | Next.js web app (`web/`) and UI package (`packages/ui`) — pnpm workspace |
+| [`backend/`](backend/) | Java 21 / Spring Boot API, worker, executor, shared libs, seed content |
+| [`infra/`](infra/) | Docker Compose, Grafana dashboards, local start/stop scripts |
+| [`docs/`](docs/) | Product and engineering specs |
 
-## Spaces
-
-`/app` redirects to `/app/today`. Every space below is routed, and each one states what it is
-waiting on instead of showing invented progress. `apps/web/lib/spaces.tsx` is the registry that
-drives the navigation, command palette (`Ctrl K`), breadcrumb, and empty states.
-
-Today · Learn · Map · Assess · Lab · Studio · Notes · Research · Evolve · Career · Search ·
-Settings · Admin (`/app/admin` renders the API's 403 unless you hold the admin role)
+```text
+aileapro/
+  frontend/                 # TypeScript only
+    web/                    # Next.js App Router
+    packages/ui/            # @aileapro/ui design system
+    package.json            # pnpm workspace root
+  backend/                  # Java only
+    api/  worker/  executor/
+    libs/  scripts/
+  infra/
+    compose/                # Postgres, Redis, MinIO
+    scripts/dev.ps1|.sh     # stack orchestration
+    grafana/
+  docs/
+  start.bat / start.sh      # one-command local start
+  stop.bat  / stop.sh
+```
 
 ## Run locally
 
-```powershell
+**Windows:** double-click `start.bat` (or `stop.bat` to tear down).
+
+**macOS / Linux:**
+
+```bash
+chmod +x start.sh stop.sh
+./start.sh
+```
+
+That brings up Docker, seeds if needed, API `:8090`, web `:3000`, and the lab executor.
+
+Manual pieces (optional):
+
+```bash
+# infra
 docker compose -f infra/compose/docker-compose.yml up -d
-cd backend
-gradle :api:bootRun
+
+# backend
+cd backend && ./gradlew :api:bootRun
+
+# frontend
+cd frontend && pnpm install && pnpm --filter web dev
 ```
 
-In another terminal:
+Open http://localhost:3000 — register, then you land in the studio shell.
 
-```powershell
-corepack enable
-pnpm install
-pnpm --filter web dev
-```
+API health: http://localhost:8090/actuator/health · OpenAPI: http://localhost:8090/swagger-ui.html
 
-Open http://localhost:3000 — register, then you should land in the studio shell.
+The API listens on 8090 because 8080 is often taken. Override with `AILEAPRO_API_PORT`; point the web proxy with `AILEAPRO_API_ORIGIN`.
 
-API: http://localhost:8090/v1/me (after login cookie)  
-OpenAPI: http://localhost:8090/swagger-ui.html  
-Health: http://localhost:8090/actuator/health
+## Spaces
 
-The API listens on 8090 because 8080 is commonly taken (XAMPP/Apache, Jenkins). Override with
-`AILEAPRO_API_PORT`, and point the web proxy at it with `AILEAPRO_API_ORIGIN`.
-
-Dev email verification tokens are printed in the API log (not sent by mail yet).
+`/app` redirects to `/app/today`. `frontend/web/lib/spaces.tsx` is the registry behind navigation, the command palette (`Ctrl K`), breadcrumb, and empty states.
 
 ## Tests
 
-```powershell
-cd backend
-gradle check
-pnpm --filter @aileapro/ui typecheck
-pnpm --filter web typecheck
-pnpm --filter web build
+```bash
+cd backend && ./gradlew check
+cd frontend && pnpm -r typecheck && pnpm --filter web build
 ```
-
-If `./gradlew` times out downloading a distribution, use the system `gradle` command (9.x is fine).

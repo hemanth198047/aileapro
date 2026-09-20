@@ -31,10 +31,11 @@ Also start the worker and executor. Both are health-only skeletons until
 Phase 9, so they are off by default.
 
 .EXAMPLE
-  .\scripts\dev.ps1
-  .\scripts\dev.ps1 status
-  .\scripts\dev.ps1 up -Clean
-  .\scripts\dev.ps1 down
+  .\infra\scripts\dev.ps1
+  .\infra\scripts\dev.ps1 status
+  .\infra\scripts\dev.ps1 up -Clean
+  .\infra\scripts\dev.ps1 down
+  # Or from repo root: start.bat / stop.bat
 #>
 [CmdletBinding()]
 param(
@@ -51,11 +52,13 @@ param(
 # the script on a healthy `docker compose up`. Exit codes are checked instead.
 $ErrorActionPreference = 'Continue'
 
-$Root = Split-Path -Parent $PSScriptRoot
+$Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $Compose = Join-Path $Root 'infra\compose\docker-compose.yml'
 $RunDir = Join-Path $Root '.run'
 $LogDir = Join-Path $RunDir 'logs'
 $Gradlew = Join-Path $Root 'backend\gradlew.bat'
+$Frontend = Join-Path $Root 'frontend'
+$WebApp = Join-Path $Frontend 'web'
 
 $ApiPort = if ($env:AILEAPRO_API_PORT) { [int]$env:AILEAPRO_API_PORT } else { 8090 }
 $WebPort = if ($env:PORT) { [int]$env:PORT } else { 3000 }
@@ -327,14 +330,18 @@ function Start-Skeletons {
 function Start-Web {
     Step "starting the web app on $WebPort"
 
-    if (-not (Test-Path (Join-Path $Root 'node_modules'))) {
-        Note 'installing workspace dependencies'
-        & pnpm install --frozen-lockfile 2>&1 | Out-File -FilePath (Join-Path $LogDir 'pnpm-install.log') -Encoding utf8
-        if ($LASTEXITCODE -ne 0) { Fail "pnpm install failed, see $LogDir\pnpm-install.log" }
+    if (-not (Test-Path (Join-Path $Frontend 'node_modules'))) {
+        Note 'installing frontend workspace dependencies'
+        Push-Location $Frontend
+        try {
+            & pnpm install --frozen-lockfile 2>&1 | Out-File -FilePath (Join-Path $LogDir 'pnpm-install.log') -Encoding utf8
+            if ($LASTEXITCODE -ne 0) { Fail "pnpm install failed, see $LogDir\pnpm-install.log" }
+        } finally {
+            Pop-Location
+        }
     }
 
-    $web = Join-Path $Root 'apps\web'
-    $next = Join-Path $web '.next'
+    $next = Join-Path $WebApp '.next'
 
     # A production build leaves a BUILD_ID in .next and deletes the chunk files the
     # dev server still expects, after which every route answers 500. Clearing it is
@@ -349,7 +356,7 @@ function Start-Web {
     }
 
     Stop-Named 'web' $WebPort | Out-Null
-    $started = Start-Background -Label 'web' -CommandLine 'pnpm dev' -WorkingDirectory $web
+    $started = Start-Background -Label 'web' -CommandLine 'pnpm dev' -WorkingDirectory $WebApp
     Note "pid $($started.Process.Id), log $($started.Log)"
 
     if (-not (Wait-Url "http://localhost:$WebPort/login" 240 'the web app' $started.Log)) {
@@ -416,13 +423,13 @@ function Bring-Up {
     Start-Web
     Show-Status
     Write-Host "`nAILEAPRO is up. Open http://localhost:$WebPort and register to start." -ForegroundColor Green
-    Write-Host "Follow logs with: .\scripts\dev.ps1 logs" -ForegroundColor DarkGray
-    Write-Host "Stop it with:     .\scripts\dev.ps1 down`n" -ForegroundColor DarkGray
+    Write-Host "Follow logs with: .\infra\scripts\dev.ps1 logs  (or start.bat logs)" -ForegroundColor DarkGray
+    Write-Host "Stop it with:     stop.bat`n" -ForegroundColor DarkGray
 }
 
 function Follow-Logs {
     $paths = @('api', 'web') | ForEach-Object { Join-Path $LogDir "$_.log" } | Where-Object { Test-Path $_ }
-    if ($paths.Count -eq 0) { Fail 'no logs yet; start the stack first with .\scripts\dev.ps1' }
+    if ($paths.Count -eq 0) { Fail 'no logs yet; start the stack first with start.bat or .\infra\scripts\dev.ps1' }
     Note 'following; Ctrl+C to stop'
     Get-Content -Path $paths -Tail 40 -Wait
 }

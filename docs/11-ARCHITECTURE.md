@@ -120,19 +120,26 @@ REST/JSON versioned APIs, pagination, auth bearer or cookie documented. No deskt
 
 ```
 aileapro/
-  apps/web                 # Next.js UI only
-  packages/ui
-  packages/api-client      # generated from springdoc
-  backend/
+  frontend/                  # TypeScript only (pnpm workspace)
+    web/                     # Next.js UI
+    packages/ui              # @aileapro/ui design system
+    packages/api-client      # generated from springdoc (later)
+  backend/                   # Java only
     settings.gradle.kts
-    api/                   # Spring Boot HTTP + SSE
-    worker/                # jobs, intelligence, emails
-    executor/              # sandbox controller
+    api/                     # Spring Boot HTTP + SSE
+    worker/                  # jobs, intelligence, emails
+    executor/                # sandbox controller
     libs/domain
     libs/ai
     libs/security
     libs/persistence
+    scripts/                 # API phase walks, backup drill
   docs/
-  infra/compose
-  infra/k8s                # later
+  infra/
+    compose/                 # Postgres, Redis, MinIO
+    scripts/                 # local stack start/stop
+    grafana/
+    k8s/                     # later
+  start.bat / start.sh
+  stop.bat  / stop.sh
 ```

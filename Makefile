@@ -1,4 +1,4 @@
-.PHONY: up down api web test
+.PHONY: up down api web test frontend-install
 
 up:
 	docker compose -f infra/compose/docker-compose.yml up -d
@@ -9,8 +9,12 @@ down:
 api:
 	cd backend && ./gradlew :api:bootRun
 
-web:
-	pnpm --filter web dev
+frontend-install:
+	cd frontend && pnpm install
+
+web: frontend-install
+	cd frontend && pnpm --filter web dev
 
 test:
 	cd backend && ./gradlew check
+	cd frontend && pnpm -r typecheck

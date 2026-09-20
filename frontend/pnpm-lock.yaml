@@ -8,34 +8,6 @@ importers:
 
   .: {}
 
-  apps/web:
-    dependencies:
-      '@aileapro/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      next:
-        specifier: ^15.5.3
-        version: 15.5.25(@types/node@24.13.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react:
-        specifier: ^19.1.1
-        version: 19.3.0
-      react-dom:
-        specifier: ^19.1.1
-        version: 19.3.0(react@19.3.0)
-    devDependencies:
-      '@types/node':
-        specifier: ^24.3.1
-        version: 24.13.5
-      '@types/react':
-        specifier: ^19.1.12
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: ^19.1.9
-        version: 19.3.0(@types/react@19.3.0)
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
-
   packages/ui:
     dependencies:
       katex:
@@ -60,6 +32,34 @@ importers:
         specifier: ^6.0.0
         version: 6.0.0
     devDependencies:
+      '@types/react':
+        specifier: ^19.1.12
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.1.9
+        version: 19.3.0(@types/react@19.3.0)
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+
+  web:
+    dependencies:
+      '@aileapro/ui':
+        specifier: workspace:*
+        version: link:../packages/ui
+      next:
+        specifier: ^15.5.3
+        version: 15.5.25(@types/node@24.13.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: ^19.1.1
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.3.0(react@19.3.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.1
+        version: 24.13.5
       '@types/react':
         specifier: ^19.1.12
         version: 19.3.0

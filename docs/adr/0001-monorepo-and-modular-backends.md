@@ -11,13 +11,13 @@ Many domains; need extractable deploy units; one git repo.
 ## Decision
 
 - One repo `aileapro`.
-- `apps/web`: Next.js App Router UI. Talks only to `/v1` (optional thin BFF for cookies).
+- `frontend/web`: Next.js App Router UI. Talks only to `/v1` (optional thin BFF for cookies).
+- `frontend/packages/ui`, `frontend/packages/api-client` (generated): frontend only.
 - `backend/api`: Spring Boot HTTP API.
 - `backend/worker`: Spring Boot job processor (same modules, no public HTTP or internal-only actuator).
 - `backend/executor`: Spring Boot execution controller (separate network).
 - `backend/libs/*`: shared Java (domain, security, ai ports).
-- `packages/ui`, `packages/api-client` (generated): frontend only.
-
+- `infra/`: Compose, local scripts, future k8s.
 ## Consequences
 
 + Blast radius: executor ≠ DB.

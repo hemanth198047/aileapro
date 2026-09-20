@@ -1,12 +1,15 @@
 {
   "name": "aileapro",
   "private": true,
-  "packageManager": "pnpm@10.15.0",
+  "description": "Monorepo root — frontend/, backend/, infra/. Prefer start.bat / start.sh.",
   "scripts": {
-    "dev": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 up",
-    "dev:status": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 status",
-    "dev:down": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 down",
-    "dev:seed": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 seed",
-    "dev:logs": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 logs"
+    "dev": "powershell -ExecutionPolicy Bypass -File infra/scripts/dev.ps1 up -WithSkeletons",
+    "dev:status": "powershell -ExecutionPolicy Bypass -File infra/scripts/dev.ps1 status",
+    "dev:down": "powershell -ExecutionPolicy Bypass -File infra/scripts/dev.ps1 down",
+    "dev:seed": "powershell -ExecutionPolicy Bypass -File infra/scripts/dev.ps1 seed",
+    "dev:logs": "powershell -ExecutionPolicy Bypass -File infra/scripts/dev.ps1 logs",
+    "frontend:install": "pnpm -C frontend install",
+    "frontend:typecheck": "pnpm -C frontend -r typecheck",
+    "frontend:build": "pnpm -C frontend --filter web build"
   }
 }

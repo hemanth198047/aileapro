@@ -24,5 +24,6 @@ Thumbs.db
 minio-data/
 postgres-data/
 
-# scripts/dev.ps1 keeps background pids and service logs here
+# scripts/dev keeps background pids and service logs under .run/
+# (see infra/scripts/dev.ps1 and infra/scripts/dev.sh)
 .run/
