@@ -1,0 +1,264 @@
+# Assessments for unsupervised-core units (Wave 4).
+
+items:
+  # --- kmeans-and-clustering ---------------------------------------------------------------
+  - slug: km-objective
+    unit: kmeans-and-clustering
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "What does k-means minimise?"
+    choices:
+      - id: a
+        text: "Within-cluster sum of squared distances from points to their assigned centroids."
+        correct: true
+      - id: b
+        text: "Cross-entropy against ground-truth class labels."
+      - id: c
+        text: "The number of principal components needed for 95% variance."
+      - id: d
+        text: "Pairwise mutual information between features."
+    explanation: |
+      WCSS / inertia is the objective. Labels are not used in training; PCA is a different
+      unsupervised tool; mutual information is not the k-means criterion.
+
+  - slug: km-not-classification
+    unit: kmeans-and-clustering
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: '"Clustering is just classification without showing the labels." What is the right correction?'
+    choices:
+      - id: a
+        text: "Clustering invents group IDs under a geometric objective; classification predicts an external label."
+        correct: true
+      - id: b
+        text: "The claim is accurate — only the label column is hidden at train time."
+        misconception: unsup.clustering_needs_labels
+      - id: c
+        text: "Clustering always requires labels for the update step."
+      - id: d
+        text: "Classification minimises WCSS; clustering minimises log loss."
+    explanation: |
+      K-means never sees y. Class IDs and cluster IDs only look similar in a coloured scatterplot.
+      Swapping the story about labels leads people to "score accuracy" on clusters that were never
+      trained as classes.
+
+  - slug: km-scaling
+    unit: kmeans-and-clustering
+    type: true_false
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 70
+    stem: |
+      Because k-means uses Euclidean distance, features on very different numeric scales should
+      usually be standardised (or otherwise scaled) before fitting.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — large-magnitude features dominate distance and therefore dominate the partition.
+      Trees do not have this issue; k-means does.
+
+  - slug: km-assign-update
+    unit: kmeans-and-clustering
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "In one Lloyd iteration, what are the two steps?"
+    choices:
+      - id: a
+        text: "Assign each point to the nearest centroid, then set each centroid to the mean of its points."
+        correct: true
+      - id: b
+        text: "Fit a logistic regressor, then threshold at 0.5."
+      - id: c
+        text: "Compute eigenvectors of the covariance, then project."
+      - id: d
+        text: "Add Gaussian noise, then train a discriminator."
+    explanation: |
+      Assign–update is the algorithm. (c) is PCA; (d) is GAN-flavoured; (b) is supervised.
+
+  - slug: km-ids-arbitrary
+    unit: kmeans-and-clustering
+    type: short_text
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      Cluster labels 0/1/2 are arbitrary names for a partition. What happens to the groups if you
+      permute those IDs?
+    accepted:
+      - "nothing"
+      - "same partition"
+      - "groups unchanged"
+      - "the partition is unchanged"
+      - "no change to the groups"
+    explanation: |
+      The partition is the same; only the names swapped. That is why "accuracy vs true labels"
+      needs a matching step (e.g. Hungarian assignment) if you ever compare to external tags.
+
+  # --- pca-for-intuition -------------------------------------------------------------------
+  - slug: pca-maximises
+    unit: pca-for-intuition
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "The first principal component maximises which quantity (after centering)?"
+    choices:
+      - id: a
+        text: "Variance of the projected data along a unit direction."
+        correct: true
+      - id: b
+        text: "Within-cluster sum of squares for k=2."
+      - id: c
+        text: "Classification accuracy on held-out labels."
+      - id: d
+        text: "Mutual information with the discriminator score."
+    explanation: |
+      PCA is variance-maximising orthogonal directions. WCSS is k-means; labels are unused;
+      discriminators are GAN territory.
+
+  - slug: pca-not-clusters
+    unit: pca-for-intuition
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 120
+    stem: '"PCA finds the clusters in the data." Correction?'
+    choices:
+      - id: a
+        text: "PCA rotates for variance; clusters appear in a plot only if groups already separate along high-variance directions."
+        correct: true
+      - id: b
+        text: "Correct — PCA's objective is group separation."
+        misconception: unsup.pca_finds_clusters
+      - id: c
+        text: "PCA is identical to k-means with k equal to the number of components."
+      - id: d
+        text: "PCA requires labels to place cluster boundaries."
+    explanation: |
+      Different objectives. A 2D score plot is a visualisation, not a clustering algorithm. PCA
+      does not use labels.
+
+  - slug: pca-explained-var
+    unit: pca-for-intuition
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Explained variance ratios for the first four components are 0.55, 0.25, 0.10, 0.10. What
+      fraction of variance do the first two components capture together? Answer as a decimal
+      (e.g. 0.8).
+    answer: 0.8
+    tolerance: 0.01
+    explanation: |
+      0.55 + 0.25 = 0.80. That is captured variance under a linear projection — not task
+      importance and not proof of clusters.
+
+  - slug: pca-scaling
+    unit: pca-for-intuition
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 70
+    stem: |
+      When features have incomparable units, running PCA on raw unstandardised values can let one
+      large-magnitude feature dominate the leading components.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — variance is not dimensionless across mixed units. Standardise when comparability is
+      intended; skip only when raw magnitude is deliberately part of the signal.
+
+  - slug: pca-fit-train
+    unit: pca-for-intuition
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      In a supervised pipeline with a train/test split, where should PCA be fitted?
+    choices:
+      - id: a
+        text: "On training data only, then transform validation/test with the frozen components."
+        correct: true
+      - id: b
+        text: "On train and test concatenated so components see the full variance."
+      - id: c
+        text: "Only on the test set, to avoid training bias."
+      - id: d
+        text: "PCA must not be used inside supervised pipelines at all."
+    explanation: |
+      Same leakage rule as scalers: fit on train (per CV fold), apply frozen. Fitting on all rows
+      peeks at held-out variance.
+
+assessments:
+  - slug: kmeans-and-clustering-practice
+    title: "Practice: k-means and clustering"
+    kind: practice
+    unit: kmeans-and-clustering
+    items:
+      - km-objective
+      - km-scaling
+      - km-ids-arbitrary
+
+  - slug: kmeans-and-clustering-quiz
+    title: "Quiz: k-means and clustering"
+    kind: quiz
+    unit: kmeans-and-clustering
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - km-objective
+      - km-not-classification
+      - km-assign-update
+      - km-scaling
+
+  - slug: pca-for-intuition-practice
+    title: "Practice: PCA intuition"
+    kind: practice
+    unit: pca-for-intuition
+    items:
+      - pca-maximises
+      - pca-explained-var
+      - pca-scaling
+
+  - slug: pca-for-intuition-quiz
+    title: "Quiz: PCA for intuition"
+    kind: quiz
+    unit: pca-for-intuition
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - pca-maximises
+      - pca-not-clusters
+      - pca-explained-var
+      - pca-fit-train
+
+cards:
+  - slug: card-km-objective
+    unit: kmeans-and-clustering
+    front: "What does k-means minimise?"
+    back: |
+      Within-cluster sum of squared distances to centroids (WCSS / inertia). Cluster IDs are
+      invented names for that partition — not supervised classes.
+
+  - slug: card-pca-vs-cluster
+    unit: pca-for-intuition
+    front: "Does PCA find clusters?"
+    back: |
+      No. PCA finds high-variance orthogonal directions. Blobs in a 2D plot are a visualisation
+      accident when groups already separate along those directions — not PCA's objective.

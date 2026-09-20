@@ -1,0 +1,274 @@
+# Assessments for Wave 4 AI infrastructure units.
+
+items:
+  - slug: infra-why-batch
+    unit: batching-and-gpu-utilization
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Why do GPUs generally favour larger batches of similar work?"
+    choices:
+      - id: a
+        text: "Large regular GEMMs keep the device busy; tiny launches leave it waiting."
+        correct: true
+      - id: b
+        text: "Unlimited batch size is always optimal for quality and latency."
+        misconception: infra.batch_size_unlimited
+      - id: c
+        text: "Batching only matters for CPUs, not accelerators."
+      - id: d
+        text: "Larger batches reduce memory use without bound."
+    explanation: |
+      Accelerators thrive on bulk parallel math. Memory and latency still cap how far you can push
+      batch size.
+
+  - slug: infra-batch-limits
+    unit: batching-and-gpu-utilization
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "What correctly limits 'just raise batch size' as a strategy?"
+    choices:
+      - id: a
+        text: "Device memory, latency SLOs, and sometimes optimisation/generalisation effects."
+        correct: true
+      - id: b
+        text: "Nothing — bigger is always better."
+        misconception: infra.batch_size_unlimited
+      - id: c
+        text: "Only the number of CPU cores on the host."
+      - id: d
+        text: "JSON Schema settings in the API gateway."
+    explanation: |
+      OOM, user-facing latency, and training dynamics all constrain batch size. Utilization charts
+      alone are not the objective.
+
+  - slug: infra-grad-accum
+    unit: batching-and-gpu-utilization
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What is gradient accumulation for?"
+    choices:
+      - id: a
+        text: "Simulate a larger effective batch when a true large batch does not fit in memory."
+        correct: true
+      - id: b
+        text: "Prove that unlimited batch size is always best."
+        misconception: infra.batch_size_unlimited
+      - id: c
+        text: "Disable autograd to save memory."
+      - id: d
+        text: "Replace the data loader entirely."
+    explanation: |
+      Micro-batches run forward/backward; optimiser steps once per accumulation window — effective
+      batch grows without peaking activation memory the same way.
+
+  - slug: infra-util-metric
+    unit: batching-and-gpu-utilization
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Why is GPU utilization % alone a weak success metric?"
+    choices:
+      - id: a
+        text: "The device can be busy on bandwidth-bound or copy-heavy work that does not raise tokens/s."
+        correct: true
+      - id: b
+        text: "Utilization % already implies unlimited batch size is correct."
+        misconception: infra.batch_size_unlimited
+      - id: c
+        text: "GPUs never run memory-bound kernels."
+      - id: d
+        text: "Only CPU utilization matters for training."
+    explanation: |
+      Pair utilization with samples/s or tokens/s and memory high-water marks. Busy ≠ productive.
+
+  - slug: infra-host-bottleneck
+    unit: batching-and-gpu-utilization
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      A step is 40 ms compute and 60 ms waiting on the data loader. In one short phrase, what should
+      you fix first?
+    accepted:
+      - "the data loader / host preprocessing"
+      - "data loader bottleneck"
+      - "host/input pipeline"
+      - "feed the GPU faster (loader/workers)"
+      - "data loading wait time"
+    explanation: |
+      Most of the step is not device math. More GPUs will not fix a starved device; fix the loader.
+
+  - slug: infra-kv-what
+    unit: kv-cache-and-inference-cost
+    type: mcq
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "What does the KV cache store during autoregressive decoding?"
+    choices:
+      - id: a
+        text: "Key and value tensors for past tokens so attention can reuse them."
+        correct: true
+      - id: b
+        text: "Only the final answer string; continuing a chat is basically free."
+        misconception: infra.kv_cache_free
+      - id: c
+        text: "Optimizer momentum buffers from training."
+      - id: d
+        text: "GPU utilization percentages."
+    explanation: |
+      K/V reuse avoids recomputing the whole prompt each token — and memory grows with sequence
+      length.
+
+  - slug: infra-prefill
+    unit: kv-cache-and-inference-cost
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "What is the prefill phase?"
+    choices:
+      - id: a
+        text: "Processing the prompt to build the initial KV cache; cost scales with input length."
+        correct: true
+      - id: b
+        text: "The free part of the session after the first token."
+        misconception: infra.kv_cache_free
+      - id: c
+        text: "Uploading checkpoints to object storage."
+      - id: d
+        text: "Gradient accumulation in training."
+    explanation: |
+      Prefill builds cache from the prompt (and whatever else you stuffed in). Long inputs dominate
+      many bills.
+
+  - slug: infra-lost-middle
+    unit: kv-cache-and-inference-cost
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "How should 'lost in the middle' evidence change a 'paste everything' design?"
+    choices:
+      - id: a
+        text: "Longer context can raise cost while burying needed evidence — prefer retrieval/caps/summaries."
+        correct: true
+      - id: b
+        text: "Paste more; once prefilled, the rest of the chat is free."
+        misconception: infra.kv_cache_free
+      - id: c
+        text: "Context length only affects training, never inference quality."
+      - id: d
+        text: "Always use maximum batch size instead of retrieval."
+        misconception: infra.batch_size_unlimited
+    explanation: |
+      Max window is capacity, not a quality target. Mid-context neglect plus KV memory pressure argues
+      for selective context.
+
+  - slug: infra-session-cost
+    unit: kv-cache-and-inference-cost
+    type: mcq
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Why can a long multi-turn agent session keep getting more expensive?"
+    choices:
+      - id: a
+        text: "History/tool traces grow KV and input tokens; decode and memory stay billed — not free after prefill."
+        correct: true
+      - id: b
+        text: "After the first prefill, continuing is basically free."
+        misconception: infra.kv_cache_free
+      - id: c
+        text: "Batch size automatically becomes unlimited mid-session."
+        misconception: infra.batch_size_unlimited
+      - id: d
+        text: "KV cache shrinks every turn by design."
+    explanation: |
+      Compaction, retrieval, and caps are policy — not optional polish — for agents with growing
+      traces.
+
+  - slug: infra-cost-levers
+    unit: kv-cache-and-inference-cost
+    type: short_text
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Name two levers that cut LLM inference cost without buying more GPUs.
+    accepted:
+      - "retrieval and summarisation"
+      - "context caps and prompt caching"
+      - "retrieve instead of paste; summarise old turns"
+      - "quantisation and prefix cache"
+      - "shorter prompts; prefix reuse"
+      - "retrieval, caps, caching"
+    explanation: |
+      Shorten inputs (retrieve/summarise/cap), reuse prefixes, and improve memory efficiency
+      (quantisation). Hardware is not the only dial.
+
+assessments:
+  - slug: batching-and-gpu-utilization-practice
+    title: "Practice: batching and GPU utilization"
+    kind: practice
+    unit: batching-and-gpu-utilization
+    items:
+      - infra-why-batch
+      - infra-grad-accum
+      - infra-host-bottleneck
+
+  - slug: batching-and-gpu-utilization-quiz
+    title: "Quiz: batching and GPU utilization"
+    kind: quiz
+    unit: batching-and-gpu-utilization
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - infra-why-batch
+      - infra-batch-limits
+      - infra-grad-accum
+      - infra-util-metric
+      - infra-host-bottleneck
+
+  - slug: kv-cache-and-inference-cost-practice
+    title: "Practice: KV cache and inference cost"
+    kind: practice
+    unit: kv-cache-and-inference-cost
+    items:
+      - infra-kv-what
+      - infra-prefill
+      - infra-cost-levers
+
+  - slug: kv-cache-and-inference-cost-quiz
+    title: "Quiz: KV cache and inference cost"
+    kind: quiz
+    unit: kv-cache-and-inference-cost
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - infra-kv-what
+      - infra-prefill
+      - infra-lost-middle
+      - infra-session-cost
+      - infra-cost-levers
+
+cards:
+  - slug: card-infra-batch-cap
+    unit: batching-and-gpu-utilization
+    front: "What caps batch size?"
+    back: |
+      Memory, latency SLOs, and sometimes optimisation quality — not "utilization % looked high."
+
+  - slug: card-infra-kv
+    unit: kv-cache-and-inference-cost
+    front: "Is chat after prefill free?"
+    back: |
+      No. KV memory and growing history/tool traces keep costing; compact and retrieve on purpose.

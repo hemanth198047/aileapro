@@ -1,0 +1,317 @@
+# Assessments for detection-vs-classification and asr-pipeline-intuition.
+
+items:
+  # --- Detection vs classification -----------------------------------------------------------
+  - slug: cv-outputs
+    unit: detection-vs-classification
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      What does object detection add beyond whole-image classification?
+    choices:
+      - id: a
+        text: "Instance locations (e.g. boxes) plus class labels for those instances."
+        correct: true
+      - id: b
+        text: "Nothing — CNNs always detect objects automatically."
+        misconception: cv.cnn_means_detection
+      - id: c
+        text: "Only a lower learning rate."
+      - id: d
+        text: "Audio features."
+    explanation: |
+      Detection outputs where instances are, not only a global label.
+
+  - slug: cv-when-classify
+    unit: detection-vs-classification
+    type: mcq
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      Which product can reasonably use image classification alone?
+    choices:
+      - id: a
+        text: "Tagging whether an X-ray is normal vs abnormal with no need to mark regions."
+        correct: true
+      - id: b
+        text: "Circling every lesion for a radiologist overlay."
+      - id: c
+        text: "Counting vehicles in each lane for a traffic dashboard."
+      - id: d
+        text: "Highlighting every pedestrian in a robot camera frame."
+    explanation: |
+      If the decision does not need locations or counts, a global label can suffice.
+
+  - slug: cv-cnn-not-detect
+    unit: detection-vs-classification
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Why is "we used a CNN" not the same as "we built a detector"?
+    choices:
+      - id: a
+        text: "CNNs provide features; detection also needs a localisation head and matching losses."
+        correct: true
+      - id: b
+        text: "CNNs can only classify; detection is impossible with convolutions."
+        misconception: cv.cnn_means_detection
+      - id: c
+        text: "Detection forbids any neural network."
+      - id: d
+        text: "CNNs only work on text."
+    explanation: |
+      Backbone ≠ task. Draw the outputs: global logits vs boxes+classes.
+
+  - slug: cv-yolo-tf
+    unit: detection-vs-classification
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 50
+    stem: |
+      Single-shot detectors predict boxes and classes in one forward pass (often at multiple
+      scales), rather than relying only on a heavy separate proposal stage.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True at the intuition level popularised by YOLO-style models — even if you ship a newer
+      detector tomorrow.
+
+  - slug: cv-metric
+    unit: detection-vs-classification
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      A dashboard-camera product needs nearby vehicle locations. Why can classification accuracy
+      look fine while the product fails?
+    choices:
+      - id: a
+        text: "A global 'vehicle present' label ignores where and how many — the spatial decision."
+        correct: true
+      - id: b
+        text: "Accuracy always equals mAP for detectors."
+      - id: c
+        text: "CNNs cannot process camera frames."
+      - id: d
+        text: "Classification metrics forbid road images."
+    explanation: |
+      Task mismatch: the metric optimised is not the decision the product makes.
+
+  - slug: cv-task-name
+    unit: detection-vs-classification
+    type: short_text
+    bloom: remember
+    difficulty: 1
+    estimateSeconds: 50
+    stem: |
+      Whole-image label only — which task name? One word.
+    accepted:
+      - "classification"
+      - "image classification"
+      - "recognition"
+    explanation: |
+      Classification (image recognition) — not detection.
+
+  # --- ASR -----------------------------------------------------------------------------------
+  - slug: asr-stages
+    unit: asr-pipeline-intuition
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      Which list best matches conceptual ASR stages?
+    choices:
+      - id: a
+        text: "Capture → prep/VAD → features → sequence model → decode → post-process."
+        correct: true
+      - id: b
+        text: "Only 'run the checkpoint'; nothing else exists."
+        misconception: speech.asr_is_one_blob
+      - id: c
+        text: "SQL → join → aggregate."
+      - id: d
+        text: "Backprop → dropout → batchnorm only."
+    explanation: |
+      End-to-end models blur the middle, but failures still map onto these stages.
+
+  - slug: asr-domain
+    unit: asr-pipeline-intuition
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      Off-the-shelf ASR scores well on clean podcasts but fails on 8 kHz call-centre audio. Best
+      first diagnosis?
+    choices:
+      - id: a
+        text: "Domain/channel mismatch — evaluate and adapt on call audio, not only clean benchmarks."
+        correct: true
+      - id: b
+        text: "ASR is one blob; only a different brand name can help."
+        misconception: speech.asr_is_one_blob
+      - id: c
+        text: "Delete VAD forever."
+      - id: d
+        text: "Switch to image classification."
+    explanation: |
+      Match train/serve channel and measure on the real distribution.
+
+  - slug: asr-whisper-idea
+    unit: asr-pipeline-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      What did large-scale weakly supervised ASR (Whisper-style) mainly demonstrate?
+    choices:
+      - id: a
+        text: "Diverse large audio–text supervision improves robustness across domains/languages."
+        correct: true
+      - id: b
+        text: "Pipeline stages no longer exist."
+        misconception: speech.asr_is_one_blob
+      - id: c
+        text: "WER is obsolete and should never be sliced."
+      - id: d
+        text: "Microphones no longer matter."
+    explanation: |
+      Data diversity and scale help robustness; they do not erase channel or vocabulary issues.
+
+  - slug: asr-wer-tf
+    unit: asr-pipeline-intuition
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 50
+    stem: |
+      Aggregate WER can hide large failures on accents, codecs, or product names.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — slice metrics by condition the way you would for any production ML system.
+
+  - slug: asr-entities
+    unit: asr-pipeline-intuition
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      Transcripts systematically garble drug names. What is a sensible next step?
+    choices:
+      - id: a
+        text: "Domain adaptation / lexicon bias / in-domain fine-tune — not only 'buy a larger blob'."
+        correct: true
+      - id: b
+        text: "Ignore vocabulary; only the checkpoint brand matters."
+        misconception: speech.asr_is_one_blob
+      - id: c
+        text: "Convert all audio to images first."
+      - id: d
+        text: "Disable logging so errors disappear."
+    explanation: |
+      Entity errors are often vocabulary/domain issues addressable in the pipeline.
+
+  - slug: asr-name-stage
+    unit: asr-pipeline-intuition
+    type: short_text
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      Name one ASR pipeline stage after the microphone captures audio (one or two words).
+    accepted:
+      - "VAD"
+      - "voice activity detection"
+      - "prep"
+      - "preprocessing"
+      - "featurisation"
+      - "features"
+      - "spectrogram"
+      - "encoder"
+      - "sequence model"
+      - "decode"
+      - "decoding"
+      - "post-process"
+      - "punctuation"
+      - "resampling"
+    explanation: |
+      Prep/VAD, features, modelling, decode, or post-process all count — the point is the stage
+      list, not one canonical vendor diagram.
+
+assessments:
+  - slug: detection-vs-classification-practice
+    title: "Practice: detection vs classification"
+    kind: practice
+    unit: detection-vs-classification
+    items:
+      - cv-outputs
+      - cv-when-classify
+      - cv-task-name
+
+  - slug: detection-vs-classification-quiz
+    title: "Quiz: detection vs classification"
+    kind: quiz
+    unit: detection-vs-classification
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - cv-outputs
+      - cv-when-classify
+      - cv-cnn-not-detect
+      - cv-yolo-tf
+      - cv-metric
+
+  - slug: asr-pipeline-intuition-practice
+    title: "Practice: ASR pipeline intuition"
+    kind: practice
+    unit: asr-pipeline-intuition
+    items:
+      - asr-stages
+      - asr-wer-tf
+      - asr-name-stage
+
+  - slug: asr-pipeline-intuition-quiz
+    title: "Quiz: ASR pipeline intuition"
+    kind: quiz
+    unit: asr-pipeline-intuition
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - asr-stages
+      - asr-domain
+      - asr-whisper-idea
+      - asr-wer-tf
+      - asr-entities
+
+cards:
+  - slug: card-cv-detect
+    unit: detection-vs-classification
+    front: "Classification vs detection outputs?"
+    back: |
+      Classification: whole-image labels. Detection: boxes (locations) + classes per instance.
+
+  - slug: card-asr-stages
+    unit: asr-pipeline-intuition
+    front: "ASR in one line?"
+    back: |
+      Capture → prep → features → sequence model → decode → post-process; domain shift still
+      bites.

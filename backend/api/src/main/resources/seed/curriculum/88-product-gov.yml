@@ -1,0 +1,490 @@
+# Wave 4: AI product metrics + governance / accountability + when not to use AI.
+#
+# Model cards + OpenAI Evals for product measurement; NIST AI RMF + ISO 42001 for governance
+# (summary citation only for ISO).
+
+units:
+  - slug: shipping-ai-products
+    title: Shipping AI Products
+    kind: chapter
+    parent: ai-product-development
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 45
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [product, metrics, evaluation]
+    objectives:
+      - Define product success beyond a single model score.
+      - Tie online outcomes to offline eval suites and documented limits.
+    description: >-
+      Shipping means metrics that match the user job, evals that catch regressions, and honest
+      documentation of what the system is for.
+    blocks:
+      - type: why
+        markdown: |
+          A model can improve on a leaderboard while the product gets worse. Product metrics
+          name the job; model metrics are inputs to that story, not the story.
+
+  - slug: ai-product-metrics
+    title: AI Product Metrics
+    kind: knowledge_unit
+    parent: shipping-ai-products
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [product, metrics, evals, model-cards]
+    objectives:
+      - Separate product outcome metrics from model quality metrics and operational metrics.
+      - Require an offline eval suite that can gate releases.
+      - Document intended use, out-of-scope use, and known limits (model-card practice).
+      - Explain why aggregate scores without slices mislead product decisions.
+    description: >-
+      Measure the user job, the model’s behaviour on fixed cases, and the system’s health —
+      then write down what the numbers do and do not cover.
+    blocks:
+      - type: why
+        markdown: |
+          Teams that only watch loss or a public leaderboard ship regressions users feel and
+          dashboards miss. Product metrics force the question: did the job get better?
+
+      - type: eli5
+        markdown: |
+          A restaurant can brag about oven temperature (model metric) while customers leave
+          hungry (product metric) and the kitchen catches fire (ops metric). You need all three
+          kinds of numbers — and a menu that says what you actually serve (documentation).
+
+      - type: beginner
+        markdown: |
+          **Three layers:**
+
+          | Layer | Examples |
+          |-------|----------|
+          | Product / outcome | task success, time-to-resolution, conversion, retention, complaint rate |
+          | Model / quality | accuracy, WER, rubric pass rate, eval-suite score |
+          | Operational | latency, error rate, cost/request, availability |
+
+          **Offline evals** are a versioned set of cases with scorers — the habit behind eval
+          harnesses — so a prompt or model change can fail CI when quality drops.
+
+          **Model cards** (and cousins) document intended use, out-of-scope uses, performance
+          by relevant groups/slices, and known limitations. A lone headline number without that
+          context is marketing.
+
+      - type: intermediate
+        markdown: |
+          **North-star vs guardrails.** Optimise a product outcome carefully; put hard floors on
+          safety, latency, and critical slice quality so you cannot "win" by breaking them.
+
+          **Online vs offline.** Offline suites catch regressions fast; online metrics catch
+          distribution shift and real behaviour. Neither replaces the other.
+
+          **Slices.** Aggregate product and model metrics hide segment failures — new locales,
+          long inputs, tool-using paths. Report the slices that match harm and revenue.
+
+          **Eval hygiene.** Fixed cases, production-faithful runners, scorers you trust, and
+          diffs across versions. Playground vibes are not a suite.
+
+      - type: example
+        markdown: |
+          Support-copilot product metrics: % tickets resolved without escalation, median handle
+          time, CSAT — plus guardrails on toxic/incorrect citations.
+
+          Offline: a versioned eval set of tickets with rubric + citation checks. Online:
+          sampled human review and escalation rate.
+
+          Model card excerpt: intended for internal agents on product X; not for medical advice;
+          known weak on policy changes newer than the index date. A 2-point leaderboard bump
+          that doubles bad citations fails the gate.
+
+      - type: misconception
+        payload:
+          code: prod.leaderboard_is_product
+          claim: "If the model score goes up, the product succeeded."
+          markdown: |
+            **The claim:** model metric ↑ ⇒ ship.
+
+            **Why it feels right:** scores are easy and feel objective.
+
+            **What happens:** you can raise accuracy while hurting latency, trust, or the actual
+            user job — or while failing a critical slice. Product success is outcome +
+            constraints, documented with limits.
+
+            **How to catch yourself:** name the user job metric and the release guardrails
+            before celebrating a leaderboard delta.
+
+      - type: common_mistake
+        markdown: |
+          **Shipping on playground anecdotes** without a regression suite.
+
+          **One aggregate score** with no slices or intended-use text.
+
+          **Optimising cost alone** until quality collapses quietly.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. For a summarisation feature, list one product, one model, and one ops metric.
+            2. Write three model-card fields you would require before launch.
+            3. Why can a better BLEU/accuracy still be a product failure?
+            4. What makes an eval suite a gate rather than a wiki page?
+            5. Name two slices you would report for a multilingual assistant.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Name the three metric layers."
+              answer: "Product/outcome, model/quality, and operational."
+            - question: "What is a model card for?"
+              answer: >-
+                Documenting intended use, limits, and disaggregated performance — not a single
+                vanity score.
+            - question: "Why aren't playground wins evaluation?"
+              answer: "They are not a versioned, repeatable suite that can gate releases."
+            - question: "When does a higher model score fail the product?"
+              answer: >-
+                When outcomes, guardrails, latency/cost, or critical slices get worse despite the
+                score.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Specify product, model, and ops metrics for a feature.
+            - Require an offline suite + documentation before launch.
+            - Reject leaderboard-only shipping arguments.
+    resources:
+      - source: model-cards-2018
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          Document intended use, limitations, and disaggregated performance instead of one
+          aggregate score.
+      - source: openai-evals
+        purpose: TOOL_REFERENCE
+        relevance: 0.75
+        excerpt: >-
+          Practical pattern for versioned eval cases and scorers that can catch regressions.
+
+  - slug: governing-ai
+    title: Governing AI
+    kind: chapter
+    parent: ai-governance
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 50
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [governance, risk, accountability]
+    objectives:
+      - Map ownership, measurement, and escalation for AI systems.
+      - Treat governance as operating practice, not a poster.
+    description: >-
+      Who is accountable, what is measured, and how decisions get escalated when AI systems
+      affect people and the business.
+    blocks:
+      - type: why
+        markdown: |
+          Unowned models become everyone's regret. Governance names who decides, what evidence
+          is required, and when to stop.
+
+  - slug: accountability-and-oversight
+    title: Accountability and Oversight
+    kind: knowledge_unit
+    parent: governing-ai
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [governance, nist, iso, accountability]
+    objectives:
+      - Assign clear ownership for an AI system's outcomes and incidents.
+      - Connect govern/map/measure/manage-style practices to concrete team rituals.
+      - Explain management-system ideas (roles, controls, review) at a summary level.
+      - Design escalation and human oversight for high-impact decisions.
+    description: >-
+      Accountability is a named owner plus evidence and escalation — aligned with risk-framework
+      and management-system thinking, not a vague ethics slide.
+    blocks:
+      - type: why
+        markdown: |
+          When something goes wrong, "the model did it" is not an answer regulators, customers,
+          or your on-call rotation will accept. Someone must own the system.
+
+      - type: eli5
+        markdown: |
+          A school science fair needs a named student responsible for the volcano, a checklist
+          for safety, and a teacher who can stop the demo. AI systems need the same: a person,
+          a checklist, and a stop button — not only a cool poster.
+
+      - type: beginner
+        markdown: |
+          **Minimum accountability kit:**
+
+          1. **Owner** — a role accountable for outcomes and incidents (not "the model").
+          2. **Inventory** — what systems exist, what data they use, whom they affect.
+          3. **Risk map** — what can go wrong and how bad it is.
+          4. **Measures** — metrics, evals, monitoring that would show trouble.
+          5. **Manage** — mitigations, human review, kill switch, change control.
+          6. **Review** — periodic oversight, not only launch day.
+
+          This mirrors the spirit of NIST's AI RMF functions (govern, map, measure, manage):
+          turn principles into operating loops.
+
+          **ISO/IEC 42001** (AI management systems) is a formal management-system standard:
+          policies, roles, controls, and continual improvement — cite at summary level; the
+          value for teams is "treat AI like other governed operational systems."
+
+      - type: intermediate
+        markdown: |
+          **Oversight proportional to impact.** High-stakes decisions need human review paths,
+          audit logs, and explicit acceptance of residual risk. Low-stakes copy edits need
+          lighter controls — still owned, still monitored.
+
+          **Separation of duties.** Builders should not be the only reviewers of their own
+          risk claims. Red teams and product risk partners need a real veto path.
+
+          **Evidence.** Policies without artefacts (model cards, eval reports, incident
+          postmortems) are theatre. Oversight asks for the artefacts.
+
+          **Vendors.** Accountability does not disappear when you call an API — you still own
+          the product behaviour users experience.
+
+      - type: example
+        markdown: |
+          Loan-assist ranking tool:
+
+          - Owner: Head of Lending Ops (accountable) with ML eng as control implementer.
+          - Map: applicants affected; proxy features; appeal path required.
+          - Measure: disaggregated approval/error rates; drift monitors.
+          - Manage: human final decision; weekly review; rollback plan.
+          - Govern: change board signs model updates; ISO-style roles documented.
+
+          A demo that skips appeal and ownership is not "agile" — it is unowned risk.
+
+      - type: misconception
+        payload:
+          code: gov.policy_equals_governance
+          claim: "Publishing an AI ethics policy is the same as governing AI."
+          markdown: |
+            **The claim:** a public statement or wiki page equals governance.
+
+            **Why it feels right:** policies are visible and easy to announce.
+
+            **What governance requires:** owners, inventories, measures, escalations, and
+            reviews that change what ships. A policy without those loops does not stop a bad
+            release.
+
+            **How to catch yourself:** ask who gets paged, what evidence is required to launch,
+            and what was last stopped by oversight. Empty answers mean the policy is decor.
+
+      - type: common_mistake
+        markdown: |
+          **Owner = 'the AI team'** with no named individual.
+
+          **No kill switch or appeal** for high-impact automation.
+
+          **Vendor blame** as a substitute for product accountability.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Name owner, measure, and escalation for an internal HR screening tool.
+            2. Map one system onto govern/map/measure/manage in four bullets.
+            3. What artefact would you demand before approving a model update?
+            4. Why is a policy PDF insufficient alone?
+            5. How does vendor-hosted inference change accountability (hint: it should not remove it)?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What belongs in a minimum accountability kit?"
+              answer: >-
+                Owner, inventory, risk map, measures, management/mitigations, and periodic
+                review.
+            - question: "Is an ethics policy enough?"
+              answer: "No — without owners, measures, and escalation it is theatre."
+            - question: "What is NIST AI RMF useful for here?"
+              answer: "A vendor-neutral loop: govern, map, measure, manage."
+            - question: "What does ISO 42001 emphasise at a summary level?"
+              answer: >-
+                AI as a managed system: roles, controls, policies, continual improvement.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Assign an owner and escalation path for a concrete system.
+            - Demand evidence artefacts, not slogans.
+            - Proportion oversight to impact without pretending zero risk.
+    resources:
+      - source: nist-ai-rmf
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          Govern, map, measure, manage — a public-domain structure for operationalising AI risk
+          management.
+      - source: iso-42001
+        purpose: BACKGROUND
+        relevance: 0.7
+        excerpt: >-
+          AI management-system standard — summary citation only; roles, controls, continual
+          improvement as the organisational idea.
+
+  - slug: when-not-to-use-ai
+    title: When Not to Use AI
+    kind: knowledge_unit
+    parent: ai-applications
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [governance, product, risk, applications]
+    objectives:
+      - Recognise problem shapes where AI is the wrong tool.
+      - Argue from risk, data, and decision structure — not from anti-hype aesthetics.
+      - Propose non-AI or human-centred alternatives when appropriate.
+      - Use risk-framework thinking to justify a no-ship or no-AI choice.
+    description: >-
+      Sometimes the right design is rules, search, a form, or a human. Knowing when not to use
+      AI is part of competent application design.
+    blocks:
+      - type: why
+        markdown: |
+          AI adds uncertainty, cost, and new failure modes. If a deterministic check or a clearer
+          process solves the job, forcing a model in is not innovation — it is risk theatre.
+
+      - type: eli5
+        markdown: |
+          You do not need a robot to tell you whether a door is locked if you can look at the
+          lock. Fancy guesses are for foggy problems. Clear problems deserve clear tools.
+
+      - type: beginner
+        markdown: |
+          **Prefer not to use AI when:**
+
+          - The rule is known and stable (validate a schema; enforce a policy threshold).
+          - Errors are intolerable and hard to contest (no appeal, high harm).
+          - Labels are missing, meaningless, or politically contested without governance.
+          - You cannot measure success or monitor drift.
+          - A simpler retrieval/search/form workflow meets the need.
+          - You are substituting a model for an organisational decision you will not own.
+
+          Risk frameworks push you to **map** harm and **measure** whether controls work. If
+          you cannot map or measure, that is a reason to stop — not to "move fast."
+
+      - type: intermediate
+        markdown: |
+          **Good AI shapes:** messy perception, ranking under uncertainty, drafting with human
+          review, pattern discovery with analysts in the loop.
+
+          **Bad AI shapes:** pretending a model replaces due process; automating punishment
+          without oversight; generating facts that must be exact without retrieval/grounds;
+          personalising when discrimination risk is unmanaged.
+
+          **Alternatives:** business rules, classic search, calculators, checklists, hiring a
+          human specialist, fixing the upstream data process.
+
+          **"AI" as postponement.** Sometimes teams propose a model to avoid deciding a policy.
+          Governance says: decide the policy first; automate only what you can defend.
+
+      - type: example
+        markdown: |
+          Request: "AI that auto-rejects benefit claims."
+
+          Reasons not to: high harm, contested edge cases, need for appeal, weak labels
+          reflecting past under-serving. Better path: rules for clear eligibility + human
+          review queue + searchable policy — maybe later a *assistive* ranker with oversight,
+          not silent auto-reject.
+
+          The refusal is a product decision grounded in risk mapping, not Luddism.
+
+      - type: misconception
+        payload:
+          code: app.ai_always_helps
+          claim: "If we can build a model, we should — AI always improves the process."
+          markdown: |
+            **The claim:** capability implies obligation.
+
+            **Why it feels right:** tools are exciting and competitors announce AI features.
+
+            **What is true:** models add error modes and accountability debt. When the job is
+            deterministic, high-harm without oversight, or unmeasurable, AI makes the system
+            worse even if demos look clever.
+
+            **How to catch yourself:** write the harm map and the measurement plan. If either
+            is empty, do not ship a model.
+
+      - type: common_mistake
+        markdown: |
+          **Auto-acting on generative output** in high-stakes workflows without grounds or review.
+
+          **Using AI to avoid writing a clear policy.**
+
+          **No non-AI baseline** to prove the model is needed.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. List three problem shapes where you would refuse AI.
+            2. For one refusal, propose a non-AI alternative.
+            3. When is assistive AI acceptable but autonomous AI not?
+            4. How does "cannot measure" block a responsible deployment?
+            5. Rewrite a bad ask ("AI to fire underperformers") into a safer product shape or a no.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "When should you prefer rules over a model?"
+              answer: "When the logic is known, stable, and must be exact and auditable."
+            - question: "Why can 'we can build it' be the wrong test?"
+              answer: "Capability ignores harm, measurement, and accountability debt."
+            - question: "What does risk mapping have to do with refusal?"
+              answer: >-
+                If you cannot map harms or measure controls, that supports not using AI (or not
+                shipping).
+            - question: "Give one acceptable alternative shape."
+              answer: >-
+                Search, forms, rules, human specialist, or assistive ranking with human final
+                decision.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Refuse an AI ask with a concrete harm/measurement argument.
+            - Offer a credible non-AI or assistive alternative.
+            - Separate hype pressure from application fit.
+    resources:
+      - source: nist-ai-rmf
+        purpose: PRIMARY_SOURCE
+        relevance: 0.85
+        excerpt: >-
+          Map and measure risk before manage — including the option that the right control is
+          not to deploy an AI system for that use.

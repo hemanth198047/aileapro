@@ -1,0 +1,470 @@
+# Assessments for ai-product-metrics, accountability-and-oversight, when-not-to-use-ai.
+
+items:
+  # --- Product metrics -----------------------------------------------------------------------
+  - slug: prod-three-layers
+    unit: ai-product-metrics
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      Which trio matches the metric layers in this unit?
+    choices:
+      - id: a
+        text: "Product/outcome, model/quality, and operational."
+        correct: true
+      - id: b
+        text: "Only the public leaderboard score."
+        misconception: prod.leaderboard_is_product
+      - id: c
+        text: "GPU temperature, fan speed, and RGB colour."
+      - id: d
+        text: "Commit count, lines of code, and emoji reactions."
+    explanation: |
+      Outcome, quality, and ops — celebrated together with guardrails, not a lone leaderboard.
+
+  - slug: prod-leaderboard
+    unit: ai-product-metrics
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      Model score rises 2 points but citation errors and latency double. Ship?
+    choices:
+      - id: a
+        text: "Not on score alone — product outcomes and guardrails can still fail."
+        correct: true
+      - id: b
+        text: "Yes — higher model score means the product succeeded."
+        misconception: prod.leaderboard_is_product
+      - id: c
+        text: "Yes if the playground demo looked cool."
+      - id: d
+        text: "Ship only if you delete the eval suite."
+    explanation: |
+      Leaderboards are inputs. Product success needs outcomes + constraints.
+
+  - slug: prod-model-card
+    unit: ai-product-metrics
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      What does model-card practice emphasise?
+    choices:
+      - id: a
+        text: "Intended use, out-of-scope uses, sliced performance, and known limits."
+        correct: true
+      - id: b
+        text: "A single aggregate number with no context."
+        misconception: prod.leaderboard_is_product
+      - id: c
+        text: "Hiding limitations from reviewers."
+      - id: d
+        text: "Replacing eval suites entirely."
+    explanation: |
+      Documentation makes scope and failure modes visible — not vanity metrics alone.
+
+  - slug: prod-eval-gate-tf
+    unit: ai-product-metrics
+    type: true_false
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 50
+    stem: |
+      A versioned offline eval suite can be used as a release gate when critical slices drop.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — that is what turns evals into engineering rather than a wiki page.
+
+  - slug: prod-ops
+    unit: ai-product-metrics
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Which is an operational metric rather than a product-outcome metric?
+    choices:
+      - id: a
+        text: "p95 latency and cost per request."
+        correct: true
+      - id: b
+        text: "Percent of tickets resolved without escalation."
+      - id: c
+        text: "Customer retention attributable to the feature."
+      - id: d
+        text: "Task success rate for the user job."
+    explanation: |
+      Latency/cost/availability are ops; resolution/retention/success are outcomes.
+
+  - slug: prod-name-layer
+    unit: ai-product-metrics
+    type: short_text
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 55
+    stem: |
+      Name one product/outcome metric for a support copilot (a few words).
+    accepted:
+      - "resolution rate"
+      - "tickets resolved without escalation"
+      - "handle time"
+      - "CSAT"
+      - "customer satisfaction"
+      - "time to resolution"
+      - "escalation rate"
+    explanation: |
+      Anything tied to the user/job outcome — not only model accuracy.
+
+  # --- Accountability ------------------------------------------------------------------------
+  - slug: gov-owner
+    unit: accountability-and-oversight
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      Who should be accountable when an AI system causes an incident?
+    choices:
+      - id: a
+        text: "A named owner for the system — not 'the model' or an unnamed crowd."
+        correct: true
+      - id: b
+        text: "Nobody, if an ethics policy PDF exists."
+        misconception: gov.policy_equals_governance
+      - id: c
+        text: "Only the open-source license."
+      - id: d
+        text: "The loss function."
+    explanation: |
+      Accountability is a role plus evidence and escalation.
+
+  - slug: gov-policy-theatre
+    unit: accountability-and-oversight
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      A company publishes an AI ethics policy but has no owners, measures, or launch gates. What
+      is missing?
+    choices:
+      - id: a
+        text: "Operational governance — inventory, metrics, escalation, and review loops."
+        correct: true
+      - id: b
+        text: "Nothing — the policy is governance."
+        misconception: gov.policy_equals_governance
+      - id: c
+        text: "A bigger generative model."
+      - id: d
+        text: "Deleting all documentation."
+    explanation: |
+      Policies without operating loops do not stop bad releases.
+
+  - slug: gov-nist
+    unit: accountability-and-oversight
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      NIST AI RMF's high-level functions are best summarised as:
+    choices:
+      - id: a
+        text: "Govern, map, measure, manage."
+        correct: true
+      - id: b
+        text: "Train, tweet, forget."
+      - id: c
+        text: "Only purchase GPUs."
+      - id: d
+        text: "Replace all humans immediately."
+    explanation: |
+      Those four functions turn risk talk into a repeatable loop.
+
+  - slug: gov-vendor-tf
+    unit: accountability-and-oversight
+    type: true_false
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 55
+    stem: |
+      Using a vendor-hosted model API removes your accountability for product behaviour users
+      experience.
+    choices:
+      - id: "true"
+        text: "True"
+      - id: "false"
+        text: "False"
+        correct: true
+    explanation: |
+      False — you still own the product outcomes and incidents.
+
+  - slug: gov-iso
+    unit: accountability-and-oversight
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      At a summary level, what does an AI management-system standard (ISO/IEC 42001 spirit)
+      emphasise?
+    choices:
+      - id: a
+        text: "Policies, roles, controls, and continual improvement — AI as a managed system."
+        correct: true
+      - id: b
+        text: "That a wiki slogan replaces owners and controls."
+        misconception: gov.policy_equals_governance
+      - id: c
+        text: "That models need no review after launch."
+      - id: d
+        text: "That only research labs need processes."
+    explanation: |
+      Management-system thinking: organise roles and controls, then improve them.
+
+  - slug: gov-name-artefact
+    unit: accountability-and-oversight
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      Name one artefact oversight should demand before a model update (a few words).
+    accepted:
+      - "model card"
+      - "eval report"
+      - "evaluation results"
+      - "risk assessment"
+      - "disaggregated metrics"
+      - "incident plan"
+      - "rollback plan"
+      - "change log"
+      - "monitoring plan"
+    explanation: |
+      Cards, evals, risk notes, rollback/monitoring plans — evidence, not slogans.
+
+  # --- When not to use AI --------------------------------------------------------------------
+  - slug: noai-rules
+    unit: when-not-to-use-ai
+    type: mcq
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      When is a deterministic rule usually better than a model?
+    choices:
+      - id: a
+        text: "When the logic is known, stable, and must be exact and auditable."
+        correct: true
+      - id: b
+        text: "Never — AI always improves every process."
+        misconception: app.ai_always_helps
+      - id: c
+        text: "Only when you lack electricity."
+      - id: d
+        text: "When you want unowned high-harm automation."
+    explanation: |
+      Clear stable rules beat probabilistic systems for exact enforcement.
+
+  - slug: noai-capability
+    unit: when-not-to-use-ai
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      "We can build a model for this" is proposed as sufficient justification. Best response?
+    choices:
+      - id: a
+        text: "Capability is not obligation — check harm, measurement, and accountability first."
+        correct: true
+      - id: b
+        text: "Agree — if it is buildable, it should ship."
+        misconception: app.ai_always_helps
+      - id: c
+        text: "Skip risk mapping to save time."
+      - id: d
+        text: "Replace appeal processes with more sampling temperature."
+    explanation: |
+      Application fit and risk decide, not demo potential alone.
+
+  - slug: noai-benefits
+    unit: when-not-to-use-ai
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      Ask: "AI that auto-rejects benefit claims with no appeal." Why refuse?
+    choices:
+      - id: a
+        text: "High harm, contested edge cases, and missing due process — assistive review is safer than silent reject."
+        correct: true
+      - id: b
+        text: "Because AI always helps, so refusal is irrational."
+        misconception: app.ai_always_helps
+      - id: c
+        text: "Because neural nets cannot read text."
+      - id: d
+        text: "Because ISO forbids all software."
+    explanation: |
+      Risk mapping supports no-ship or human-in-the-loop shapes here.
+
+  - slug: noai-measure-tf
+    unit: when-not-to-use-ai
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 55
+    stem: |
+      If you cannot measure success or monitor failure modes, that can justify not deploying AI
+      for the use case.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+        misconception: app.ai_always_helps
+    explanation: |
+      True — map/measure gaps are stop signs in risk-framework thinking.
+
+  - slug: noai-alternative
+    unit: when-not-to-use-ai
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Which is a credible alternative when AI is a poor fit?
+    choices:
+      - id: a
+        text: "Rules, search, forms, checklists, or a human specialist — possibly later assistive ranking."
+        correct: true
+      - id: b
+        text: "A larger model with no owners or metrics."
+        misconception: app.ai_always_helps
+      - id: c
+        text: "Deleting the user need."
+      - id: d
+        text: "Randomly sampling outputs in production with no review."
+    explanation: |
+      Non-AI baselines and assistive designs are competent product choices.
+
+  - slug: noai-name-reason
+    unit: when-not-to-use-ai
+    type: short_text
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      Give one reason to refuse AI for a problem (a few words).
+    accepted:
+      - "stable known rules"
+      - "deterministic rule suffices"
+      - "high harm without appeal"
+      - "cannot measure success"
+      - "no labels"
+      - "unowned decision"
+      - "search/forms enough"
+      - "intolerable errors"
+      - "cannot monitor drift"
+    explanation: |
+      Rules fit, high harm without oversight, unmeasurable success, or simpler tools — all count.
+
+assessments:
+  - slug: ai-product-metrics-practice
+    title: "Practice: AI product metrics"
+    kind: practice
+    unit: ai-product-metrics
+    items:
+      - prod-three-layers
+      - prod-eval-gate-tf
+      - prod-name-layer
+
+  - slug: ai-product-metrics-quiz
+    title: "Quiz: AI product metrics"
+    kind: quiz
+    unit: ai-product-metrics
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - prod-three-layers
+      - prod-leaderboard
+      - prod-model-card
+      - prod-eval-gate-tf
+      - prod-ops
+
+  - slug: accountability-and-oversight-practice
+    title: "Practice: accountability and oversight"
+    kind: practice
+    unit: accountability-and-oversight
+    items:
+      - gov-owner
+      - gov-nist
+      - gov-name-artefact
+
+  - slug: accountability-and-oversight-quiz
+    title: "Quiz: accountability and oversight"
+    kind: quiz
+    unit: accountability-and-oversight
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - gov-owner
+      - gov-policy-theatre
+      - gov-nist
+      - gov-vendor-tf
+      - gov-iso
+
+  - slug: when-not-to-use-ai-practice
+    title: "Practice: when not to use AI"
+    kind: practice
+    unit: when-not-to-use-ai
+    items:
+      - noai-rules
+      - noai-measure-tf
+      - noai-name-reason
+
+  - slug: when-not-to-use-ai-quiz
+    title: "Quiz: when not to use AI"
+    kind: quiz
+    unit: when-not-to-use-ai
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - noai-rules
+      - noai-capability
+      - noai-benefits
+      - noai-measure-tf
+      - noai-alternative
+
+cards:
+  - slug: card-prod-layers
+    unit: ai-product-metrics
+    front: "Three metric layers for AI products?"
+    back: |
+      Product/outcome, model/quality, operational — plus docs and eval gates.
+
+  - slug: card-gov-kit
+    unit: accountability-and-oversight
+    front: "Minimum accountability kit?"
+    back: |
+      Owner, inventory, risk map, measures, manage/mitigate, periodic review.
+
+  - slug: card-noai
+    unit: when-not-to-use-ai
+    front: "When not to use AI?"
+    back: |
+      Stable rules, high harm without oversight, unmeasurable success, or a simpler tool fits.

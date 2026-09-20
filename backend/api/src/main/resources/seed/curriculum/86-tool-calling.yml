@@ -1,0 +1,251 @@
+# Wave 4: tool calling as typed APIs — schemas, validation, and abuse cases.
+#
+# Complements the agent loop unit: here the focus is the tool surface itself (contracts and
+# validation), with OWASP LLM risks named where they meet handlers.
+
+units:
+  - slug: tools-as-apis
+    title: Tools as APIs
+    kind: chapter
+    parent: tool-calling
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [tool-calling, apis, validation]
+    objectives:
+      - Treat every tool as a public API consumed by a non-deterministic client.
+      - Put validation and authorisation in handlers, not in prompt text.
+    description: >-
+      Tools are APIs: schemas, validation, errors, and abuse cases — designed for a caller that
+      will sometimes be wrong or steered.
+
+  - slug: tool-schemas-and-validation
+    title: Tool Schemas and Validation
+    kind: knowledge_unit
+    parent: tools-as-apis
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 36
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [tool-calling, json-schema, validation, security]
+    objectives:
+      - Write a tool schema that constrains arguments and documents when not to call it.
+      - Validate syntactically and semantically before execution.
+      - Map common LLM app risks (injection, excessive agency) to handler controls.
+      - Design error payloads the model can use to correct the next call.
+    description: >-
+      JSON schemas and server-side checks turn "the model asked for a tool" into a safe, typed
+      API call — or a refused one.
+    blocks:
+      - type: why
+        markdown: |
+          A tool call is an HTTP request you would never accept from the public internet without
+          validation — except the client is a model that improvises arguments and can be steered by
+          untrusted text.
+
+          Schemas are not documentation candy. They are the first parser. Everything after parse is
+          ordinary API security: authz, allow-lists, idempotency, and audit.
+
+      - type: eli5
+        markdown: |
+          You give a helper a form: name, date, order id. They must fill the boxes. If they write
+          poetry in the date box, you do not book the flight — you hand the form back with a red
+          mark.
+
+          The schema is the form. Validation is refusing bad forms. The helper can be clever or
+          confused; your desk rules do not change.
+
+      - type: beginner
+        markdown: |
+          A **tool schema** typically includes:
+
+          - `name` — stable id your code switches on.
+          - `description` — prompt text for *when* to use / not use the tool.
+          - `parameters` — JSON Schema for arguments (`type`, `required`, enums, formats).
+
+          Example:
+
+          ```json
+          {
+            "name": "create_refund",
+            "description": "Create a refund for one order the user owns. Never invent order IDs. Do not call for amounts over policy without approval.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "order_id": {"type": "string", "pattern": "^A[0-9]{4}$"},
+                "amount_cents": {"type": "integer", "minimum": 1, "maximum": 50000},
+                "reason": {"type": "string", "enum": ["late", "damaged", "duplicate"]}
+              },
+              "required": ["order_id", "amount_cents", "reason"],
+              "additionalProperties": false
+            }
+          }
+          ```
+
+          **Validation layers:**
+
+          1. **Parse** structured call from model output.
+          2. **Schema validate** types, required fields, `additionalProperties: false`.
+          3. **Business validate** ownership, limits, allow-lists.
+          4. **Execute** or **refuse** with an actionable error object.
+
+          ReAct-style loops improve when observations are real; garbage arguments waste the loop.
+          Strict schemas shrink the garbage.
+
+      - type: intermediate
+        markdown: |
+          **Descriptions are load-bearing prompts.** Overlapping tools ("search" vs "lookup") cause
+          mis-routing. Say when *not* to call. Keep the tool list short.
+
+          **Flat parameters beat nested trees.** Deep objects raise malformed-call rates. Prefer
+          `order_id` + `amount_cents` over nested policy blobs the model invents.
+
+          **`additionalProperties: false` matters.** Models invent helpful extra fields; if your
+          handler ignores unknowns silently, you hide intent you might need to refuse.
+
+          **Semantic validation is not optional.** Pattern-valid `order_id` can still belong to
+          another tenant. Bind every call to the authenticated user/tenant in the handler.
+
+          **OWASP LLM Top 10 mapping (selected):**
+
+          | Risk theme | Handler control |
+          |------------|-----------------|
+          | Prompt injection → tool misuse | Assume proposal can be steered; allow-list destinations; confirm irreversible actions |
+          | Excessive agency | Split read vs write tools; default deny writes |
+          | Sensitive info disclosure | Redact tool results; never return secrets into context |
+          | Insecure output handling | Treat model text and tool args as untrusted until validated |
+
+          **Errors as instructions:**
+
+          ```json
+          {
+            "error": "validation_failed",
+            "fields": {
+              "order_id": "must match ^A[0-9]{4}$; got 'A44'"
+            },
+            "hint": "Ask the user for the full order id before retrying."
+          }
+          ```
+
+          Opaque `500` messages cause identical retries and burn step budgets.
+
+          **Idempotency.** Writes need idempotency keys so a retried loop does not double-refund.
+          The model will retry; your API must tolerate that.
+
+      - type: example
+        markdown: |
+          Model proposes:
+
+          ```json
+          {
+            "name": "create_refund",
+            "arguments": {
+              "order_id": "A4419",
+              "amount_cents": 4200,
+              "reason": "late",
+              "notify_email": "qa-audit@external.example"
+            }
+          }
+          ```
+
+          Trace:
+
+          ```
+          1. schema: FAIL — additionalProperties (notify_email)
+             -> {"error":"validation_failed","fields":{"notify_email":"not allowed"}}
+
+          2. model retries without notify_email
+          3. schema: OK
+          4. business: user owns A4419; amount within auto-limit
+          5. policy: create_refund marked irreversible -> HELD for confirmation
+          6. result to model: {"status":"pending_approval","ticket":"R-8821"}
+          ```
+
+          The injected-looking email never reached a mailer: it died at schema, and the write died
+          at policy. Prompt text did not have to "win."
+
+      - type: misconception
+        payload:
+          code: tools.schema_is_docs_only
+          claim: "The tool schema is just documentation for developers; runtime trust the model."
+          markdown: |
+            **The claim:** schemas help humans wire frameworks; at runtime the model is careful
+            enough, so skipping server-side validation is fine.
+
+            **Why it feels right:** happy-path demos always emit valid JSON; frameworks celebrate
+            "tools the model can use."
+
+            **What actually happens:** models emit wrong types, extra fields, and steered arguments.
+            Without schema + business validation, those become real side effects. OWASP's LLM risks
+            assume the model output channel is hostile or confused — treat it that way.
+
+            **How to catch yourself:** fuzz your handlers with slightly wrong calls (bad enums,
+            extra keys, other-tenant ids). If any execute, the schema was decoration.
+
+      - type: common_mistake
+        markdown: |
+          **Validating only in the prompt** ("always pass a four-digit order id"). Prompts are not
+          parsers.
+
+          **Returning raw upstream API dumps** as tool results. You leak fields into context and
+          blow the token budget; return a curated DTO.
+
+          **One mega-tool** that takes `action` + free-form `payload`. You reinvent an untyped RPC
+          and lose schema benefits.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write a schema for `search_orders` with when-not-to-use text and
+               `additionalProperties: false`.
+            2. List syntactic vs semantic checks for `create_refund`.
+            3. Rewrite a `500 Internal Server Error` into an actionable tool error JSON.
+            4. Map two OWASP LLM risks to concrete controls on one write tool.
+            5. Add an idempotency strategy for a tool the model may call twice.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What are the validation layers before execute?"
+              answer: >-
+                Parse the call, JSON Schema validate, business/authz validate, then execute or
+                refuse with an actionable error.
+            - question: "Why set additionalProperties to false?"
+              answer: >-
+                Models invent extra fields; refusing them prevents hidden channels and forces a
+                clean retry.
+            - question: "Where do irreversible tools get gated?"
+              answer: >-
+                In handler policy (confirmation / allow-lists), not only in schema or prompt text.
+            - question: "Why curated tool results?"
+              answer: >-
+                To limit tokens and avoid leaking sensitive fields into the model context.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Author a strict tool schema with clear non-use guidance.
+            - Implement layered validation and actionable errors.
+            - Connect OWASP-style risks to handler controls.
+            - Make writes idempotent under loop retries.
+    resources:
+      - source: react-2022
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.85
+        excerpt: "Interleaved reasoning and acting — tool observations only help if calls are well-formed."
+      - source: owasp-llm-top10
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "LLM application risks that map onto tool misuse, excessive agency, and insecure handling."

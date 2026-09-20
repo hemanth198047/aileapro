@@ -1,0 +1,195 @@
+# Wave 4: data science — asking with data / EDA and question framing.
+#
+# ESL for statistical learning framing; Seeing Theory for visual probability intuition.
+# No copyrighted book chapters.
+
+units:
+  - slug: asking-with-data
+    title: Asking with Data
+    kind: chapter
+    parent: data-science
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [data-science, eda, framing]
+    objectives:
+      - Turn a vague business ask into a measurable question before modelling.
+      - Use exploratory analysis to stress-test the question, not to fish for a story.
+    description: >-
+      Data science starts with the question. Plots and summaries are tools for refining that
+      question — not a substitute for it.
+    blocks:
+      - type: why
+        markdown: |
+          Most failed models fail at framing: the label does not match the decision, the
+          population is wrong, or the metric rewards the wrong behaviour. EDA is how you notice
+          before you train.
+
+  - slug: eda-and-question-framing
+    title: EDA and Question Framing
+    kind: knowledge_unit
+    parent: asking-with-data
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [data-science, eda, framing, statistics]
+    objectives:
+      - Write a decision-linked question with population, outcome, and success metric.
+      - Use univariate and bivariate EDA to find missingness, skew, leakage clues, and segment gaps.
+      - Separate exploration from confirmation; pre-register the metric when stakes are high.
+      - Say what a plot cannot settle (causation, deployment value).
+    description: >-
+      Frame the question first; explore the table second. EDA checks whether the data can
+      answer what you asked — and forces you to revise the ask when it cannot.
+    blocks:
+      - type: why
+        markdown: |
+          "Build a model on this CSV" is not a question. Until you name who the rows are, what
+          decision the score supports, and how you will know it helped, every chart is decoration.
+
+      - type: eli5
+        markdown: |
+          Before cooking, you ask: who is eating, what should dinner achieve, and how will we
+          know it worked. Opening every jar and tasting at random is not a recipe — it is how
+          you get a weird stew and a confident story about why it is fine.
+
+          EDA is tasting with a purpose: check the ingredients match the meal you claimed.
+
+      - type: beginner
+        markdown: |
+          **Frame before you fit.** A usable question states:
+
+          1. **Population** — which rows count (customers? sessions? claims this year?)
+          2. **Decision** — what action the score will change
+          3. **Outcome / label** — what you will predict or estimate
+          4. **Metric** — how you will judge success (and for whom)
+
+          **EDA then checks feasibility.** Typical passes:
+
+          - counts and missingness per column
+          - label rate and base rate by segment
+          - distributions (skew, zeros, impossible values)
+          - simple bivariate views (feature vs label; time vs volume)
+          - leakage smells (post-outcome fields; identical train/serve timestamps)
+
+          Plots answer "is this table capable of supporting the question?" They do not by
+          themselves prove a launch should happen.
+
+      - type: intermediate
+        markdown: |
+          **Exploration vs confirmation.** If you hunt through twenty slices until a p-value
+          looks exciting, you have generated a hypothesis, not validated one. Hold out a
+          confirmation set, or pre-specify the primary metric and segments.
+
+          **Statistical learning framing (ESL spirit, concepts only):** prediction quality on
+          unseen data is the usual target; flexible methods can fit noise; the test set is the
+          honest judge. EDA helps you see whether the feature space and label definition make
+          that target coherent.
+
+          **Seeing structure.** Visual intuition for distributions and conditional chance
+          (histograms, conditional frequencies) keeps you from treating a skewed spend column
+          as Gaussian or a rare positive class as balanced.
+
+          **Revise the question.** If the label is "was charged" but the decision is "should we
+          intervene earlier," you may need a different outcome. Changing the ask is progress,
+          not failure.
+
+      - type: example
+        markdown: |
+          Ask from sales: "Predict churn."
+
+          **Framed version:** Among monthly subscribers active as of day $t$, predict
+          cancel-within-30-days, to prioritise retention offers. Success: lift in retained
+          revenue net of offer cost on a holdout cohort — not raw AUC alone.
+
+          **EDA findings that change the work:**
+
+          - 40% of "churn" labels are failed payments, not voluntary cancels → split outcomes.
+          - A feature `days_since_last_login` is computed with post-cancel windows in the dump
+            → leakage; recompute as-of $t$.
+          - New-market segment has 80 positives total → metric will be noisy; plan hierarchical
+            or pooled evaluation.
+
+          Only after those fixes is model choice the bottleneck.
+
+      - type: misconception
+        payload:
+          code: ds.eda_is_the_answer
+          claim: "Enough charts will reveal the truth; framing is optional paperwork."
+          markdown: |
+            **The claim:** open the table, plot until a pattern appears, then train.
+
+            **Why it feels right:** EDA is tangible and plots feel like progress.
+
+            **What goes wrong:** you optimise a convenient label, ignore the decision, and
+            overfit exploratory stories. Charts without a question select whichever pattern is
+            loudest.
+
+            **How to catch yourself:** write population, decision, label, and metric in four
+            lines before the first fancy plot. If you cannot, you are not ready to model.
+
+      - type: common_mistake
+        markdown: |
+          **Training on the same slices you explored** without a confirmation plan.
+
+          **Reporting accuracy on a 2% positive class** without a care metric.
+
+          **Treating correlation plots as causal permission** to intervene.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Turn "improve support" into a four-line framed question.
+            2. List five EDA checks you would run before a first baseline.
+            3. Give an example of exploratory fishing vs a pre-specified metric.
+            4. When should EDA make you refuse the current label?
+            5. What can a beautiful plot still fail to tell you?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What four pieces belong in a framed question?"
+              answer: "Population, decision, outcome/label, and success metric."
+            - question: "What is EDA for in this unit's claim?"
+              answer: >-
+                Checking whether the data can support the question — and forcing a rewrite when
+                it cannot.
+            - question: "Why is chart-hunting alone dangerous?"
+              answer: "It generates unconfirmed stories and can select noise as signal."
+            - question: "Name one leakage clue EDA can surface."
+              answer: >-
+                Post-outcome fields, timestamps computed after the decision point, or target
+                proxies in features.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Frame a business ask into population/decision/label/metric.
+            - Run an EDA pass that could falsify that framing.
+            - Distinguish exploration from confirmation in your own workflow.
+    resources:
+      - source: esl-book
+        purpose: PRIMARY_SOURCE
+        relevance: 0.75
+        excerpt: >-
+          Conceptual framing of prediction, generalisation, and the limits of fitting — cite
+          ideas only; no book chapters reproduced.
+      - source: seeing-theory
+        purpose: BACKGROUND
+        relevance: 0.65
+        excerpt: >-
+          Visual intuition for distributions and chance — useful while reading univariate and
+          conditional plots during EDA.

@@ -1,0 +1,312 @@
+# Assessments for Wave 4 DSA units: big-o-for-ml-engineers, hashing-and-lookup.
+
+items:
+  # --- Big-O ---------------------------------------------------------------------------------
+  - slug: bigo-growth-not-ms
+    unit: big-o-for-ml-engineers
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      What does Big-O primarily tell you about an algorithm?
+    choices:
+      - id: a
+        text: "How leading cost grows with input size as n gets large."
+        correct: true
+      - id: b
+        text: "Exact milliseconds on your laptop for the current dataset."
+        misconception: dsa.big_o_is_runtime
+      - id: c
+        text: "Whether the code will pass code review."
+      - id: d
+        text: "The constant factor of every language runtime."
+    explanation: |
+      Big-O is about growth class, not a wall-clock SLA. Measure for today's n; use asymptotics
+      for what happens at 10×.
+
+  - slug: bigo-nested-loops
+    unit: big-o-for-ml-engineers
+    type: mcq
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 90
+    stem: |
+      Pseudocode runs `for i in 1..n: for j in 1..n:` with O(1) work inside. Growth class?
+    choices:
+      - id: a
+        text: "O(n²)"
+        correct: true
+      - id: b
+        text: "O(n)"
+      - id: c
+        text: "O(1)"
+      - id: d
+        text: "O(log n)"
+    explanation: |
+      Two nested loops over n give Θ(n²) iterations when the bodies are constant work.
+
+  - slug: bigo-sort-scan
+    unit: big-o-for-ml-engineers
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      You sort n rows (comparison sort) then scan once to drop duplicates. Dominant class?
+    choices:
+      - id: a
+        text: "O(n log n)"
+        correct: true
+      - id: b
+        text: "O(n²) because of the scan"
+      - id: c
+        text: "O(1)"
+      - id: d
+        text: "O(n!) "
+    explanation: |
+      Sorting dominates; a linear scan is lower order. Nested pairwise checks would be O(n²).
+
+  - slug: bigo-tf-runtime
+    unit: big-o-for-ml-engineers
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 50
+    stem: |
+      An O(n) algorithm is always faster in wall-clock time than an O(n log n) algorithm for
+      every practical n.
+    choices:
+      - id: "true"
+        text: "True"
+        misconception: dsa.big_o_is_runtime
+      - id: "false"
+        text: "False"
+        correct: true
+    explanation: |
+      False. Constants and implementation matter; asymptotics describe growth, not a universal
+      ranking at small n.
+
+  - slug: bigo-dominant
+    unit: big-o-for-ml-engineers
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      A job does O(n) cleaning then O(n²) all-pairs distances. Where should you focus first if
+      n will grow 10×?
+    choices:
+      - id: a
+        text: "The pairwise stage — it dominates asymptotically."
+        correct: true
+      - id: b
+        text: "Only the cleaning stage, because it runs first."
+      - id: c
+        text: "Neither; Big-O never matters for ML."
+      - id: d
+        text: "Rewriting comments for clarity."
+    explanation: |
+      At large n the quadratic term swamps linear prep. Change algorithm class or approximate.
+
+  - slug: bigo-name-class
+    unit: big-o-for-ml-engineers
+    type: short_text
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      Nested loops over n examples with constant work inside — write the Big-O class using n
+      (e.g. O(n)).
+    accepted:
+      - "O(n^2)"
+      - "O(n²)"
+      - "O(n**2)"
+      - "Theta(n^2)"
+      - "θ(n^2)"
+    explanation: |
+      O(n²) (or Θ(n²)). That is the default all-pairs / nested-loop smell in pipelines.
+
+  # --- Hashing -------------------------------------------------------------------------------
+  - slug: hash-avg-get
+    unit: hashing-and-lookup
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      Average-case cost of get/put in a well-behaved hash map?
+    choices:
+      - id: a
+        text: "O(1)"
+        correct: true
+      - id: b
+        text: "O(n)"
+      - id: c
+        text: "O(n²)"
+      - id: d
+        text: "O(n log n)"
+    explanation: |
+      Average O(1) when load factor is controlled and keys distribute; collisions can degrade it.
+
+  - slug: hash-vs-ann
+    unit: hashing-and-lookup
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      You need nearest neighbours in embedding space. Why is a normal string→id dict insufficient?
+    choices:
+      - id: a
+        text: "Dicts answer exact key equality, not vector similarity."
+        correct: true
+      - id: b
+        text: "Hash maps automatically return nearest embeddings."
+        misconception: dsa.hash_is_similarity
+      - id: c
+        text: "Dicts only work for integers."
+      - id: d
+        text: "Embeddings cannot be stored on disk."
+    explanation: |
+      Ordinary hashing scatters keys. Similarity needs ANN/LSH or a vector index — a different
+      question than get(key).
+
+  - slug: hash-vs-scan
+    unit: hashing-and-lookup
+    type: mcq
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      q queries each search for a user_id in an unsorted list of n users. Cost class?
+    choices:
+      - id: a
+        text: "O(q n) with scans; hash map lookups are ~O(q) average."
+        correct: true
+      - id: b
+        text: "O(1) either way."
+      - id: c
+        text: "O(q!) "
+      - id: d
+        text: "Scans are always faster than hashing."
+    explanation: |
+      Per-query scans multiply; a map turns each lookup into average constant time.
+
+  - slug: hash-collision-tf
+    unit: hashing-and-lookup
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 50
+    stem: |
+      A collision means two different keys mapped to the same bucket.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — tables handle collisions with chaining or open addressing; too many hurts average cost.
+
+  - slug: hash-similarity-trap
+    unit: hashing-and-lookup
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      A teammate says "we'll hash the embeddings so similar users land near each other." What is
+      the right pushback for a standard hash map?
+    choices:
+      - id: a
+        text: "Standard hashes scatter keys; proximity in the table is not semantic similarity."
+        correct: true
+      - id: b
+        text: "Agree — that is what dicts are for."
+        misconception: dsa.hash_is_similarity
+      - id: c
+        text: "Hash maps only store integers, so the idea is impossible."
+      - id: d
+        text: "Similarity is illegal in production systems."
+    explanation: |
+      Do not confuse dict hashing with locality-sensitive hashing or vector indexes.
+
+  - slug: hash-use-case
+    unit: hashing-and-lookup
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      Name one ML pipeline use of a hash map (a few words).
+    accepted:
+      - "vocabulary string to token id"
+      - "string to token id"
+      - "token vocabulary"
+      - "user_id to features"
+      - "feature join by id"
+      - "dedupe / seen set"
+      - "key to count"
+      - "id lookup"
+    explanation: |
+      Vocab maps, feature joins by id, membership/dedupe, and counters are the everyday cases.
+
+assessments:
+  - slug: big-o-for-ml-engineers-practice
+    title: "Practice: Big-O for ML engineers"
+    kind: practice
+    unit: big-o-for-ml-engineers
+    items:
+      - bigo-growth-not-ms
+      - bigo-nested-loops
+      - bigo-name-class
+
+  - slug: big-o-for-ml-engineers-quiz
+    title: "Quiz: Big-O for ML engineers"
+    kind: quiz
+    unit: big-o-for-ml-engineers
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - bigo-growth-not-ms
+      - bigo-nested-loops
+      - bigo-sort-scan
+      - bigo-tf-runtime
+      - bigo-dominant
+
+  - slug: hashing-and-lookup-practice
+    title: "Practice: hashing and lookup"
+    kind: practice
+    unit: hashing-and-lookup
+    items:
+      - hash-avg-get
+      - hash-vs-scan
+      - hash-use-case
+
+  - slug: hashing-and-lookup-quiz
+    title: "Quiz: hashing and lookup"
+    kind: quiz
+    unit: hashing-and-lookup
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - hash-avg-get
+      - hash-vs-ann
+      - hash-vs-scan
+      - hash-collision-tf
+      - hash-similarity-trap
+
+cards:
+  - slug: card-bigo-growth
+    unit: big-o-for-ml-engineers
+    front: "What is Big-O for, in one line?"
+    back: |
+      Leading cost growth as n gets large — not a millisecond forecast for today's run.
+
+  - slug: card-hash-vs-ann
+    unit: hashing-and-lookup
+    front: "Hash map vs nearest-neighbour search?"
+    back: |
+      Dicts: exact key equality, average O(1). Embeddings need similarity indexes, not get(key).

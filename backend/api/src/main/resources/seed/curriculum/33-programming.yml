@@ -1,0 +1,182 @@
+# Wave 4: programming core — abstraction and interfaces.
+#
+# Language-agnostic engineering habits that keep ML codebases changeable.
+
+units:
+  - slug: programming-core
+    title: Programming Core
+    kind: chapter
+    parent: programming-fundamentals
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [programming, design, interfaces]
+    objectives:
+      - Separate what a module promises from how it is implemented.
+      - Keep training and serving code behind stable boundaries where volatility lives.
+    description: >-
+      Abstraction and interfaces as daily engineering practice — not a patterns encyclopedia.
+    blocks:
+      - type: why
+        markdown: |
+          Model code churns. Data schemas churn. If every notebook imports every detail of every
+          neighbour, a small change becomes a rewrite. Interfaces are how you localise that pain.
+
+  - slug: abstraction-and-interfaces
+    title: Abstraction and Interfaces
+    kind: knowledge_unit
+    parent: programming-core
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [programming, abstraction, interfaces, api-design]
+    objectives:
+      - Define an interface as the contract callers rely on (inputs, outputs, invariants).
+      - Hide a volatile implementation behind a stable façade without pretending one file is "clean."
+      - Spot leaky abstractions that force callers to know private details.
+      - Apply the idea to model clients, feature stores, and storage backends.
+    description: >-
+      Callers should depend on a small contract — methods, types, and promises — not on the
+      concrete class that happens to implement it today.
+    blocks:
+      - type: why
+        markdown: |
+          Swapping a local pickle for a remote feature store, or a vendor SDK for another, should
+          not rewrite every training script. That only happens if callers depended on a contract
+          rather than on yesterday's concrete class.
+
+      - type: eli5
+        markdown: |
+          A light switch is an interface: on or off. You do not rewire the house to change the
+          bulb brand. The switch hides the wiring. Good modules give callers a switch, not a
+          tour of the basement.
+
+      - type: beginner
+        markdown: |
+          An **interface** (or contract) names:
+
+          - what you can call (operations)
+          - what goes in and comes out (types)
+          - what must stay true (invariants / errors)
+
+          An **abstraction** hides details that callers should not need. The goal is not maximum
+          indirection — it is *stability at the boundary* where many callers meet a changing
+          interior.
+
+          **ML-shaped examples:**
+
+          | Contract | Hides |
+          |----------|--------|
+          | `embed(texts) -> vectors` | which model checkpoint or API |
+          | `get_features(user_id)` | SQL vs KV vs files |
+          | `generate(prompt, params)` | vendor SDK quirks |
+
+          Callers program to the left column. Implementations live on the right and can be
+          replaced behind tests that only assert the contract.
+
+      - type: intermediate
+        markdown: |
+          **Dependency direction.** High-level policy (training loop, product API) should depend
+          on abstractions; low-level details (HTTP client, file format) implement them. When
+          details depend on policy, every experiment forks the stack.
+
+          **Leaky abstractions.** If callers must know that `get_features` returns a pandas
+          frame with a private column name used only by one warehouse, the contract leaked.
+          Prefer explicit types and documented fields.
+
+          **How much is enough.** One interface with two implementations (fake for tests, real
+          for prod) beats a deep hierarchy. YAGNI still applies: abstract the seam you have
+          already swapped or tested against, not every noun in the domain.
+
+          **Versioning the contract.** Changing a return shape is a breaking change even if the
+          method name stayed pretty. Treat interface edits like API releases.
+
+      - type: example
+        markdown: |
+          Before: every notebook does `openai.Embedding.create(...)` with ad-hoc retry and
+          truncation.
+
+          After: a small `Embedder` protocol with `embed(list[str]) -> np.ndarray`, plus:
+
+          - `OpenAIEmbedder` for prod
+          - `HashEmbedder` for tests (deterministic fake)
+          - shared truncation/batching inside the real adapter
+
+          Training and eval import `Embedder`, not the vendor SDK. Swapping providers is one
+          class; notebooks stay boring — which is the point.
+
+      - type: misconception
+        payload:
+          code: prog.abstraction_means_many_files
+          claim: "Good abstraction means more classes and layers by default."
+          markdown: |
+            **The claim:** clean code equals deep hierarchies and interface-per-noun.
+
+            **Why it feels right:** design-pattern culture rewards indirection, and "flexible"
+            sounds like more types.
+
+            **What actually helps:** a *thin* contract at a real seam (IO, vendor, storage) and
+            boring code elsewhere. Extra layers without a second implementation or test seam are
+            ceremony.
+
+            **How to catch yourself:** ask "what can I swap or fake now?" If nothing, delete the
+            layer until a seam appears.
+
+      - type: common_mistake
+        markdown: |
+          **Importing concrete SDKs in every call site** instead of one adapter.
+
+          **Interfaces that return raw vendor payloads** and force every caller to parse them.
+
+          **Abstracting too early** before a second implementation exists.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write a three-bullet contract for `get_features(user_id)` (inputs, outputs, one
+               invariant).
+            2. Name two concrete backends that could implement it.
+            3. Give an example of a leaky feature-store abstraction.
+            4. Why is a fake embedder useful in tests?
+            5. When would you refuse to add an interface?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What should callers depend on?"
+              answer: "A small contract (operations, types, invariants), not today's concrete class."
+            - question: "What is a leaky abstraction?"
+              answer: >-
+                One that forces callers to know private implementation details to use it
+                correctly.
+            - question: "Is more layering always better?"
+              answer: "No — abstract real seams; ceremony without a swap/test benefit is cost."
+            - question: "Give one ML seam worth wrapping."
+              answer: "Embeddings API, feature store, or generation client — vendor/IO boundaries."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Draft a short contract for a volatile dependency.
+            - Point out a leak in an existing module boundary.
+            - Justify a fake implementation for tests without over-building a framework.
+    resources:
+      - source: pep8
+        purpose: TOOL_REFERENCE
+        relevance: 0.45
+        excerpt: >-
+          Public names and module layout as everyday contracts: clear call surfaces beat deep
+          hierarchies. Same boundary habit applies beyond Python.

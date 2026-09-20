@@ -51,7 +51,7 @@ class CatalogApiTest {
         assertThat(units.count()).isEqualTo(unitsAfterFirst);
         assertThat(units.countByStatus(ContentStatus.PUBLISHED)).isEqualTo(publishedAfterFirst);
         // The seed is authored, not generated: it must stay small enough to review by hand.
-        assertThat(units.count()).isLessThan(200);
+        assertThat(units.count()).isLessThan(300);
     }
 
     @Test
@@ -101,7 +101,7 @@ class CatalogApiTest {
 
     @Test
     void domainWithoutContentIsHonestAboutIt() throws Exception {
-        mockMvc.perform(get("/v1/units/ai-governance").with(user("ada").roles("LEARNER")))
+        mockMvc.perform(get("/v1/units/ai-entrepreneurship").with(user("ada").roles("LEARNER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.kind").value("domain"))
                 .andExpect(jsonPath("$.description").isNotEmpty())

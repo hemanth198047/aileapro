@@ -1,0 +1,273 @@
+# Assessments for Wave 4 data-engineering units.
+
+items:
+  - slug: data-pipeline-vs-features
+    unit: feature-store-vs-pipeline
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "What does a robust ingestion pipeline still not guarantee by itself?"
+    choices:
+      - id: a
+        text: "Shared feature definitions with point-in-time training access and train/serve parity."
+        correct: true
+      - id: b
+        text: "That events can move from producers to storage."
+      - id: c
+        text: "That Kafka can fan out logs to multiple consumers."
+      - id: d
+        text: "That warehouse tables exist for dashboards."
+    explanation: |
+      Pipelines move and clean data. Feature contracts add semantics, PIT joins, and one definition
+      for train and serve. Kafka alone is not a feature store.
+
+  - slug: data-pit
+    unit: feature-store-vs-pipeline
+    type: mcq
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "What is point-in-time correctness for training features?"
+    choices:
+      - id: a
+        text: "Features for a label at time T use only information available at or before T."
+        correct: true
+      - id: b
+        text: "Joining to the warehouse's current aggregates is fine if Kafka ingested the events."
+        misconception: data.feature_store_is_pipeline
+      - id: c
+        text: "Online features must be older than training features."
+      - id: d
+        text: "Checksums of model files prove feature timing."
+    explanation: |
+      Future information in training features inflates offline metrics. PIT joins (or equivalent
+      discipline) are the fix — not "we have a pipeline."
+
+  - slug: data-two-definitions
+    unit: feature-store-vs-pipeline
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      Training uses a nightly SQL count for `orders_7d`; serving runs a slightly different live SQL
+      count. What went wrong?
+    choices:
+      - id: a
+        text: "Two feature definitions — pipeline presence did not create train/serve parity."
+        correct: true
+      - id: b
+        text: "Nothing; Kafka topics mean you already have a feature store."
+        misconception: data.feature_store_is_pipeline
+      - id: c
+        text: "Only the model file checksum can detect this."
+      - id: d
+        text: "Batch size was too small during training."
+    explanation: |
+      Same name, two implementations → skew. One module (or registered view) must own the meaning.
+
+  - slug: data-when-library
+    unit: feature-store-vs-pipeline
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "When can a shared transform library be enough instead of a full feature platform?"
+    choices:
+      - id: a
+        text: "Few models, one team, strong review — until many consumers or repeated PIT bugs appear."
+        correct: true
+      - id: b
+        text: "Never; any Kafka pipeline already replaces feature discipline."
+        misconception: data.feature_store_is_pipeline
+      - id: c
+        text: "Only when you skip experiment tracking entirely."
+      - id: d
+        text: "When training always reads mutable 'current state' tables."
+    explanation: |
+      Start simple with one imported definition. Platformise when scale or recurring leakage demands
+      it.
+
+  - slug: data-feature-owner
+    unit: feature-store-vs-pipeline
+    type: short_text
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      In one short phrase: what should own a feature's *definition*?
+    accepted:
+      - "a single shared module or registered feature view"
+      - "one shared definition used by train and serve"
+      - "shared library / feature registry entry"
+      - "one code path imported by training and serving"
+      - "a registered feature definition (not two SQLs)"
+    explanation: |
+      Precompute and caches are optimisations. The definition is one function or registered view —
+      not "the ETL job" plus "the API query."
+
+  - slug: data-manifest
+    unit: reproducible-training-data
+    type: mcq
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "What belongs in a minimum training-data manifest?"
+    choices:
+      - id: a
+        text: "Snapshot/query/as-of identity, checksums, label/split versions, and doc pointers."
+        correct: true
+      - id: b
+        text: "Only the latest model accuracy on a dashboard — snapshots are optional."
+        misconception: data.snapshot_optional
+      - id: c
+        text: "GPU utilization percentages from training."
+      - id: d
+        text: "The Kafka consumer lag graph alone."
+    explanation: |
+      Metrics without recoverable inputs are not science. Manifests pin what rows and definitions
+      produced the number.
+
+  - slug: data-mutable-table
+    unit: reproducible-training-data
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Why is `SELECT * FROM users` today insufficient as 'the training set'?"
+    choices:
+      - id: a
+        text: "Mutable tables change; past metrics cannot be tied to a recoverable input set."
+        correct: true
+      - id: b
+        text: "Dashboards already make snapshots optional."
+        misconception: data.snapshot_optional
+      - id: c
+        text: "SQL cannot be versioned in principle."
+      - id: d
+        text: "Feature stores forbid SELECT."
+    explanation: |
+      Pin snapshots or time-travel as-of stamps in the run. Live tables are not versions.
+
+  - slug: data-datasheet
+    unit: reproducible-training-data
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What do datasheets for datasets add beyond checksums?"
+    choices:
+      - id: a
+        text: "Motivation, composition, collection process, and recommended uses/limitations."
+        correct: true
+      - id: b
+        text: "Nothing — metrics dashboards replace documentation."
+        misconception: data.snapshot_optional
+      - id: c
+        text: "Only the optimiser hyperparameters."
+      - id: d
+        text: "Kafka partition counts."
+    explanation: |
+      Checksums prove identity; datasheets help humans judge fit and harm. Both belong with the
+      dataset.
+
+  - slug: data-run-log
+    unit: reproducible-training-data
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "What must an experiment run record for a training job to be auditable?"
+    choices:
+      - id: a
+        text: "Data version, transform/code version, parameters, metrics, and model artefact links."
+        correct: true
+      - id: b
+        text: "Accuracy alone; regenerating data from prod later is fine."
+        misconception: data.snapshot_optional
+      - id: c
+        text: "Only the engineer’s laptop hostname."
+      - id: d
+        text: "Only serving QPS after deploy."
+    explanation: |
+      Tracking systems earn their keep when every run pins data and code. Empty accuracy souvenirs
+      do not.
+
+  - slug: data-snapshot-why
+    unit: reproducible-training-data
+    type: short_text
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Why are training-data snapshots (or pinned time-travel reads) not optional if you track
+      metrics? One or two sentences.
+    accepted:
+      - "Metrics without recoverable inputs compare unequal experiments"
+      - "Live data mutates so you cannot rebuild the evaluated set"
+      - "Dashboards without data versions create false confidence"
+      - "You must recreate the exact rows to debug regressions"
+      - "Mutable prod data will not regenerate last month's table"
+    explanation: |
+      Offline metrics refer to a specific dataset. Without snapshots or pinned reads, you cannot
+      recreate or debug that experiment.
+
+assessments:
+  - slug: feature-store-vs-pipeline-practice
+    title: "Practice: feature store vs pipeline"
+    kind: practice
+    unit: feature-store-vs-pipeline
+    items:
+      - data-pipeline-vs-features
+      - data-pit
+      - data-feature-owner
+
+  - slug: feature-store-vs-pipeline-quiz
+    title: "Quiz: feature store vs pipeline"
+    kind: quiz
+    unit: feature-store-vs-pipeline
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - data-pipeline-vs-features
+      - data-pit
+      - data-two-definitions
+      - data-when-library
+      - data-feature-owner
+
+  - slug: reproducible-training-data-practice
+    title: "Practice: reproducible training data"
+    kind: practice
+    unit: reproducible-training-data
+    items:
+      - data-manifest
+      - data-datasheet
+      - data-snapshot-why
+
+  - slug: reproducible-training-data-quiz
+    title: "Quiz: reproducible training data"
+    kind: quiz
+    unit: reproducible-training-data
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - data-manifest
+      - data-mutable-table
+      - data-datasheet
+      - data-run-log
+      - data-snapshot-why
+
+cards:
+  - slug: card-data-pipeline-vs-store
+    unit: feature-store-vs-pipeline
+    front: "Pipeline vs feature store — one line?"
+    back: |
+      Pipelines move data. Feature contracts define PIT semantics and train/serve parity. Kafka ≠
+      feature store.
+
+  - slug: card-data-snapshot
+    unit: reproducible-training-data
+    front: "Why snapshot training data?"
+    back: |
+      Metrics need recoverable inputs. Mutable warehouse "today" is not last month's experiment.

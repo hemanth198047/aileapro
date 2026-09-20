@@ -1,0 +1,386 @@
+# Wave 4: generative models — GAN game and diffusion denoising intuition.
+#
+# Parent domain: generative-ai (10-domains.yml).
+
+units:
+  - slug: generative-models
+    title: Generative Models
+    kind: chapter
+    parent: generative-ai
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 90
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [generative-ai, generative-models]
+    objectives:
+      - Contrast adversarial generation (GANs) with iterative denoising (diffusion).
+      - State what each family is good for at an intuition level, without pretending one paper
+        obsolete the other overnight.
+      - "Name failure modes: mode collapse, unstable training, slow sampling."
+    description: >-
+      Two families that taught machines to invent samples: generators playing against
+      discriminators, and models that learn to reverse noise. Different games, different knobs.
+    blocks:
+      - type: why
+        markdown: |
+          Generative AI is not one algorithm. GANs made sharp samples via an adversarial game;
+          diffusion models made training more predictable by learning to denoise. These pages are
+          the intuition you need before reading either literature — not a bake-off scoreboard.
+
+  - slug: gan-game-intuition
+    title: GANs as a Two-Player Game
+    kind: knowledge_unit
+    parent: generative-models
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [generative-ai, gan]
+    objectives:
+      - Describe the generator and discriminator roles and what each maximises or minimises.
+      - Explain mode collapse as a failure where diversity dies while samples still "look real."
+      - Say why GAN training is a game (and why that makes optimisation brittle).
+      - Relate the 2014 Goodfellow et al. setup to the modern idea of adversarial generation.
+    description: >-
+      A generator maps noise to samples; a discriminator learns to tell real from fake. They train
+      against each other — a minimax game, not a single loss downhill forever.
+    blocks:
+      - type: why
+        markdown: |
+          Before diffusion dominated image benchmarks, GANs showed that you could sample sharp
+          images by training two networks in opposition. The idea is still the cleanest way to
+          understand adversarial generation, and the failure modes still show up in GAN-like
+          objectives elsewhere.
+
+      - type: eli5
+        markdown: |
+          A forger (generator) tries to print fake banknotes. A detective (discriminator) tries to
+          spot fakes. The forger sees what the detective catches and improves; the detective sees
+          new fakes and improves.
+
+          If they balance, fakes look real. If the forger finds one trick that always fools the
+          detective, you get the same fake over and over — that is mode collapse in costume.
+
+      - type: beginner
+        markdown: |
+          **Generator** $G(z)$: maps random noise $z$ to a sample in data space (image, etc.).
+
+          **Discriminator** $D(x)$: outputs a score for how real $x$ looks (classically a
+          probability of "real").
+
+          **Game (Goodfellow et al., 2014).** $D$ wants to label real data as real and $G$'s
+          outputs as fake. $G$ wants $D$ to label its outputs as real. Written as a minimax
+          objective: $D$ maximises classification accuracy; $G$ minimises the discriminator's
+          ability to tell fakes apart (equivalently maximises fooling).
+
+          **Training alternates.** Update $D$ on a batch of real and fake; update $G$ so fakes
+          score better under the current $D$. Neither loss is a fixed landscape — each player's
+          move changes the other's board.
+
+          **At a conceptual equilibrium**, $G$ reproduces the data distribution and $D$ cannot do
+          better than chance. Practice rarely sits politely at that equilibrium.
+
+      - type: intermediate
+        markdown: |
+          **Why it is brittle.** Simultaneous gradient descent on a game can cycle, diverge, or
+          collapse. Hyperparameters, architectural tricks, and loss variants (WGAN, hinge, etc.)
+          exist because the vanilla game is awkward to optimise — not because the story is wrong.
+
+          **Mode collapse.** $G$ concentrates on a few samples that fool $D$, covering little of
+          the data distribution. $D$ may still be imperfect; samples can look individually sharp
+          while diversity is gone. Measuring collapse needs distribution-level metrics, not one
+          pretty grid.
+
+          **No explicit likelihood.** Classic GANs do not give you $p(x)$ for a sample; they give
+          you a procedure to sample. Likelihood-based models (and diffusion's ELBO-style training)
+          trade some of that sharpness/simplicity for a different training signal.
+
+          **Where GANs still matter.** The adversarial *idea* — train against a learned critic —
+          appears in losses beyond the 2014 image setup. Understanding the game clarifies those
+          papers faster than memorising acronyms.
+
+      - type: example
+        markdown: |
+          Toy loop (shapes only):
+
+          ```text
+          for each training step:
+              # Discriminator step
+              x_real ~ data
+              z ~ noise; x_fake = G(z)
+              update D to raise D(x_real) and lower D(x_fake)
+
+              # Generator step
+              z ~ noise; x_fake = G(z)
+              update G to raise D(x_fake)   # fool D
+          ```
+
+          **Collapse sketch.** Data has many digit styles. After training, $G$ emits only "7"-like
+          blobs that $D$ currently struggles with. Loss curves may still look "busy." A sample
+          sheet with twenty near-copies is the diagnostic, not a single convincing image.
+
+          Goodfellow et al. 2014 is the citation for the original game; later work changes losses
+          and architectures but keeps the two-player story.
+
+      - type: misconception
+        payload:
+          code: gen.gan_always_converges
+          claim: "If the GAN losses look stable, the generator has learned the full data distribution."
+          markdown: |
+            **The claim:** quiet or converged-looking losses mean $G$ matches the data.
+
+            **Why it feels right:** in supervised learning, flat low loss usually means fit; people
+            import that habit.
+
+            **What actually happens:** game dynamics can look calm while $G$ occupies a few modes.
+            $D$ and $G$ may co-adapt around a narrow solution. Stability of scalars ≠ coverage of
+            the distribution.
+
+            **How to catch yourself:** inspect diversity (many samples), use metrics sensitive to
+            coverage, and treat loss plots as training health — not as proof of distributional
+            match.
+
+      - type: common_mistake
+        markdown: |
+          **Judging success from cherry-picked samples** instead of checking variety and failure
+          modes.
+
+          **Updating only $G$ for many steps** so $D$ becomes useless (or the reverse), then
+          declaring GANs "don't work."
+
+          **Equating GANs with all of generative AI** and skipping likelihood-based or diffusion
+          views when the task needs them.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. In two sentences, what does G try to do and what does D try to do?
+            2. Why is GAN training not "just another supervised loss"?
+            3. Describe mode collapse without using the phrase "mode collapse."
+            4. Name one thing a classic GAN does not give you that a likelihood model would.
+            5. Correct "stable losses mean the distribution is learned" in two sentences.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What are the two players in a GAN?"
+              answer: >-
+                A generator that maps noise to samples, and a discriminator that scores real vs
+                fake.
+            - question: "What is mode collapse?"
+              answer: >-
+                The generator produces limited varieties of samples that fool the discriminator,
+                failing to cover the data distribution's diversity.
+            - question: "Why can GAN optimisation be unstable?"
+              answer: >-
+                  Because each network changes the other's loss landscape — it is a game, not a
+                  fixed supervised objective.
+            - question: "Do classic GANs provide likelihoods p(x)?"
+              answer: "Typically no — they provide a sampling procedure via G(z)."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Explain the GAN game without collapsing it into "one neural net generates images."
+            - Diagnose mode collapse from a sample sheet story.
+            - Say what equilibrium would mean and why practice misses it.
+            - Point to Goodfellow et al. 2014 as the origin of the adversarial setup.
+    resources:
+      - source: goodfellow-gan-2014
+        purpose: PRIMARY_SOURCE
+        relevance: 0.95
+        excerpt: "Original generative adversarial nets formulation and training game."
+      - source: d2l
+        purpose: DEEPER_REFERENCE
+        relevance: 0.55
+        excerpt: "Optional pedagogical GAN walkthrough in the broader deep-learning text."
+
+  - slug: diffusion-denoising-intuition
+    title: Diffusion as Learned Denoising
+    kind: knowledge_unit
+    parent: generative-models
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 45
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [generative-ai, diffusion, ddpm]
+    objectives:
+      - Describe the forward process as gradually adding noise until the signal is gone.
+      - Describe sampling as iterative denoising from noise toward data.
+      - State what the neural net is trained to predict in the DDPM-style story (noise / clean
+        signal — at intuition level).
+      - Contrast diffusion training stability with GAN games without claiming universal
+        superiority on every metric.
+    description: >-
+      Diffusion models destroy data with noise in small steps, then learn to reverse those steps.
+      Generation starts from pure noise and denoises iteratively.
+    blocks:
+      - type: why
+        markdown: |
+          Diffusion reframes generation as "undo noise." Training looks more like supervised
+          denoising than like a brittle two-player game, which is a large part of why the family
+          scaled so well for images. Ho, Jain, and Abbeel's DDPM paper is the standard entry point.
+
+      - type: eli5
+        markdown: |
+          Take a photo and sprinkle a little static on it, again and again, until only static
+          remains. That is the forward process — easy, no learning required.
+
+          Now train a cleanup crew that, given a noisy picture and a sense of "how noisy,"
+          estimates what the static looks like (or what the clean photo was). To invent a new
+          photo, start from pure static and let the crew clean step by step.
+
+      - type: beginner
+        markdown: |
+          **Forward (diffusion) process.** Start from a real sample $x_0$. Over $T$ steps, add
+          Gaussian noise on a schedule so that $x_T$ is nearly pure noise. Each step is simple and
+          fixed — not learned.
+
+          **Reverse process.** Learn transitions that go from $x_t$ toward $x_{t-1}$, eventually
+          landing near the data distribution. Sampling: draw $x_T \sim \mathcal{N}(0,I)$, then
+          iteratively apply the learned reverse step.
+
+          **What the network learns (DDPM intuition).** A neural net, conditioned on the timestep
+          $t$, predicts the noise component that was mixed into $x_t$ (equivalently, related
+          parameterisations predict a clean $\hat{x}_0$ or a velocity). Training minimises an error
+          between prediction and the true noise used in the forward process — a regression-like
+          objective.
+
+          **Why this feels different from GANs.** One network, a fixed corruption process, and a
+          denoising loss. No discriminator player. The cost is many network evaluations at sample
+          time (dozens to thousands of steps in early DDPMs), which later work compresses.
+
+      - type: intermediate
+        markdown: |
+          **Schedules matter.** How fast noise accumulates ($T$, variances) changes both training
+          difficulty and sample quality. The DDPM paper's particular schedule and ε-prediction
+          parameterisation made high-quality image learning practical.
+
+          **Likelihood connection (lightly).** Diffusion models relate to variational objectives /
+          score matching views; you do not need the full derivation to use the intuition, but
+          know that training is not an adversarial game and that people can discuss ELBOs and
+          scores in the literature.
+
+          **Guidance and conditioning.** Modern image systems add text (or other) conditioning so
+          the denoiser aims at a class of images, not just "any natural image." That sits on top
+          of the same denoising spine.
+
+          **Trade-offs versus GANs (honest, high level).** Diffusion training is typically more
+          stable and mode coverage is often stronger; sampling is historically slower. GANs can be
+          fast at inference when they work. Prefer mechanisms over tribal "X is dead" claims.
+
+      - type: example
+        markdown: |
+          Conceptual training step:
+
+          ```text
+          x0 ~ data
+          t  ~ Uniform({1..T})
+          ε  ~ N(0, I)
+          xt = mix(x0, ε, schedule(t))   # forward corruption
+          ε_hat = neural_net(xt, t)
+          loss = ||ε_hat - ε||²
+          ```
+
+          Conceptual sampling:
+
+          ```text
+          x ← N(0, I)
+          for t = T .. 1:
+              ε_hat = neural_net(x, t)
+              x ← reverse_step(x, ε_hat, t)   # remove a bit of noise
+          return x
+          ```
+
+          The DDPM 2020 paper establishes that this style of training and ancestral sampling
+          produces competitive high-quality images — the reference to cite for the core story.
+
+      - type: misconception
+        payload:
+          code: gen.diffusion_is_just_gan
+          claim: "Diffusion models are basically GANs with a different marketing name."
+          markdown: |
+            **The claim:** same generative idea, new buzzword.
+
+            **Why it feels right:** both spit out images from neural nets, and media coverage
+            blurs families.
+
+            **What actually happens:** GANs learn via an adversarial game between $G$ and $D$.
+            Diffusion learns to reverse a fixed noise process with a denoising-style loss and
+            iterative sampling. Training dynamics, failure modes (collapse vs slow steps), and
+            typical metrics differ.
+
+            **How to catch yourself:** ask whether a discriminator is required for the definition
+            and whether sampling is one forward pass of $G$ or a long denoising chain. Those two
+            answers separate the families immediately.
+
+      - type: common_mistake
+        markdown: |
+          **Thinking the forward process is learned** — it is a designed noise schedule; learning
+          is in the reverse/denoising network.
+
+          **Equating one forward pass with a finished sample** — early DDPM-style sampling is a
+          loop over timesteps.
+
+          **Ignoring timestep conditioning** and wondering why a single denoiser cannot handle both
+          nearly-clean and nearly-pure-noise inputs.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. What is easy about the forward process, and what must be learned?
+            2. In DDPM-style intuition, what does the network predict during training?
+            3. Why does sampling take many neural-net evaluations?
+            4. Give one stability contrast between diffusion training and GAN training.
+            5. Correct "diffusion is just a GAN" in two sentences.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does the forward diffusion process do?"
+              answer: >-
+                Gradually adds noise to data on a fixed schedule until the sample is nearly pure
+                noise.
+            - question: "How does diffusion sampling start?"
+              answer: >-
+                From pure noise, then iteratively applies learned reverse/denoising steps toward a
+                clean sample.
+            - question: "What is a typical DDPM training target for the network?"
+              answer: >-
+                  Predict the noise that was added to produce x_t (ε-prediction), given x_t and t.
+            - question: "Name one practical downside of early DDPM-style sampling."
+              answer: "Many sequential network evaluations — slow sampling compared with a one-shot generator."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Tell the forward vs reverse story without mixing who learns what.
+            - Sketch DDPM-style noise-prediction training in four lines of pseudocode.
+            - Contrast GAN games with denoising objectives in one paragraph.
+            - Cite DDPM 2020 as the landmark for this training/sampling pattern.
+    resources:
+      - source: ddpm-2020
+        purpose: PRIMARY_SOURCE
+        relevance: 0.95
+        excerpt: "Denoising diffusion probabilistic models — training and ancestral sampling."
+      - source: d2l
+        purpose: DEEPER_REFERENCE
+        relevance: 0.5
+        excerpt: "Optional broader deep-learning context for generative modelling chapters."

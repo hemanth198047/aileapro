@@ -1,0 +1,412 @@
+# Wave 4: unsupervised learning — clustering and PCA intuition.
+#
+# Parent domain: unsupervised-learning (10-domains.yml). Chapter nests under the domain;
+# knowledge units nest under the chapter.
+
+units:
+  - slug: unsupervised-core
+    title: Unsupervised Learning Core
+    kind: chapter
+    parent: unsupervised-learning
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 90
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [machine-learning, unsupervised]
+    objectives:
+      - State what unsupervised methods optimise when there is no label column.
+      - Contrast clustering (group assignment) with PCA (axis finding).
+      - Name the failure modes that make a silhouette plot or a 2D scatter look convincing and wrong.
+    description: >-
+      Structure without labels: k-means and related clustering as partition finding, and PCA as
+      the first rotation that explains variance — two tools people confuse, with different jobs.
+    blocks:
+      - type: why
+        markdown: |
+          Most of the curriculum so far assumes a label. Unsupervised methods answer a different
+          question: given only $X$, what structure is worth writing down? Clustering invents group
+          IDs; PCA invents a smaller coordinate system. These two pages are the minimum honest
+          versions of both, including how to notice when the plot lied.
+
+  - slug: kmeans-and-clustering
+    title: K-Means and What Clustering Actually Optimises
+    kind: knowledge_unit
+    parent: unsupervised-core
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [machine-learning, clustering, k-means]
+    objectives:
+      - State the k-means objective as within-cluster sum of squared distances to centroids.
+      - Run the assign–update loop and say what can go wrong with bad init or wrong $k$.
+      - Explain why clustering is not classification and why cluster IDs are arbitrary.
+      - Choose a scaling and distance story before trusting a partition.
+    description: >-
+      K-means partitions points into $k$ groups by alternating assignment to nearest centroids and
+      updating those centroids. The result is a partition, not a ground-truth label.
+    blocks:
+      - type: why
+        markdown: |
+          When you have customers, documents, or embeddings and no label, the first question is
+          often "are there natural groups?". K-means is the algorithm people reach for first
+          because it is fast and geometrically clear. It is also the algorithm people misuse first:
+          wrong $k$, unscaled features, and treating cluster IDs as if they were supervised classes.
+
+      - type: eli5
+        markdown: |
+          Drop $k$ pins on a map of towns. Assign every town to its nearest pin. Move each pin to
+          the average location of the towns that chose it. Repeat until the pins stop moving.
+
+          You invented $k$ regions. Nobody told you the "true" regions — you chose $k$ and a
+          distance, and the pins settled into a local compromise.
+
+      - type: beginner
+        markdown: |
+          **Input.** A matrix $X \in \mathbb{R}^{n \times d}$ of $n$ points. No $y$.
+
+          **K-means objective.** Choose centroids $\mu_1,\ldots,\mu_k$ and assignments $c_i \in
+          \{1,\ldots,k\}$ to minimise within-cluster sum of squares (WCSS):
+
+          $$
+          \sum_{i=1}^{n} \|x_i - \mu_{c_i}\|^2
+          $$
+
+          **Lloyd's loop** (the usual algorithm):
+
+          1. **Assign.** Each point goes to the nearest centroid (Euclidean distance).
+          2. **Update.** Each centroid becomes the mean of its assigned points.
+          3. Repeat until assignments stop changing (or a max iteration hits).
+
+          **What the IDs mean.** Cluster labels $\{0,1,2\}$ are arbitrary names. Swapping two IDs
+          does not change the partition. There is no "correct" class to score against unless you
+          bring external labels later for analysis — and even then, agreement with those labels is
+          a separate evaluation, not what k-means optimised.
+
+          **Choosing $k$.** Elbow plots of WCSS, silhouette scores, and domain knowledge are
+          heuristics. K-means will always return $k$ non-empty clusters if you ask for $k$; that
+          is not evidence that $k$ is "true".
+
+      - type: intermediate
+        markdown: |
+          **Local minima and init.** The objective is non-convex. Random init can trap you in a
+          poor partition. `k-means++` seeds centroids far apart in expectation and is the modern
+          default for a reason. Still run several restarts and keep the lowest WCSS.
+
+          **Assumptions baked into Euclidean k-means.** Spherical-ish clusters of similar scale;
+          features on comparable units; outliers that do not yank means. Elongated clusters,
+          unequal variances, and categorical features break the story. Soft alternatives (GMM) or
+          density-based methods (DBSCAN) answer different geometric questions.
+
+          **Scaling.** Because distance is Euclidean, a feature measured in thousands dominates one
+          measured in fractions. Standardise (or otherwise scale) when units differ — the same
+          lesson as for k-NN, for the same reason.
+
+          **Evaluation without labels.** Silhouette, Davies–Bouldin, and stability under bootstrap
+          are diagnostics. With labels available only for audit, adjusted Rand index or mutual
+          information measure agreement — they do not prove the clusters are the "right" business
+          segments.
+
+          ESL and the scikit-learn clustering guide both stress that choosing the algorithm is
+          choosing a geometry. K-means is Voronoi cells around means, nothing more mystical.
+
+      - type: example
+        markdown: |
+          Two features already standardised: `(spend, visits)`. Ask for $k=3$:
+
+          ```python
+          from sklearn.cluster import KMeans
+          from sklearn.preprocessing import StandardScaler
+
+          X_scaled = StandardScaler().fit_transform(X)
+          km = KMeans(n_clusters=3, init="k-means++", n_init=10, random_state=0)
+          labels = km.fit_predict(X_scaled)
+          # km.inertia_ is the WCSS; km.cluster_centers_ are the means in scaled space
+          ```
+
+          Suppose after fit you colour a scatterplot and see three blobs. That plot is consistent
+          with the objective — it is not proof that marketing should create three campaigns. Change
+          $k$ to 5 and you will get five colours. The algorithm did not "discover truth"; it
+          minimised WCSS for the $k$ you chose.
+
+          **Failure sketch.** Feature `income` in dollars, feature `age` in years, no scaling.
+          Centroids chase income; age is nearly ignored. The "clusters" are income bands wearing a
+          clustering costume.
+
+      - type: misconception
+        payload:
+          code: unsup.clustering_needs_labels
+          claim: "Clustering is just classification without showing the model the labels."
+          markdown: |
+            **The claim:** k-means is supervised learning with the answers hidden — same job,
+            missing column.
+
+            **Why it feels right:** both assign each row a discrete ID, and tutorials often colour
+            clusters like classes.
+
+            **What actually happens:** classification has an external target and a loss against it.
+            Clustering invents the IDs to optimise a geometric criterion (here, WCSS). There is no
+            held-out accuracy for the IDs themselves. You can later compare clusters to known
+            segments, but that is validation of usefulness, not training.
+
+            **How to catch yourself:** ask what quantity decreases each iteration. If the answer is
+            "classification error", you are not doing k-means. If it is "sum of squared distances
+            to centroids", you are partitioning, not predicting a label.
+
+      - type: common_mistake
+        markdown: |
+          **Skipping scaling** when features have different units, then interpreting Euclidean
+          clusters as meaningful.
+
+          **Treating a pretty $k=4$ plot as settled science** without checking stability under
+          restarts, bootstrap, or a nearby $k$.
+
+          **Using cluster ID as a feature in a supervised model without care** — the ID is a
+          many-to-one summary of $X$; leaking test-time assignment rules or fitting $k$ on all
+          data can inflate metrics the same way other unsupervised preprocessing leaks.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write the k-means objective in words and in math for $k=2$ on points in $\mathbb{R}^2$.
+            2. Walk one assign step and one update step on four points and two centroids of your choosing.
+            3. Why does standardising features change k-means partitions when it does not change
+               tree splits?
+            4. Give an example where silhouette is high and the clusters are still useless for the
+               business question.
+            5. Correct the claim "clustering needs labels during training" in two sentences.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does k-means minimise?"
+              answer: >-
+                Within-cluster sum of squared Euclidean distances from points to their assigned
+                centroids (WCSS / inertia).
+            - question: "Why are cluster IDs arbitrary?"
+              answer: >-
+                They are names for a partition; permuting IDs leaves the same groups. Nothing in
+                the objective prefers ID 0 over ID 1.
+            - question: "Name two reasons a k-means run can be misleading."
+              answer: >-
+                Bad init / local minima, wrong k, unscaled features, non-spherical clusters, or
+                outliers yanking means — any two with a brief why.
+            - question: "Is clustering a form of classification?"
+              answer: >-
+                No. Classification predicts an external label; clustering invents groups under a
+                geometric objective.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Derive one full assign–update iteration and state the objective it serves.
+            - Refuse a cluster story that skipped scaling or fixed $k$ without a reason.
+            - Explain to a non-ML teammate that cluster IDs are invented partitions, not classes.
+            - Name when you would leave k-means for a different clustering geometry.
+    resources:
+      - source: sklearn-clustering
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: >-
+          Overview of clustering estimators, k-means notes, and evaluation metrics without labels.
+      - source: esl-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.85
+        excerpt: "Cluster analysis chapter: k-means, hierarchical methods, and the role of distance."
+
+  - slug: pca-for-intuition
+    title: PCA for Intuition — Rotating to Explain Variance
+    kind: knowledge_unit
+    parent: unsupervised-core
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [machine-learning, pca, dimensionality-reduction]
+    objectives:
+      - Describe PCA as finding orthogonal directions of maximum variance after centering.
+      - Read a scree plot and say what "explained variance ratio" claims — and does not claim.
+      - Use 2D PCA plots as visualisation, not as proof of clusters or causation.
+      - Know that PCA is linear and sensitive to scaling; nonlinear structure may need other tools.
+    description: >-
+      Principal component analysis rotates centered data onto orthogonal axes ordered by captured
+      variance. It compresses and visualises; it does not invent class labels.
+    blocks:
+      - type: why
+        markdown: |
+          High-dimensional tables are hard to plot and often redundant. PCA is the default first
+          cut: a linear change of basis that puts as much variance as possible into the first few
+          coordinates. Used well, it is a map. Used badly, a 2D scatter becomes a fictional story
+          about clusters and "drivers".
+
+      - type: eli5
+        markdown: |
+          Imagine a cloud of points shaped like a tilted football. PCA finds the longest direction
+          through the cloud (first principal component), then the next-longest direction at right
+          angles to the first, and so on.
+
+          If you keep only the first two directions, you are looking at the football's shadow on
+          the best flat screen — most of the spread, some detail lost.
+
+      - type: beginner
+        markdown: |
+          **Center first.** Subtract the mean of each feature so the cloud sits at the origin. PCA
+          without centering mixes "where the mean is" into the components.
+
+          **First principal component.** The unit vector $u_1$ that maximises the variance of the
+          projected data $Xu_1$. The second, $u_2$, maximises remaining variance subject to being
+          orthogonal to $u_1$, and so on. Equivalently: eigenvectors of the covariance matrix,
+          ordered by eigenvalue.
+
+          **Scores and loadings.** Projecting $X$ onto the components gives **scores** (new
+          coordinates). The vectors $u_j$ are **loadings** (how old features mix into component
+          $j$).
+
+          **Explained variance ratio.** Each eigenvalue divided by the sum of eigenvalues — the
+          fraction of total variance along that axis. A scree plot shows these fractions; an
+          "elbow" is a heuristic for how many components to keep, not a law.
+
+          **Scale.** PCA on raw dollars-and-grams is dominated by the large-magnitude feature.
+          Standardise when features are incomparable — unless the magnitude *is* the signal you
+          want to preserve.
+
+      - type: intermediate
+        markdown: |
+          **Reconstruction.** Keeping $r$ components and mapping back approximates $X$ with a rank-
+          $r$ matrix (after centering). The discarded variance is the reconstruction error. That
+          error being small means linear redundancy — not that the discarded directions are
+          semantically unimportant for a downstream task.
+
+          **Not clustering.** A PCA plot may *reveal* blobs if they already separate along high-
+          variance directions. PCA did not optimise separation; k-means did not rotate for
+          variance. Colouring PCA scores by k-means labels is a visualisation, not a proof that
+          either method found truth.
+
+          **Linearity.** PCA is a linear projection. A Swiss-roll manifold can look like a mess in
+          the first two PCs; methods like t-SNE/UMAP (with their own pitfalls) or autoencoders
+          target different goals. Do not expect PCA to "unfold" nonlinear structure.
+
+          **Interpretation caution.** A loading that is large on feature $j$ means feature $j$
+          participates in that high-variance direction. It does not mean $j$ causes the outcome,
+          and sign flips of a whole component are arbitrary.
+
+          Mathematics for Machine Learning develops the eigendecomposition view cleanly; scikit-
+          learn's decomposition guide matches the API you will actually call.
+
+      - type: example
+        markdown: |
+          Four correlated sensor channels. After standardising:
+
+          ```python
+          from sklearn.decomposition import PCA
+          from sklearn.preprocessing import StandardScaler
+
+          X_scaled = StandardScaler().fit_transform(X_train)
+          pca = PCA(n_components=2)
+          Z = pca.fit_transform(X_scaled)
+          print(pca.explained_variance_ratio_)  # e.g. [0.71, 0.18] → ~89% in 2D
+          ```
+
+          Fit PCA **on training rows only**, then `transform` validation/test — same leakage rule
+          as scalers. If you fit on all data before a split, the components peeked at held-out
+          variance.
+
+          **Reading the plot.** Points in $Z$ form a banana shape. That is geometry in the top
+          two variance directions. Drawing a marker around a dense region and calling it a
+          "discovered segment" confuses visualisation with clustering.
+
+      - type: misconception
+        payload:
+          code: unsup.pca_finds_clusters
+          claim: "PCA finds the clusters in the data."
+          markdown: |
+            **The claim:** running PCA is how you discover groups; the blobs in the 2D plot are
+            the answer.
+
+            **Why it feels right:** tutorials often show PCA scatters with coloured groups, and
+            separated blobs look like a result.
+
+            **What actually happens:** PCA maximises captured variance under orthogonality. Groups
+            appear in the plot only if they already differ along high-variance linear directions.
+            Overlapping classes, or separation along a low-variance direction, will not show.
+            Clustering algorithms optimise a different objective.
+
+            **How to catch yourself:** ask what was optimised. If nobody chose $k$ or a cluster
+            criterion, you did not "find clusters" — you projected. If you need groups, run a
+            clustering method (and still treat IDs as invented).
+
+      - type: common_mistake
+        markdown: |
+          **Skipping centering or scaling** and then narrating components as if they were on equal
+          footing.
+
+          **Keeping two components because plotting is easy**, then discarding a third that carries
+          the only direction that matters for a rare failure mode.
+
+          **Fitting PCA on train+test** before evaluation, especially inside a supervised pipeline.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. In one sentence, what does the first principal component maximise?
+            2. Why center before PCA? What goes wrong if you do not?
+            3. Explained variance ratios are 0.55, 0.25, 0.10, 0.10. How much variance do the first
+               two PCs capture together?
+            4. Give a case where a beautiful 2D PCA plot hides a class difference.
+            5. Correct "PCA finds clusters" in two sentences.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does PCA optimise?"
+              answer: >-
+                Orthogonal directions of maximum variance in centered (and often scaled) data —
+                equivalently, top eigenvectors of the covariance matrix.
+            - question: "What is explained variance ratio?"
+              answer: >-
+                Each component's variance (eigenvalue) divided by total variance — the fraction of
+                spread captured by that axis.
+            - question: "Does PCA require labels?"
+              answer: "No. It uses only X (after centering/scaling choices you make)."
+            - question: "Why is a PCA scatter not proof of clusters?"
+              answer: >-
+                PCA does not optimise group separation; blobs appear only if groups already differ
+                along high-variance linear directions.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Explain PCA as variance-maximising orthogonal rotation, not as clustering.
+            - Choose whether to scale and defend the choice from units and intent.
+            - Read explained-variance numbers without mistaking them for task importance.
+            - Fit PCA inside a train-only transform discipline in a supervised pipeline.
+    resources:
+      - source: sklearn-decomposition
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: "PCA estimator, explained variance ratio, and usage notes on scaling."
+      - source: mml-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.85
+        excerpt: "Dimensionality reduction / PCA via eigendecomposition and projection intuition."
+      - source: d2l
+        purpose: DEEPER_REFERENCE
+        relevance: 0.5
+        excerpt: "Optional applied view of PCA-style compression in the broader ML toolkit."

@@ -1,0 +1,356 @@
+# Wave 4: algorithms for ML engineers — Big-O intuition and hashing/lookup.
+#
+# Concepts only from CLRS (commercial text). No book excerpts.
+
+units:
+  - slug: algorithms-for-ml
+    title: Algorithms for ML Engineers
+    kind: chapter
+    parent: data-structures-and-algorithms
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 70
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [algorithms, complexity, hashing, engineering]
+    objectives:
+      - Estimate how training and serving costs grow with data and feature size.
+      - Choose lookup structures when exact key access matters more than approximate search.
+    description: >-
+      The DSA you actually use in ML pipelines: asymptotic cost of common stages, and when a
+      hash table beats a scan.
+    blocks:
+      - type: why
+        markdown: |
+          Feature joins, vocabulary maps, and batch loops are algorithms whether or not you
+          named them. If you cannot say how cost grows when the table gets ten times larger, you
+          will discover it in production at the worst possible time.
+
+  - slug: big-o-for-ml-engineers
+    title: Big-O for ML Engineers
+    kind: knowledge_unit
+    parent: algorithms-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [algorithms, complexity, big-o, scaling]
+    objectives:
+      - Read $O(n)$, $O(n \log n)$, and $O(n^2)$ as growth rates, not wall-clock seconds.
+      - Estimate the dominant term in a training or scoring loop from its nested structure.
+      - Spot when a "small constant" still loses to a better asymptotic choice at scale.
+      - Separate data-size growth from model-size growth when arguing about cost.
+    description: >-
+      Asymptotic notation for people who ship models: how loops, sorts, and pairwise work scale
+      when $n$ is rows, tokens, or examples — not a theorem-proving course.
+    blocks:
+      - type: why
+        markdown: |
+          A pipeline that is fine on a laptop sample and then times out on the full warehouse is
+          almost always an asymptotic surprise. Big-O is the language for asking "what happens
+          when this gets $10\times$ bigger?" before you pay for the answer.
+
+      - type: eli5
+        markdown: |
+          Imagine counting sheep. Walking the flock once is "order $n$" — twice as many sheep,
+          twice the walk. Checking every sheep against every other sheep is "order $n^2$" —
+          twice as many sheep, four times the comparisons.
+
+          Big-O is that kind of story: it ignores how fast you walk and focuses on how the work
+          grows when the flock grows.
+
+      - type: beginner
+        markdown: |
+          **Big-O** describes how the *leading* cost grows with input size $n$ as $n$ gets large.
+          Constants and lower-order terms drop out of the notation, which is deliberate: at
+          scale they matter less than the growth class.
+
+          Common classes you will meet:
+
+          | Class | Typical ML-adjacent work |
+          |-------|--------------------------|
+          | $O(1)$ | Hash map get/put (average case); fixed-size tensor ops |
+          | $O(n)$ | One pass over $n$ rows; a linear scan |
+          | $O(n \log n)$ | Sorting $n$ items; many merge-based joins |
+          | $O(n^2)$ | All-pairs distances; naive nested loops over examples |
+          | $O(n \cdot d)$ | Dot products with $d$ features per of $n$ rows |
+
+          **How to estimate.** Count nested loops over data-dependent sizes. A double loop over
+          $n$ examples is $O(n^2)$ unless an early exit or a data structure reduces it. A single
+          pass that does $O(d)$ work per row is $O(n d)$.
+
+          **What Big-O is not.** It is not a promise about milliseconds on your laptop. A
+          carefully vectorised $O(n^2)$ pass can beat a naive $O(n)$ Python loop for small $n$.
+          The notation answers a different question: what breaks first when $n$ grows.
+
+      - type: intermediate
+        markdown: |
+          **Dominant term.** If a stage does $O(n)$ prep and then $O(n^2)$ pairwise work, the
+          pairwise term wins for large $n$. Optimising the prep is wasted effort until the
+          quadratic part shrinks or is avoided.
+
+          **Two different $n$'s.** Training cost often grows with examples $N$ *and* with
+          parameters $P$ or sequence length $L$. Saying "the model is $O(n)$" without saying
+          *which* $n$ is ambiguous. Separate:
+
+          - data-path cost (rows, tokens, images)
+          - model-path cost (layers, width, attention length)
+
+          **Average vs worst case.** Hash tables are $O(1)$ average for lookup and can degrade
+          under pathological collisions; sorting guarantees are usually stated for comparison
+          sorts. For ML pipelines, average-case behaviour on real keys is what you ship against,
+          but you still need a plan when a hot key or a skewed join explodes memory.
+
+          **Practical checklist before scaling a job:**
+
+          1. What is $n$ for this stage (rows? tokens? pairs?)?
+          2. How many times do we touch each item?
+          3. Did we accidentally introduce an all-pairs step (self-join, distance matrix)?
+          4. Would sorting + linear merge beat nested loops?
+
+      - type: example
+        markdown: |
+          You have $n = 50{,}000$ embeddings of dimension $d = 768$. Three candidate stages:
+
+          1. **Mean pool over tokens already reduced to one vector per doc** — $O(n d)$ to
+             L2-normalise. Fine.
+          2. **Brute-force nearest neighbour:** for each of $n$ queries, scan all $n$ candidates
+             — $O(n^2 d)$. At $5 \times 10^4$, that is billions of multiply-adds. Laptop dies;
+             cluster bill follows.
+          3. **Sort by a key then scan once** for duplicate detection — $O(n \log n + n)$.
+
+          The fix for (2) is not "buy a bigger GPU" as the first move — it is changing the
+          algorithm class (ANN index, blocking, or approximate methods). Big-O told you the
+          class was wrong before the invoice arrived.
+
+      - type: misconception
+        payload:
+          code: dsa.big_o_is_runtime
+          claim: "Big-O tells you how many milliseconds a function will take."
+          markdown: |
+            **The claim:** $O(n)$ means "fast" and $O(n^2)$ means "slow" in absolute time.
+
+            **Why it feels right:** textbooks show charts where higher-order curves climb
+            quickly, and interview culture treats Big-O as a speed ranking.
+
+            **What it actually says:** how cost *grows* with $n$, hiding constants, hardware,
+            and language overhead. An $O(n)$ pure-Python loop can lose to an $O(n \log n)$
+            sorted vectorised path for the $n$ you have today.
+
+            **How to catch yourself:** measure for the sizes you care about *and* ask what
+            happens at $10\times$. Use Big-O for growth; use profiling for the current wall clock.
+
+      - type: common_mistake
+        markdown: |
+          **Calling everything $O(n)$ because there is one `for` loop** while the body hides a
+          scan, a sort, or an API call that itself depends on $n$.
+
+          **Optimising constants inside an $O(n^2)$ stage** instead of removing the quadratic
+          structure.
+
+          **Ignoring memory.** An $O(n^2)$ distance matrix may OOM long before it finishes
+          slowly.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. A script nests `for i in range(n): for j in range(n):` over examples with $O(d)$
+               work inside. State the Big-O in terms of $n$ and $d$.
+            2. Sorting $n$ rows then scanning once: growth class?
+            3. Give one ML pipeline step that is typically $O(n)$ and one that accidentally
+               becomes $O(n^2)$.
+            4. Explain why $O(n)$ is not a runtime SLA.
+            5. You must dedupe $n$ IDs. Compare nested loops vs sort-then-scan in growth terms.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does Big-O primarily describe?"
+              answer: >-
+                How leading cost grows with input size as $n$ gets large — not absolute
+                milliseconds on a given machine.
+            - question: "Nested loops over $n$ examples with $O(1)$ work inside — class?"
+              answer: "$O(n^2)$."
+            - question: "Why can $O(n)$ lose to $O(n \\log n)$ in practice for moderate $n$?"
+              answer: >-
+                Constants, vectorisation, and language overhead can dominate before the
+                asymptotic crossover.
+            - question: "Name two different quantities people casually call $n$ in ML cost talk."
+              answer: >-
+                Examples/rows/tokens on the data path, and width/depth/sequence length on the
+                model path.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Label a short pseudocode snippet with a defensible Big-O in the right variables.
+            - Point at the dominant stage in a multi-step job.
+            - Argue for changing algorithm class (not only hardware) when $n$ will grow.
+    resources:
+      - source: clrs-algorithms
+        purpose: PRIMARY_SOURCE
+        relevance: 0.7
+        excerpt: >-
+          Standard reference for asymptotic notation and common algorithm classes — concepts
+          only; no book text reproduced here.
+
+  - slug: hashing-and-lookup
+    title: Hashing and Lookup
+    kind: knowledge_unit
+    parent: algorithms-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [algorithms, hashing, data-structures, dictionaries]
+    objectives:
+      - Explain average-case $O(1)$ dictionary lookup and what "average" hides.
+      - Choose a hash map when you need exact key → value access at serving or join time.
+      - Contrast hash lookup with linear scan and with approximate nearest-neighbour search.
+      - "Predict failure modes: collisions, skew, and mutable keys."
+    description: >-
+      Hash tables as the workhorse of feature stores, vocabularies, and joins: why average
+      lookup is constant time, and when it is the wrong tool.
+    blocks:
+      - type: why
+        markdown: |
+          Token IDs, user features, and string→index maps are hash lookups. If you scan a list
+          for every key, your "simple" preprocessor becomes the bottleneck. If you hash when you
+          needed similarity search, you get exact misses and silent wrong neighbours.
+
+      - type: eli5
+        markdown: |
+          A phone book sorted by name lets you jump near the right page. A hash table is more
+          like a coat-check: you hand over a ticket (the key) and get the coat (the value)
+          without walking the whole rack — as long as the tickets are well distributed across
+          hooks.
+
+      - type: beginner
+        markdown: |
+          A **hash function** maps a key to a bucket index. The table stores key–value pairs in
+          buckets. Average lookup, insert, and delete are $O(1)$ when keys spread evenly and
+          buckets stay small.
+
+          **ML-shaped uses:**
+
+          - vocabulary: `string → token id`
+          - feature join: `user_id → dense feature vector`
+          - dedupe / seen-set: membership tests
+          - counting: `key → count` (with care for cardinality)
+
+          **Versus a list scan.** Finding a key in an unsorted list is $O(n)$ per query. At
+          $n = 10^6$ keys and $q = 10^6$ queries, scans are catastrophic; a hash map is routine.
+
+          **Versus ANN / embedding search.** Hash maps answer *exact* key equality. They do not
+          answer "nearest embedding." Mixing the two up is a common design bug.
+
+      - type: intermediate
+        markdown: |
+          **Collisions.** Distinct keys can land in the same bucket. Chains or open addressing
+          handle them; cost stays average $O(1)$ if load factor is controlled. Pathological
+          collision patterns (or a bad hash) push you toward $O(n)$ behaviour.
+
+          **Skew.** One hot key updated by every worker, or one bucket receiving most traffic,
+          creates hotspots even when Big-O looks fine on paper. Sharding and local aggregation
+          are the usual escapes.
+
+          **What makes a good key.** Prefer immutable, equality-stable identifiers. Using a
+          mutable object as a key (or a float with noisy equality) produces lookups that miss
+          for reasons that look like data bugs.
+
+          **Memory.** Hash maps trade RAM for speed. A giant string→vector map may need
+          external KV storage; the *algorithm* is still hashing, the *system* is a store.
+
+      - type: example
+        markdown: |
+          Serving needs `user_id → last_30d_counts` for $10$ million users, $q$ requests/sec
+          each needing one lookup.
+
+          - **List of pairs:** $O(n)$ per request — dead on arrival.
+          - **Sorted array + binary search:** $O(\log n)$ — workable but clunkier to update.
+          - **Hash map / KV:** $O(1)$ average — the default.
+
+          Same team later wants "users like this embedding." That is not a hash get — it is
+          similarity search. They keep the hash map for exact attributes and add an index for
+          vectors. Two structures, two questions.
+
+      - type: misconception
+        payload:
+          code: dsa.hash_is_similarity
+          claim: "A hash map finds similar items the way embeddings do."
+          markdown: |
+            **The claim:** hashing somehow groups "close" keys, so it replaces nearest-neighbour
+            search.
+
+            **Why it feels right:** the word "hash" appears in locality-sensitive hashing (LSH)
+            papers, and dictionaries feel like magic addressers.
+
+            **What ordinary hash maps do:** scatter keys to appear random. Nearby embeddings or
+            similar strings are *not* near in the table. Exact `get(key)` is the contract.
+
+            **How to catch yourself:** ask whether equality of an ID is enough, or whether you
+            need distance in a vector space. Only the second needs ANN/LSH/specialised indexes.
+
+      - type: common_mistake
+        markdown: |
+          **Scanning a Python list for membership** inside a per-row loop.
+
+          **Using floats or mutable structures as dict keys** and debugging "missing" entries.
+
+          **Building an $n \times n$ similarity matrix** when you only needed exact ID joins.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Contrast $O(1)$ average dict get with $O(n)$ list scan for $q$ queries.
+            2. Give two ML pipeline places that should be hash maps.
+            3. Why is embedding nearest neighbour not a normal dict lookup?
+            4. What goes wrong under extreme key skew?
+            5. Describe a collision in one sentence without formula theatre.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Average-case cost of a well-behaved hash map get?"
+              answer: "$O(1)$."
+            - question: "When is a hash map the wrong tool versus ANN?"
+              answer: >-
+                When you need nearest neighbours in embedding space rather than exact key
+                equality.
+            - question: "What does a collision mean?"
+              answer: "Two different keys map to the same bucket."
+            - question: "Name one failure mode besides collisions."
+              answer: >-
+                Key skew/hot keys, bad mutable keys, or memory blow-ups from huge in-process
+                maps.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Pick hash lookup vs scan vs similarity search for a stated access pattern.
+            - Explain average $O(1)$ and one way it degrades.
+            - Design a vocab or feature-join path that does not scan per row.
+    resources:
+      - source: clrs-algorithms
+        purpose: BACKGROUND
+        relevance: 0.6
+        excerpt: >-
+          Hash tables and average-case lookup — conceptual framing only; no book prose copied.

@@ -1,0 +1,357 @@
+# Wave 4: vision tasks + speech pipeline intuition.
+#
+# Detection vs classification cites YOLOv3 and LeCun CNN; ASR cites Whisper.
+# Concepts and engineering intuition — no paper text dumps.
+
+units:
+  - slug: vision-tasks
+    title: Vision Tasks
+    kind: chapter
+    parent: computer-vision
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 45
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [computer-vision, detection, classification]
+    objectives:
+      - Tell classification, detection, and related localisation tasks apart by output shape.
+      - Choose a task framing that matches the product decision.
+    description: >-
+      What the model must output: a label for the whole image, or boxes (and labels) for
+      instances inside it.
+    blocks:
+      - type: why
+        markdown: |
+          "Do vision" is not a spec. A whole-image label and a set of boxes solve different
+          products. Pick the task before you pick the backbone.
+
+  - slug: detection-vs-classification
+    title: Detection vs Classification
+    kind: knowledge_unit
+    parent: vision-tasks
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [computer-vision, detection, classification, yolo]
+    objectives:
+      - Contrast image classification outputs with object detection outputs.
+      - Explain why detection needs localisation (boxes/masks) as well as labels.
+      - Relate CNNs as a shared backbone idea to both task heads.
+      - Name when classification is enough and when detection is required.
+    description: >-
+      Classification names the image; detection finds and labels instances with locations.
+      Same family of visual features, different heads and losses.
+    blocks:
+      - type: why
+        markdown: |
+          A photo labelled "street" does not tell you where the pedestrians are. If the product
+          needs "where" and "how many," classification metrics can look fine while the system
+          is useless.
+
+      - type: eli5
+        markdown: |
+          Classification is sorting whole photos into folders: cat, dog, truck. Detection is
+          circling every cat and dog in the photo and labelling each circle. One name for the
+          page versus many labelled stickers on the page.
+
+      - type: beginner
+        markdown: |
+          **Image classification.** Input: image. Output: one label (or a distribution over
+          labels) for the *whole* image. Classic CNN document-recognition pipelines showed that
+          shared local filters work well for this kind of grid input.
+
+          **Object detection.** Input: image. Output: a set of objects, each with a **location**
+          (usually a box) and a **class**. You care about which instances exist and where they
+          are.
+
+          | | Classification | Detection |
+          |---|----------------|-----------|
+          | Output | class scores | boxes + class scores |
+          | "Where?" | no | yes |
+          | Typical metric | accuracy / top-k | mAP-style localisation+label |
+
+          **Single-shot detectors** (YOLO-style families) predict boxes and classes in one
+          forward pass across scales, rather than a slow separate propose-then-classify loop —
+          useful intuition even when you use a newer detector in practice.
+
+      - type: intermediate
+        markdown: |
+          **Shared backbone, different head.** Convolutional features (local filters, hierarchy)
+          often feed either a classification head (pool → logits) or a detection head (dense
+          predictions over locations/scales). The inductive bias is related; the supervision
+          is not.
+
+          **When classification suffices.** Moderation tags, whole-slide "is this defective?",
+          document type. No need for instance geometry.
+
+          **When you need detection.** Counting, cropping, tracking, robotics, overlapping
+          instances, "highlight the tumour." If the decision is spatial, the label must be
+          spatial.
+
+          **Failure mode.** Training a classifier on cropped objects then running it in sliding
+          windows is an old pattern; modern detectors learn localisation end-to-end. Do not
+          confuse "we used a CNN" with "we solved detection."
+
+      - type: example
+        markdown: |
+          Product: dashboard camera warning for nearby vehicles.
+
+          - **Classification only:** "is there a vehicle somewhere in this frame?" — misses
+            count, distance proxies, and which region to emphasise.
+          - **Detection:** boxes for vehicles (and maybe lanes/people) every frame — supports
+            "object in path" logic.
+
+          A classifier might hit high accuracy on frames that are mostly road texture while
+          still failing the product. Task framing first; backbone second.
+
+      - type: misconception
+        payload:
+          code: cv.cnn_means_detection
+          claim: "If we use a CNN, we are doing object detection."
+          markdown: |
+            **The claim:** convolutional nets equal detection.
+
+            **Why it feels right:** detection papers are full of CNNs, and vision ≈ CNN in
+            popular talk.
+
+            **What is true:** CNNs (and later vision transformers) provide features. Detection
+            additionally requires a localisation output and matching losses/metrics. A CNN
+            classifier is still just classification.
+
+            **How to catch yourself:** draw the output tensor. Softmax over classes for the
+            whole image ≠ list of boxes.
+
+      - type: common_mistake
+        markdown: |
+          **Reporting classification accuracy for a detection product.**
+
+          **Ignoring small objects / scale** when the decision cares about distant instances.
+
+          **Assuming one label per image** when scenes contain many overlapping objects.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. For each product, pick classification or detection: (a) "is this X-ray normal?",
+               (b) "circle every lesion."
+            2. Sketch the outputs of each task for one image with two dogs.
+            3. Why might mAP matter when accuracy does not?
+            4. What does a single-shot detector try to avoid?
+            5. Explain the misconception "CNN ⇒ detection" in one sentence.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does classification output vs detection?"
+              answer: >-
+                Classification: label(s) for the whole image. Detection: instances with
+                locations (boxes) and classes.
+            - question: "When is classification enough?"
+              answer: "When the decision does not need instance locations or counts."
+            - question: "Does using a CNN imply detection?"
+              answer: "No — CNNs are features/backbones; detection needs a localisation head."
+            - question: "What is the YOLO-style idea at a high level?"
+              answer: >-
+                Predict boxes and classes in one forward pass (often multi-scale), rather than a
+                heavy separate proposal stage.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Match a product decision to classification vs detection.
+            - Describe outputs and metrics at a high level for both.
+            - Separate backbone choice from task head choice.
+    resources:
+      - source: yolov3-2018
+        purpose: PRIMARY_SOURCE
+        relevance: 0.85
+        excerpt: >-
+          Single-shot detection framing with multi-scale predictions — use for task intuition,
+          not as a claim that YOLOv3 is today's SOTA.
+      - source: lecun-cnn-1998
+        purpose: BACKGROUND
+        relevance: 0.7
+        excerpt: >-
+          Classic CNN classification pipeline on document images — shared local filters for
+          whole-image recognition.
+
+  - slug: speech-pipeline
+    title: Speech Pipeline
+    kind: chapter
+    parent: speech-ai
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [speech, asr, audio]
+    objectives:
+      - Outline the stages from waveform to text in an ASR system.
+      - Know what robust large-scale ASR changes — and what it does not remove.
+    description: >-
+      Automatic speech recognition as a pipeline: audio in, text out, with messy acoustics in
+      between.
+    blocks:
+      - type: why
+        markdown: |
+          Voice features fail on microphones, accents, and domain vocabulary long before they
+          fail on "the model architecture slide." Pipeline intuition finds the real bottleneck.
+
+  - slug: asr-pipeline-intuition
+    title: ASR Pipeline Intuition
+    kind: knowledge_unit
+    parent: speech-pipeline
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [speech, asr, whisper, audio]
+    objectives:
+      - List the conceptual stages from waveform to transcript.
+      - Explain why domain mismatch (mic, noise, vocabulary) dominates many failures.
+      - Relate large-scale weakly supervised ASR to robustness — without treating it as magic.
+      - Name evaluation habits (WER-style error, slice by condition) at a high level.
+    description: >-
+      ASR turns audio into text through featurisation, sequence modelling, and decoding. Scale
+      and diverse supervision help robustness; they do not erase domain shift.
+    blocks:
+      - type: why
+        markdown: |
+          A demo headset in a quiet room is not your call-centre headset on a noisy line. If you
+          cannot name the pipeline stages, you will blame "the model" for a microphone problem.
+
+      - type: eli5
+        markdown: |
+          Sound is a wobbling pressure wave. ASR turns that wobble into words, roughly like
+          listening hard and typing — first noticing speechy bits, then guessing which words
+          fit, then writing them down. Background noise and unfamiliar names make the typing
+          worse.
+
+      - type: beginner
+        markdown: |
+          A typical **ASR pipeline** (conceptual):
+
+          1. **Capture** — microphone, sample rate, codec.
+          2. **Signal prep** — resampling, optional enhancement / VAD (voice activity).
+          3. **Featurisation** — spectrogram / learned audio encoder features.
+          4. **Sequence model** — maps audio frames to text tokens or lattices.
+          5. **Decode** — choose a transcript (greedy, beam, language-model fusion…).
+          6. **Post-process** — punctuation, inverse text normalisation, profanity filters.
+
+          Modern end-to-end systems blur (3)–(5), but the *failure points* still map to these
+          stages: bad capture, domain audio, rare words, decoding constraints.
+
+          **Whisper-style large-scale weak supervision** showed that training on very large,
+          diverse transcript pairs improves robustness across domains and languages — useful as
+          an existence proof that data diversity matters as much as architecture lore.
+
+      - type: intermediate
+        markdown: |
+          **Word error rate (WER)** and cousins count insertions/deletions/substitutions against
+          a reference. Aggregate WER hides slice failures: accents, product names, codecs.
+
+          **Domain shift.** Read speech ≠ conversational; 16 kHz ≠ 8 kHz telephony; medical
+          jargon ≠ general web audio. Fine-tuning or biasing decoding toward a lexicon often
+          beats wishing for a bigger base model alone.
+
+          **What scale buys.** Broad supervision reduces brittle failures on everyday accents
+          and noise. What it does not buy: guaranteed compliance handling, perfect PII
+          behaviour, or your private entity names without adaptation.
+
+          **Product checklist:** sample rate parity train/serve, slice metrics by channel,
+          maintain a term list for critical entities, and log audio hash + model version for
+          regressions.
+
+      - type: example
+        markdown: |
+          Support calls, 8 kHz, heavy compression. Off-the-shelf ASR trained mostly on 16 kHz
+          clean audio looks strong on an internal podcast benchmark and collapses on calls.
+
+          Fixes in pipeline order: confirm capture/resampling, evaluate WER on *call* audio,
+          adapt or fine-tune with in-domain transcripts, add a bias list for product names.
+          Swapping only the logo on the model card without domain audio is cargo cult.
+
+      - type: misconception
+        payload:
+          code: speech.asr_is_one_blob
+          claim: "ASR is a single opaque model; only swapping the checkpoint can help."
+          markdown: |
+            **The claim:** speech recognition is one indivisible network; operations is just
+            model shopping.
+
+            **Why it feels right:** APIs expose a single transcribe() call.
+
+            **What actually fails:** mics, codecs, VAD cutting speech, domain vocabulary, and
+            decode settings. Many gains come from pipeline and data match, not a new brand name.
+
+            **How to catch yourself:** write the stage list and mark where your error samples
+            hurt. If errors are entity names, that is not "need a larger LLM" by default.
+
+      - type: common_mistake
+        markdown: |
+          **Benchmarking on clean read speech** while shipping telephony.
+
+          **Ignoring channel and accent slices** in quality reports.
+
+          **No process for critical vocabulary** (drugs, SKUs, proper nouns).
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. List six conceptual ASR stages from mic to punctuated text.
+            2. Give two domain-shift examples that can tank WER.
+            3. What did large-scale weak supervision buy, at an intuition level?
+            4. Why is aggregate WER not enough for a contact centre?
+            5. Where would you start if entity names are systematically wrong?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Name the high-level ASR stages."
+              answer: >-
+                Capture, prep/VAD, featurisation, sequence modelling, decoding, post-process
+                (names vary; end-to-end blurs the middle).
+            - question: "Is ASR only 'pick a bigger model'?"
+              answer: "No — channel, domain data, and vocabulary often dominate."
+            - question: "What is WER roughly measuring?"
+              answer: "Edit distance between hypothesis and reference words (ins/del/sub)."
+            - question: "What did Whisper-style training emphasise?"
+              answer: >-
+                Large-scale diverse weakly supervised audio–text pairs improving robustness
+                across domains/languages.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Narrate an ASR pipeline and locate a failure in a stage.
+            - Demand sliced evaluation, not one WER number.
+            - Separate API convenience from the engineering checklist.
+    resources:
+      - source: whisper-2022
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          Large-scale weakly supervised ASR and robustness across domains and languages —
+          conceptual takeaway for pipeline and data diversity.

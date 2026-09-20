@@ -1,0 +1,272 @@
+# Assessments for Wave 4 multi-agent units.
+
+items:
+  - slug: multiagent-role-contract
+    unit: multi-agent-roles-and-handoffs
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "In engineering terms, what is an agent role?"
+    choices:
+      - id: a
+        text: "A scoped contract: inputs, output schema, tools, and stop/handoff conditions."
+        correct: true
+      - id: b
+        text: "A persona sentence in the system prompt, such as 'you are a helpful critic'."
+      - id: c
+        text: "Any additional model instance, regardless of tools or outputs."
+        misconception: multiagent.more_agents_more_reliable
+      - id: d
+        text: "A shared transcript all agents read in full on every turn."
+    explanation: |
+      Personas are labels. Reliability comes from contracts: what the role may see, must emit,
+      may call, and when it must stop. Extra instances without contracts add failure points.
+
+  - slug: multiagent-handoff-content
+    unit: multi-agent-roles-and-handoffs
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What should a handoff between roles primarily carry?"
+    choices:
+      - id: a
+        text: "Explicit structured state the next role needs, plus references — not the full prior transcript by default."
+        correct: true
+      - id: b
+        text: "The entire conversation history so nothing is ever lost."
+      - id: c
+        text: "Only a free-text summary with no schema, to stay flexible."
+      - id: d
+        text: "Nothing — the next agent should re-derive everything from tools."
+    explanation: |
+      Full transcripts explode cost and bury the task. Unstructured vibes cannot be validated.
+      A checkable packet (and rejects on failure) is the point of a handoff.
+
+  - slug: multiagent-when-split
+    unit: multi-agent-roles-and-handoffs
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 130
+    stem: "When is a multi-agent split most justified?"
+    choices:
+      - id: a
+        text: "When roles need different tool blast radii or verifiable sub-tasks — not merely to raise agent count."
+        correct: true
+      - id: b
+        text: "Whenever reliability is low, because more agents always cover mistakes."
+        misconception: multiagent.more_agents_more_reliable
+      - id: c
+        text: "Whenever a demo framework offers a multi-agent template."
+      - id: d
+        text: "Only when every role shares the same write tools for speed."
+    explanation: |
+      Specialisation helps when it shrinks risk or task size and boundaries are verified. Agent
+      count alone multiplies decisions and handoffs.
+
+  - slug: multiagent-authority
+    unit: multi-agent-roles-and-handoffs
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Where should authority for irreversible side effects live in a multi-agent design?"
+    choices:
+      - id: a
+        text: "In code/policy gates scoped to the user — independent of which persona proposed the call."
+        correct: true
+      - id: b
+        text: "In the supervisor agent's system prompt, which juniors must obey."
+      - id: c
+        text: "In whichever agent currently holds the shared god-mode toolbelt."
+      - id: d
+        text: "Nowhere special — handoffs are trusted messages between internal agents."
+        misconception: multiagent.handoff_is_free
+    explanation: |
+      Splitting personas does not split credentials. Steered or buggy handoff text must not widen
+      privileges. Gates stay in handlers.
+
+  - slug: multiagent-reliability-claim
+    unit: multi-agent-roles-and-handoffs
+    type: short_text
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      Why does adding more specialised agents not automatically improve reliability? (One or two
+      sentences.)
+    accepted:
+      - "Each agent adds decisions and handoffs that multiply failure points unless boundaries are verified"
+      - "More agents multiply handoffs and failure modes; count alone is not reliability"
+      - "Reliability compounds across steps; extra agents add steps unless each handoff is checked"
+      - "Agent count increases surface area; specialisation only helps when tasks shrink and gates exist"
+    explanation: |
+      Per-step success still compounds. Extra roles help only when they reduce blast radius or make
+      each step easier to verify — not because N went up.
+
+  - slug: multiagent-ping-pong
+    unit: multi-agent-failure-modes
+    type: mcq
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "What is a ping-pong failure between two agents?"
+    choices:
+      - id: a
+        text: "Roles repeatedly hand work back and forth without a progress metric or turn limit."
+        correct: true
+      - id: b
+        text: "Two agents correctly merge facts into one store."
+      - id: c
+        text: "A single agent looping on one tool call."
+      - id: d
+        text: "A handoff that validates and proceeds on the first try."
+    explanation: |
+      Ping-pong is a coordination loop: endless revise/clarify cycles that burn budget without
+      converging. Cap turns and reject non-actionable critiques.
+
+  - slug: multiagent-conflict-facts
+    unit: multi-agent-failure-modes
+    type: mcq
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Two agents report incompatible values for the same claim id. What should happen?"
+    choices:
+      - id: a
+        text: "Raise a conflict in a shared facts store and escalate — do not average them in prose."
+        correct: true
+      - id: b
+        text: "Let a synthesizer agent write a fluent paragraph that uses both values."
+      - id: c
+        text: "Trust whichever handoff arrived last; handoffs are free and authoritative."
+        misconception: multiagent.handoff_is_free
+      - id: d
+        text: "Spawn more agents until consensus appears."
+        misconception: multiagent.more_agents_more_reliable
+    explanation: |
+      Fluent merges hide contradictions. Explicit conflict/escalation in code preserves a single
+      source of truth.
+
+  - slug: multiagent-handoff-cost
+    unit: multi-agent-failure-modes
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Why is treating handoffs as 'basically free' dangerous?"
+    choices:
+      - id: a
+        text: "Each hop is a validation boundary, more tokens, and another chance to drop or retry state."
+        correct: true
+      - id: b
+        text: "Frameworks charge a fixed fee per handoff API call only."
+      - id: c
+        text: "Handoffs never fail if both agents share a transcript."
+        misconception: multiagent.handoff_is_free
+      - id: d
+        text: "Handoffs only matter for latency, never for reliability."
+    explanation: |
+      Budget handoffs like tool steps. Retries and dropped fields are first-class failure modes.
+
+  - slug: multiagent-collapse
+    unit: multi-agent-failure-modes
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "When should you collapse a multi-agent graph into a fixed workflow?"
+    choices:
+      - id: a
+        text: "When roles run in fixed order with overlapping tools and little branching."
+        correct: true
+      - id: b
+        text: "Never — more agents are always the reliability upgrade."
+        misconception: multiagent.more_agents_more_reliable
+      - id: c
+        text: "Only after ping-pong exceeds one hundred turns."
+      - id: d
+        text: "When handoffs are free, so structure does not matter."
+        misconception: multiagent.handoff_is_free
+    explanation: |
+      Fixed sequences need fewer model decisions and clearer tests. Multi-agent costumes on pipelines
+      add cost without benefit.
+
+  - slug: multiagent-metrics
+    unit: multi-agent-failure-modes
+    type: short_text
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Name two metrics (besides final task success) that reveal multi-agent health.
+    accepted:
+      - "handoff accept rate and ping-pong length"
+      - "duplicate tool calls and disagreement rate"
+      - "handoff rejects and cross-agent conflict rate"
+      - "ping-pong length, handoff accept rate"
+      - "disagreement rate on facts, duplicate side effects"
+    explanation: |
+      Task success hides coordination pain. Handoff accept/reject rates, ping-pong length, duplicate
+      tool calls, and factual disagreement rates show whether the graph is healthy.
+
+assessments:
+  - slug: multi-agent-roles-and-handoffs-practice
+    title: "Practice: roles and handoffs"
+    kind: practice
+    unit: multi-agent-roles-and-handoffs
+    items:
+      - multiagent-role-contract
+      - multiagent-handoff-content
+      - multiagent-reliability-claim
+
+  - slug: multi-agent-roles-and-handoffs-quiz
+    title: "Quiz: roles and handoffs"
+    kind: quiz
+    unit: multi-agent-roles-and-handoffs
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - multiagent-role-contract
+      - multiagent-handoff-content
+      - multiagent-when-split
+      - multiagent-authority
+      - multiagent-reliability-claim
+
+  - slug: multi-agent-failure-modes-practice
+    title: "Practice: multi-agent failures"
+    kind: practice
+    unit: multi-agent-failure-modes
+    items:
+      - multiagent-ping-pong
+      - multiagent-conflict-facts
+      - multiagent-metrics
+
+  - slug: multi-agent-failure-modes-quiz
+    title: "Quiz: multi-agent failures"
+    kind: quiz
+    unit: multi-agent-failure-modes
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - multiagent-ping-pong
+      - multiagent-conflict-facts
+      - multiagent-handoff-cost
+      - multiagent-collapse
+      - multiagent-metrics
+
+cards:
+  - slug: card-multiagent-role
+    unit: multi-agent-roles-and-handoffs
+    front: "Role vs persona — what's the difference?"
+    back: |
+      A role is a contract (inputs, output schema, tools, stops). A persona is a label. Contracts
+      can be validated; labels cannot.
+
+  - slug: card-multiagent-ping-pong
+    unit: multi-agent-failure-modes
+    front: "What stops agent ping-pong?"
+    back: |
+      Per-pair turn budgets, progress checks, and rejecting non-actionable handoffs — then escalate.

@@ -1,0 +1,405 @@
+# Wave 4: reinforcement learning foundations — the loop and policy vs value.
+#
+# Parent domain: reinforcement-learning (10-domains.yml).
+
+units:
+  - slug: rl-foundations
+    title: Reinforcement Learning Foundations
+    kind: chapter
+    parent: reinforcement-learning
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 90
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [reinforcement-learning]
+    objectives:
+      - "Name the agent–environment loop: state, action, reward, next state."
+      - Separate "what to do" (policy) from "how good is a state/action" (value).
+      - Say why reward design is where most RL projects fail before algorithms do.
+    description: >-
+      RL as interaction over time: an agent acts, the world responds with reward and a new state.
+      Policies choose actions; value functions score futures — two ideas that must stay distinct.
+    blocks:
+      - type: why
+        markdown: |
+          Supervised learning copies labels. RL learns from consequences: choose an action, see a
+          reward and a next state, repeat. Before Q-learning tables or policy gradients, you need
+          the loop vocabulary and the policy-versus-value split. Sutton and Barto's book is the
+          standard reference for both.
+
+  - slug: rl-loop-state-action-reward
+    title: The RL Loop — State, Action, Reward
+    kind: knowledge_unit
+    parent: rl-foundations
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [reinforcement-learning, mdp]
+    objectives:
+      - Diagram one step of the agent–environment interaction.
+      - Define return as discounted sum of future rewards, not as the latest reward alone.
+      - "State the Markov assumption informally: the state is a sufficient summary for decision."
+      - Explain why a misspecified reward yields competent agents that do the wrong thing.
+    description: >-
+      At each time the agent observes a state, picks an action, and receives a reward plus a next
+      state. Learning targets long-run return under that interaction, not one-step accuracy.
+    blocks:
+      - type: why
+        markdown: |
+          Every RL algorithm is a tactic inside the same game: interact, collect $(s, a, r, s')$,
+          improve behaviour. If the loop is fuzzy, later jargon (episodes, discount, exploration)
+          floats. This page fixes the loop, the return, and the uncomfortable fact that the reward
+          is a design choice.
+
+      - type: eli5
+        markdown: |
+          You are in a room (state). You try a move (action). The world says "nicer" or "ouch"
+          (reward) and shows you the new room (next state). You keep going.
+
+          Winning is not "get a cookie this second" — it is "end up with a good total score over
+          the whole adventure," even if some steps are boring or slightly painful on the way.
+
+      - type: beginner
+        markdown: |
+          **One step.** At time $t$:
+
+          1. Agent observes state $S_t$.
+          2. Agent selects action $A_t$.
+          3. Environment returns reward $R_{t+1}$ and next state $S_{t+1}$.
+
+          Diagram it as a loop, not as a static dataset. Data arrives because of actions you took.
+
+          **Return.** For a trajectory, the **return** from time $t$ is
+
+          $$
+          G_t = R_{t+1} + \gamma R_{t+2} + \gamma^2 R_{t+3} + \cdots
+          $$
+
+          with discount $\gamma \in [0,1)$. $\gamma$ near 1 values the distant future; $\gamma$ near
+          0 is myopic. The learning target is typically expected return, not the single scalar
+          $R_{t+1}$.
+
+          **Episodes vs continuing tasks.** Episodes end (game over, goal reached); continuing
+          tasks run indefinitely and lean harder on discounting.
+
+          **Markov idea (informal).** A state representation is useful when the future depends on
+          the past only through what is in $S_t$ — "the state is enough to decide." Partial
+          observability (you do not see everything) breaks that and needs extra machinery later.
+
+      - type: intermediate
+        markdown: |
+          **Reward is not the objective you whispered to the product manager.** The agent
+          optimises expected return under the reward you coded. If you reward lines of code, you
+          get verbose programs; if you reward click-through, you get clickbait. This is reward
+          misspecification / Goodhart pressure, and it shows up before fancy algorithms matter.
+
+          **Transition dynamics.** The environment implements $p(s', r \mid s, a)$. Model-based
+          methods try to learn or use that; model-free methods learn values or policies from
+          samples without an explicit $p$. Either way, the loop definition stays the same.
+
+          **Exploration.** Actions change what data you see. Pure greed locks you into early
+          habits; deliberate exploration (ε-greedy, noise, curiosity bonuses) is part of the
+          problem statement, not an optional extra.
+
+          **Credit assignment.** A reward at $t+10$ may depend on an action at $t$. Discounting
+          and value methods are tools for spreading credit; they do not remove the need for a
+          reward that actually marks the behaviour you want.
+
+          Sutton & Barto Chapters 1–3 fix this vocabulary carefully; skim those before any deep
+          RL paper.
+
+      - type: example
+        markdown: |
+          **Gridworld.** States are cells; actions are N/E/S/W; reward is $-1$ per step and $+10$
+          on the goal (episode ends). A short path scores better than wandering because each step
+          costs — the return encodes "arrive soon," not only "arrive."
+
+          **Bandit contrast.** A multi-armed bandit is RL with one state (or i.i.d. pulls): no
+          long-term state transitions. Full RL matters when today's action changes tomorrow's
+          options.
+
+          Pseudo-interaction:
+
+          ```text
+          s = env.reset()
+          for t in range(T):
+              a = agent.act(s)           # from policy
+              s_next, r, done = env.step(a)
+              agent.observe(s, a, r, s_next, done)
+              s = s_next
+              if done: break
+          ```
+
+          Everything called "Q-learning" or "policy gradient" plugs into `agent.act` /
+          `agent.observe`. The loop does not change.
+
+      - type: misconception
+        payload:
+          code: rl.reward_equals_return
+          claim: "The agent only cares about the immediate reward from the last action."
+          markdown: |
+            **The claim:** RL is "do whatever got the highest reward just now."
+
+            **Why it feels right:** the environment emits one number per step, and demos highlight
+            that number.
+
+            **What actually happens:** standard objectives maximise expected **return** — the
+            discounted sum of future rewards. An action with mediocre $R_{t+1}$ can be optimal if
+            it enables large later rewards. Conversely, greedy one-step reward can trap the agent.
+
+            **How to catch yourself:** in the gridworld with step cost $-1$, moving away from a
+            nearby decoy toward a distant goal can lower immediate comfort while raising $G_t$.
+            If your explanation never mentions future rewards or $\gamma$, you are describing a
+            contextual bandit habit, not general RL.
+
+      - type: common_mistake
+        markdown: |
+          **Designing a sparse reward** ("+1 only at success") then being surprised that learning
+          is slow — credit assignment has almost no signal.
+
+          **Shaping rewards casually** with bonuses that look helpful and quietly invent a
+          different task (agent farms the bonus forever).
+
+          **Logging only rewards** without states and actions, then being unable to debug whether
+          the policy or the environment is wrong.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Draw the agent–environment loop and label $S_t$, $A_t$, $R_{t+1}$, $S_{t+1}$.
+            2. For rewards $1, 0, 4$ and $\gamma=0.5$, compute $G_0$ from the start of that fragment.
+            3. Give a product example where maximising immediate reward is the wrong objective.
+            4. Why is a bandit simpler than gridworld RL?
+            5. Correct "the agent only maximises the latest reward" in two sentences.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What four quantities define one RL interaction step?"
+              answer: "State, action, reward, next state (and often a done/terminal flag)."
+            - question: "What is return G_t?"
+              answer: >-
+                The discounted sum of future rewards from time t onward:
+                R_{t+1} + γ R_{t+2} + γ² R_{t+3} + ···.
+            - question: "Why does reward design matter so much?"
+              answer: >-
+                The agent optimises expected return under the reward you coded; a misspecified
+                reward produces competent behaviour aimed at the wrong goal.
+            - question: "What does the discount γ control?"
+              answer: >-
+                How strongly future rewards count relative to nearer ones; γ→0 is myopic, γ→1
+                values long horizons.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Narrate one environment step without mixing up when reward arrives.
+            - Compute a small discounted return by hand.
+            - Spot a reward that invites Goodharting before training starts.
+            - Explain how RL data depends on the policy that collected it.
+    resources:
+      - source: sutton-barto
+        purpose: PRIMARY_SOURCE
+        relevance: 0.95
+        excerpt: >-
+          Chapters 1–3: agent–environment interface, goals and rewards, returns and episodes.
+
+  - slug: policy-vs-value-intuition
+    title: Policy vs Value — What To Do vs How Good It Is
+    kind: knowledge_unit
+    parent: rl-foundations
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [reinforcement-learning, policy, value-function]
+    objectives:
+      - Define a policy as a mapping from states to actions (or action distributions).
+      - Define $v_\pi(s)$ and $q_\pi(s,a)$ as expected return under a policy.
+      - Explain how acting greedily with respect to $q$ yields an improved policy idea.
+      - Contrast policy-based and value-based learning at the level of "what is stored."
+    description: >-
+      A policy is behaviour. A value function scores states or state–action pairs under that
+      behaviour. RL methods learn one, the other, or both — they are not synonyms.
+    blocks:
+      - type: why
+        markdown: |
+          Beginners hear "the agent learns values" and "the agent learns a policy" as if those
+          were two names for one object. They are not. One is a recipe for choosing actions; the
+          other is a forecast of return. Algorithms differ by which object they approximate and
+          how they improve.
+
+      - type: eli5
+        markdown: |
+          A **policy** is your strategy: in this room, open the door; in that room, wait.
+
+          A **value** is a forecast: "if I follow my strategy from this room, my total score will
+          be about 12."
+
+          You can improve by rewriting the strategy, or by getting better forecasts and then
+          picking the move your forecast says is best — or both.
+
+      - type: beginner
+        markdown: |
+          **Policy.** $\pi(a \mid s)$ — probability of action $a$ in state $s$ (deterministic
+          policies are the special case that put mass 1 on one action). The policy is what you
+          deploy: it chooses actions.
+
+          **State value.**
+
+          $$
+          v_\pi(s) = \mathbb{E}_\pi[G_t \mid S_t = s]
+          $$
+
+          Expected return from $s$ when actions follow $\pi$ thereafter.
+
+          **Action value (Q-function).**
+
+          $$
+          q_\pi(s,a) = \mathbb{E}_\pi[G_t \mid S_t = s, A_t = a]
+          $$
+
+          Expected return if you take $a$ now, then follow $\pi$. The extra argument $a$ is why
+          Q-learning-style methods can compare actions without a separate policy network.
+
+          **Greedy improvement (intuition).** If you know $q_\pi$, choosing
+          $a = \arg\max_{a'} q_\pi(s,a')$ is at least as good as continuing to sample from $\pi$ —
+          the policy improvement idea behind much of dynamic programming and Q-learning.
+
+      - type: intermediate
+        markdown: |
+          **Value-based methods** store or approximate $v$ or $q$, and define behaviour from them
+          (ε-greedy over Q, soft policies, etc.). **Policy-based methods** parameterise $\pi$
+          directly and optimise expected return by nudging action probabilities. **Actor–critic**
+          keeps both: an actor ($\pi$) and a critic (value) that scores how surprising the return
+          was.
+
+          **On-policy vs off-policy (preview).** Estimating $q_\pi$ from data collected by $\pi$
+          is on-policy. Learning about a target policy from behaviour-policy data is off-policy —
+          powerful and easy to get wrong. The definitions of $v_\pi$ and $q_\pi$ still refer to
+          *some* policy; do not drop the subscript mentally.
+
+          **Optimal values.** $v_*$ and $q_*$ are values under an optimal policy. Many algorithms
+          aim at $q_*$ so that greedy action selection recovers optimal behaviour. Existence
+          results assume MDPs with suitable conditions; practice adds function approximation and
+          sampling noise.
+
+          Sutton & Barto's early chapters separate these objects before any neural net appears —
+          keep that separation when reading deep RL papers that overload the word "model."
+
+      - type: example
+        markdown: |
+          Two-state toy. From $s_\mathrm{start}$, actions Stay (reward $1$, remain) and Quit
+          (reward $0$, go to terminal). With $\gamma=0.9$, a policy that always Stays has high
+          $v$ if episodes are long — but if Quit is required to "succeed" in a product sense and
+          you forgot to encode that in reward, values will cheerfully recommend Stay forever.
+
+          Comparing objects:
+
+          | Object | Question it answers |
+          |--------|---------------------|
+          | $\pi(\cdot\mid s)$ | What do I do here? |
+          | $v_\pi(s)$ | How good is this state under $\pi$? |
+          | $q_\pi(s,a)$ | How good is this action now, then $\pi$? |
+
+          Pseudo-update sketch for a tabular Q idea (not a full algorithm):
+
+          ```text
+          # After observing (s, a, r, s'):
+          # q[s,a] ← q[s,a] + α * (r + γ * max_a' q[s',a'] - q[s,a])   # Q-learning style
+          # Policy at s: ε-greedy over q[s, ·]
+          ```
+
+          Here the stored object is $q$; the policy is derived. A policy-gradient method would
+          instead store $\pi_\theta$ and update $\theta$ without necessarily keeping a Q table.
+
+      - type: misconception
+        payload:
+          code: rl.policy_equals_value
+          claim: "Policy and value function are two names for the same thing the agent learns."
+          markdown: |
+            **The claim:** "learning the policy" and "learning the values" mean the same update.
+
+            **Why it feels right:** many tutorials show one grid of numbers and then pick
+            arrows from it, so it feels like one artefact.
+
+            **What actually happens:** a value function scores futures; a policy chooses actions.
+            You can have a policy with no explicit values (policy gradients), values that induce
+            a policy by greedification (Q-learning), or both (actor–critic). Conflating them makes
+            off-policy discussions and "what does this network output?" questions unanswerable.
+
+            **How to catch yourself:** ask what the network (or table) emits at a state. Action
+            probabilities or a hard action → policy side. A scalar or a vector of action scores
+            used as forecasts of return → value side. If you cannot say which, you do not yet
+            know what is being learned.
+
+      - type: common_mistake
+        markdown: |
+          **Reading $v(s)$ as "probability of success"** when the reward is not a 0/1 success
+          indicator — values inherit the reward's units and scale.
+
+          **Comparing Q-values across different reward scalings** as if they were absolute
+          utilities without noting that affine reward transforms change the numbers.
+
+          **Saying "the policy converged" because Q-values stopped changing much** without
+          checking whether ε-greedy behaviour actually stabilised.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. In one line each, define π, v_π(s), and q_π(s,a).
+            2. Why can q_π help you improve a policy without an explicit π network?
+            3. Is ε-greedy over Q a policy? What is stored versus what is executed?
+            4. Give one reason to learn π directly instead of only Q.
+            5. Correct "policy and value are the same object" in two sentences.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is a policy?"
+              answer: >-
+                A mapping from states to actions or action probabilities — the agent's behaviour
+                rule.
+            - question: "What does v_π(s) represent?"
+              answer: "Expected return starting from state s when following policy π thereafter."
+            - question: "What extra question does q_π(s,a) answer compared with v_π(s)?"
+              answer: >-
+                How good it is to take action a now from s, then follow π — enabling comparison
+                among actions.
+            - question: "Are policy and value the same?"
+              answer: >-
+                No. Policy is what to do; value is how good a state or action is under a policy.
+                Methods may learn one, the other, or both.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Point at a diagram and label which box is π versus v or q.
+            - Explain greedy policy improvement from q in plain language.
+            - Classify a method as value-based, policy-based, or actor–critic by what it stores.
+            - Refuse the sentence "the agent learned the values, i.e. the policy."
+    resources:
+      - source: sutton-barto
+        purpose: PRIMARY_SOURCE
+        relevance: 0.95
+        excerpt: >-
+          Policy and value function definitions; policy improvement and the connection to action
+          values.

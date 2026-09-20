@@ -1,0 +1,185 @@
+# Wave 4: bagging vs boosting as ensemble strategies (domain: ensembles).
+#
+# Complements the trees/ensembles overview under classical-ml-toolbox with a focused contrast
+# aimed at the ensembles domain itself.
+
+units:
+  - slug: bagging-vs-boosting
+    title: Bagging vs Boosting — Variance Cutters and Bias Cutters
+    kind: knowledge_unit
+    parent: ensembles
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [machine-learning, ensembles, bagging, boosting]
+    objectives:
+      - Define bagging as averaging models trained on bootstrap samples (plus feature randomness
+        in forests).
+      - Define boosting as sequentially fitting models to residual / hard examples.
+      - Choose forest-style bagging vs gradient boosting from bias–variance and operational needs.
+      - "Say what both still require: honest validation and leakage-free features."
+    description: >-
+      Two ways to build a committee of weak learners: train them in parallel on resampled data and
+      average (bagging), or train them in sequence to fix remaining errors (boosting).
+    blocks:
+      - type: why
+        markdown: |
+          "Use an ensemble" is not a single method. Bagging and boosting both combine many trees
+          (usually), but they attack different problems: unstable high-variance base learners
+          versus high-bias underfit leftovers. Picking the wrong story wastes tuning time.
+
+      - type: eli5
+        markdown: |
+          **Bagging:** ask many students the same exam, but each studied from a slightly different
+          photocopy of the notes. Average their answers. Wild individual mistakes cancel.
+
+          **Boosting:** mark the first student's paper, then make the next student focus on the
+          questions the first got wrong, then the next on what is still wrong, and so on. Combine
+          their expertise into one strong answer key.
+
+      - type: beginner
+        markdown: |
+          **Bagging (bootstrap aggregating).** Draw bootstrap samples of the training set; train a
+          base learner on each; aggregate by voting (classification) or averaging (regression).
+          **Random forests** add another randomness source: at each split, only a random subset of
+          features is eligible. The goal is lower **variance** — deep trees agree less, so their
+          average is stabler.
+
+          **Boosting.** Fit a sequence of usually shallow learners. Each stage emphasises examples
+          (or residuals) that the current ensemble still gets wrong. **Gradient boosting** fits the
+          next tree to the negative gradient of the loss — the dominant practical form for tabular
+          data. The goal is lower **bias** — capacity is spent where the loss remains.
+
+          **Base learners.** Trees are the usual choice because they are flexible and fast to fit
+          weakly. The bagging-vs-boosting contrast is about *how you combine*, not only about
+          trees.
+
+          **Scaling.** Neither family needs feature standardisation for the reason trees do not.
+          Both still need leakage-free features and honest train/validation discipline.
+
+      - type: intermediate
+        markdown: |
+          **Error decomposition intuition.** A single deep tree: low bias, high variance. Bagging
+          similar trees: variance falls if errors are not perfectly correlated (feature randomness
+          helps). A single shallow tree: high bias. Boosting adds capacity where residuals remain:
+          bias falls, but overfit and fragile hyperparameters appear if you boost too long without
+          regularisation (learning rate, subsample, max depth, early stopping).
+
+          **Parallelism and ops.** Bagging/forests parallelise trivially across trees. Boosting is
+          sequential by construction (stages depend on prior residuals), though implementations
+          parallelise work *within* a stage. Forests are often harder to catastrophically over-tune
+          on small data; boosted trees usually win hard tabular benchmarks when tuned well.
+
+          **Stacking (glance).** A third ensemble pattern learns a meta-model on base predictions.
+          It is neither pure bagging nor boosting; mention it so the dichotomy is not mistaken for
+          the entire field.
+
+          ESL develops bagging and boosting carefully; scikit-learn's ensemble module is the API
+          map for `RandomForest*`, `GradientBoosting*`, `HistGradientBoosting*`, and friends.
+
+      - type: example
+        markdown: |
+          Same tabular classification task, two committees:
+
+          ```python
+          from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+
+          rf = RandomForestClassifier(
+              n_estimators=300, max_features="sqrt", random_state=0, n_jobs=-1
+          )
+          rf.fit(X_train, y_train)
+
+          gb = HistGradientBoostingClassifier(max_depth=3, learning_rate=0.05, max_iter=200)
+          gb.fit(X_train, y_train)
+          ```
+
+          **Reading results.** If a single deep tree's validation curve is noisy across folds and
+          the forest stabilises it, bagging did its job. If a shallow tree underfits badly and
+          boosting lifts validation score with a small learning rate and early stopping, boosting
+          did its job. If both overfit, look at leakage and target encoding before buying another
+          library.
+
+          **Not a rule of thumb to tattoo:** "boosting always wins." On tiny noisy sets, a modest
+          forest or even logistic regression can be the adult choice.
+
+      - type: misconception
+        payload:
+          code: ens.bagging_is_boosting
+          claim: "Bagging and boosting are the same idea — both just train lots of trees and average."
+          markdown: |
+            **The claim:** ensembles are ensembles; the names are marketing.
+
+            **Why it feels right:** both end with many trees and a combined prediction, and code
+            demos look similar at a glance.
+
+            **What actually happens:** bagging trains base learners independently on resampled
+            data to cut variance; boosting trains them sequentially to cut remaining loss (bias).
+            Independence vs dependence, parallel vs staged, variance vs bias — those are real
+            differences in behaviour and tuning.
+
+            **How to catch yourself:** ask whether tree $t+1$ needs the residuals of the current
+            ensemble. If yes, you are in boosting-land. If every tree could have been fit in
+            parallel on its own bootstrap draw, you are in bagging-land.
+
+      - type: common_mistake
+        markdown: |
+          **Boosting with learning rate 1.0 and huge depth** until training loss is tiny, then
+          blaming "ensembles" for overfitting.
+
+          **Using accuracy alone on imbalanced data** to declare a forest better than boosting (or
+          the reverse) without a metric matched to the cost.
+
+          **Forgetting early stopping / validation monitoring** for boosted models while treating
+          `n_estimators` as "more is always nicer."
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. In one sentence each, define bagging and boosting.
+            2. Which primarily targets variance, and which primarily targets bias? Why?
+            3. Why do random forests randomise features at splits, not only bootstrap rows?
+            4. Give an operational reason to prefer a forest over gradient boosting (or the reverse).
+            5. Correct "bagging and boosting are the same" in two sentences.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is bagging?"
+              answer: >-
+                  Train base learners on bootstrap samples (forests also randomise features) and
+                  aggregate predictions — mainly to reduce variance.
+            - question: "What is boosting?"
+              answer: >-
+                  Sequentially fit learners to residual / hard examples (e.g. gradient boosting) to
+                  reduce bias of an initially weak ensemble.
+            - question: "Do tree ensembles require feature scaling?"
+              answer: "No — splits depend on per-feature orderings, not comparable Euclidean scales."
+            - question: "How can you tell bagging from boosting in one question?"
+              answer: >-
+                  Does model t+1 need the current ensemble's residuals/errors? Yes → boosting;
+                  independent parallel fits → bagging.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Explain bagging vs boosting without reducing both to "many trees."
+            - Pick a default family for a stated tabular constraint (speed, size, tune budget).
+            - Name the knobs that regularise boosting versus forests.
+            - Refuse the claim that the two names are interchangeable.
+    resources:
+      - source: sklearn-ensemble
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: "Forest and boosting estimators, parameters, and ensemble utilities."
+      - source: esl-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Chapters on bagging, random forests, and boosting methods."

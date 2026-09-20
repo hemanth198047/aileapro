@@ -1,0 +1,161 @@
+# Assessments for Wave 4 tool-calling schema/validation unit.
+
+items:
+  - slug: tools-schema-layers
+    unit: tool-schemas-and-validation
+    type: mcq
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "Which order of checks should a tool handler apply before side effects?"
+    choices:
+      - id: a
+        text: "Parse call → JSON Schema validate → business/authz validate → execute or refuse."
+        correct: true
+      - id: b
+        text: "Execute first, then log; schemas are documentation only."
+        misconception: tools.schema_is_docs_only
+      - id: c
+        text: "Trust the model if the system prompt forbids bad arguments."
+      - id: d
+        text: "Business validate only; skip types because the framework parsed JSON."
+    explanation: |
+      Schemas are the first parser. Authz and business rules follow. Prompt text is not a parser.
+
+  - slug: tools-additional-properties
+    unit: tool-schemas-and-validation
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Why set `additionalProperties: false` on tool parameter objects?"
+    choices:
+      - id: a
+        text: "Models invent extra fields; refusing them closes hidden channels and forces a clean retry."
+        correct: true
+      - id: b
+        text: "It makes schemas shorter for documentation readers only."
+        misconception: tools.schema_is_docs_only
+      - id: c
+        text: "JSON Schema requires it for all APIs worldwide."
+      - id: d
+        text: "It disables authentication on the tool."
+    explanation: |
+      Extra keys are a common model habit and a potential injection/smuggling path into handlers that
+      forward unknowns.
+
+  - slug: tools-error-payload
+    unit: tool-schemas-and-validation
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Which tool error helps the loop correct the next call?"
+    choices:
+      - id: a
+        text: "`{\"error\":\"validation_failed\",\"fields\":{\"order_id\":\"must match ^A[0-9]{4}$; got 'A44'\"}}`"
+        correct: true
+      - id: b
+        text: "`500 Internal Server Error` with an empty body"
+      - id: c
+        text: "Silent success with no refund performed"
+      - id: d
+        text: "A prompt reminder that schemas are only documentation"
+        misconception: tools.schema_is_docs_only
+    explanation: |
+      Errors are read by the model. Specific field messages enable correction; opaque failures cause
+      identical retries.
+
+  - slug: tools-owasp-gate
+    unit: tool-schemas-and-validation
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      Untrusted content may steer the model to propose `send_email` to an external domain. What is
+      the primary control?
+    choices:
+      - id: a
+        text: "Allow-list destinations and confirmation for irreversible sends in the handler."
+        correct: true
+      - id: b
+        text: "Rely on schema documentation so developers remember the risk."
+        misconception: tools.schema_is_docs_only
+      - id: c
+        text: "Add stronger wording only in the system prompt."
+      - id: d
+        text: "Disable JSON Schema so calls are faster."
+    explanation: |
+      OWASP-style LLM risks assume steered proposals. Destination allow-lists and confirmation gates
+      in code hold; prompt-only controls do not.
+
+  - slug: tools-idempotency
+    unit: tool-schemas-and-validation
+    type: mcq
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Why do write tools need idempotency keys in agent loops?"
+    choices:
+      - id: a
+        text: "Models retry; without idempotency a second identical call can double-apply side effects."
+        correct: true
+      - id: b
+        text: "Schemas are documentation, so retries never reach the server twice."
+        misconception: tools.schema_is_docs_only
+      - id: c
+        text: "Idempotency is only for read tools."
+      - id: d
+        text: "It increases temperature for creative retries."
+    explanation: |
+      Loops retry on timeouts and vague errors. Writes must tolerate duplicate proposals safely.
+
+  - slug: tools-schema-purpose
+    unit: tool-schemas-and-validation
+    type: short_text
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      In one sentence: are tool schemas runtime controls or developer documentation only?
+    accepted:
+      - "Runtime controls — validate and refuse before execute"
+      - "Runtime validation/controls, not docs-only"
+      - "They are enforced at runtime as the first parser"
+      - "Schemas are runtime gates, not just documentation"
+      - "Runtime controls used to validate calls before side effects"
+    explanation: |
+      If schemas are not enforced server-side, they are decoration. Treat model output as an
+      untrusted API client.
+
+assessments:
+  - slug: tool-schemas-and-validation-practice
+    title: "Practice: tool schemas and validation"
+    kind: practice
+    unit: tool-schemas-and-validation
+    items:
+      - tools-schema-layers
+      - tools-additional-properties
+      - tools-schema-purpose
+
+  - slug: tool-schemas-and-validation-quiz
+    title: "Quiz: tool schemas and validation"
+    kind: quiz
+    unit: tool-schemas-and-validation
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - tools-schema-layers
+      - tools-additional-properties
+      - tools-error-payload
+      - tools-owasp-gate
+      - tools-idempotency
+      - tools-schema-purpose
+
+cards:
+  - slug: card-tools-schema-runtime
+    unit: tool-schemas-and-validation
+    front: "Tool schema: docs or runtime gate?"
+    back: |
+      Runtime gate. Parse → schema → business/authz → execute/refuse. Prompt text is not a parser.

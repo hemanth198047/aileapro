@@ -741,3 +741,371 @@ edges:
     type: DEPENDS_ON
     weight: 0.7
     note: Agents are the third branch when tools are required.
+
+  # =========================================================================================
+  # Wave 4 (2026-09-20). DSA, programming contracts, EDA, data engineering, unsupervised,
+  # ensembles depth, RL, generative, vision/speech, multi-agent, tool schemas, infra,
+  # product metrics, and governance. Keeps PREREQUISITE_OF acyclic; soft claims are
+  # DEPENDS_ON / RELATED_TO.
+  # =========================================================================================
+
+  # --- DSA ---------------------------------------------------------------------------------
+  - from: python-collections
+    to: big-o-for-ml-engineers
+    type: DEPENDS_ON
+    weight: 0.6
+    note: >-
+      The growth examples are written as loops over lists and dicts; the asymptotics do not need
+      Python, but the exercises do.
+    sources: [clrs-algorithms]
+
+  - from: python-collections
+    to: hashing-and-lookup
+    type: PREREQUISITE_OF
+    note: A dict is the hash table the page is about; without collections, "lookup" has no object.
+    sources: [clrs-algorithms]
+
+  - from: big-o-for-ml-engineers
+    to: hashing-and-lookup
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Average-case O(1) lookup is the reason you reach for a hash map.
+    sources: [clrs-algorithms]
+
+  - from: big-o-for-ml-engineers
+    to: cost-latency-quality-tradeoffs
+    type: RELATED_TO
+    weight: 0.5
+    note: Asymptotic growth and serving cost are the same argument at two different timescales.
+
+  # --- Programming contracts ---------------------------------------------------------------
+  - from: python-functions
+    to: abstraction-and-interfaces
+    type: PREREQUISITE_OF
+    note: An interface is a call contract; you need functions before you can talk about their shape.
+    sources: [pep8]
+
+  - from: python-collections
+    to: abstraction-and-interfaces
+    type: DEPENDS_ON
+    weight: 0.5
+    note: Collection types are the everyday example of a narrow public surface.
+
+  - from: abstraction-and-interfaces
+    to: tool-schemas-and-validation
+    type: DEPENDS_ON
+    weight: 0.7
+    note: A tool schema is an interface the model must honour, with validation as the checker.
+
+  # --- EDA and data science ----------------------------------------------------------------
+  - from: supervised-learning-framing
+    to: eda-and-question-framing
+    type: RELATED_TO
+    weight: 0.7
+    note: >-
+      Framing a decision and framing a supervised label are the same habit from two angles —
+      population, outcome, and success metric.
+    sources: [esl-book]
+
+  - from: sampling-bias-and-selection
+    to: eda-and-question-framing
+    type: DEPENDS_ON
+    weight: 0.6
+    note: EDA without a population story rediscovers selection bias as "interesting charts."
+    sources: [seeing-theory]
+
+  # --- Data engineering --------------------------------------------------------------------
+  - from: train-validation-test
+    to: feature-store-vs-pipeline
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Feature stores exist so train and serve share the same transform boundary.
+    sources: [mlflow-docs]
+
+  - from: sql-select-join-aggregate
+    to: feature-store-vs-pipeline
+    type: DEPENDS_ON
+    weight: 0.6
+    note: Feature pipelines are joins and aggregates with a serving contract attached.
+
+  - from: feature-leakage-and-scaling
+    to: feature-store-vs-pipeline
+    type: RELATED_TO
+    weight: 0.6
+    note: Leakage often arrives as a train-only feature that never belonged in the store.
+
+  - from: train-validation-test
+    to: reproducible-training-data
+    type: PREREQUISITE_OF
+    note: Reproducibility is pointless if the split itself is not a versioned artefact.
+    sources: [mlflow-docs]
+
+  - from: feature-store-vs-pipeline
+    to: reproducible-training-data
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Snapshotting features is how you make a training set re-runnable.
+    sources: [datasheets-2018]
+
+  - from: reproducible-training-data
+    to: training-data-and-harm
+    type: RELATED_TO
+    weight: 0.6
+    note: A datasheet and a versioned snapshot are the same provenance claim, for different audiences.
+
+  # --- Unsupervised ------------------------------------------------------------------------
+  - from: vectors
+    to: kmeans-and-clustering
+    type: PREREQUISITE_OF
+    note: K-means is nearest-centroid assignment in a vector space.
+    sources: [sklearn-clustering]
+
+  - from: supervised-learning-framing
+    to: kmeans-and-clustering
+    type: RELATED_TO
+    weight: 0.6
+    note: Clustering is what you reach for when there is no label to supervise.
+    sources: [esl-book]
+
+  - from: vectors
+    to: pca-for-intuition
+    type: PREREQUISITE_OF
+    note: Principal components are directions in the same space vectors live in.
+    sources: [mml-book]
+
+  - from: matrices
+    to: pca-for-intuition
+    type: PREREQUISITE_OF
+    note: The covariance / data matrix is the object whose eigenvectors PCA reads.
+    sources: [sklearn-decomposition]
+
+  - from: kmeans-and-clustering
+    to: pca-for-intuition
+    type: RELATED_TO
+    weight: 0.5
+    note: Both reduce structure without labels; one partitions, one rotates.
+
+  # --- Ensembles depth ---------------------------------------------------------------------
+  - from: decision-trees-and-ensembles
+    to: bagging-vs-boosting
+    type: PREREQUISITE_OF
+    note: Bagging and boosting are the two ensemble recipes the trees page only names.
+    sources: [sklearn-ensemble]
+
+  - from: overfitting-and-regularization
+    to: bagging-vs-boosting
+    type: DEPENDS_ON
+    weight: 0.6
+    note: Variance reduction vs bias reduction is the regularisation reading of the two recipes.
+    sources: [esl-book]
+
+  # --- Reinforcement learning --------------------------------------------------------------
+  - from: supervised-learning-framing
+    to: rl-loop-state-action-reward
+    type: RELATED_TO
+    weight: 0.6
+    note: RL replaces a fixed label with a delayed reward; the contrast is the teaching point.
+    sources: [sutton-barto]
+
+  - from: how-a-neuron-learns
+    to: rl-loop-state-action-reward
+    type: DEPENDS_ON
+    weight: 0.5
+    note: The update still moves parameters from a signal; the signal is reward, not a label.
+
+  - from: rl-loop-state-action-reward
+    to: policy-vs-value-intuition
+    type: PREREQUISITE_OF
+    note: Policy and value are two ways to decide inside that loop.
+    sources: [sutton-barto]
+
+  # --- Generative models -------------------------------------------------------------------
+  - from: multilayer-perceptron
+    to: gan-game-intuition
+    type: PREREQUISITE_OF
+    note: Generator and discriminator are MLPs (or CNNs) playing a two-player game.
+    sources: [goodfellow-gan-2014]
+
+  - from: how-a-neuron-learns
+    to: gan-game-intuition
+    type: DEPENDS_ON
+    weight: 0.6
+    note: Both players still learn by gradient steps on a loss.
+    sources: [d2l]
+
+  - from: multilayer-perceptron
+    to: diffusion-denoising-intuition
+    type: DEPENDS_ON
+    weight: 0.7
+    note: The denoiser is a network that maps a noisy sample toward a cleaner one.
+    sources: [ddpm-2020]
+
+  - from: gan-game-intuition
+    to: diffusion-denoising-intuition
+    type: RELATED_TO
+    weight: 0.6
+    note: Two generative recipes — adversarial game vs iterative denoising — for the same goal.
+    sources: [d2l]
+
+  - from: next-token-prediction
+    to: diffusion-denoising-intuition
+    type: RELATED_TO
+    weight: 0.4
+    note: Autoregressive and diffusion are alternative generative objectives, not competitors in every domain.
+
+  # --- Vision and speech -------------------------------------------------------------------
+  - from: convolution-intuition
+    to: detection-vs-classification
+    type: PREREQUISITE_OF
+    note: Detection still uses local filters; the new question is where, not only what.
+    sources: [lecun-cnn-1998]
+
+  - from: precision-recall-and-f1
+    to: detection-vs-classification
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Boxes are scored with the same precision/recall trade-off, often at IoU thresholds.
+    sources: [yolov3-2018]
+
+  - from: next-token-prediction
+    to: asr-pipeline-intuition
+    type: DEPENDS_ON
+    weight: 0.6
+    note: Modern ASR often decodes as a sequence model over tokens or characters.
+    sources: [whisper-2022]
+
+  - from: detection-vs-classification
+    to: asr-pipeline-intuition
+    type: RELATED_TO
+    weight: 0.3
+    note: Both are perception pipelines with a task head on shared front-end features.
+
+  # --- Multi-agent and tool schemas --------------------------------------------------------
+  - from: tool-calling-loop
+    to: multi-agent-roles-and-handoffs
+    type: PREREQUISITE_OF
+    note: A handoff is still a tool call (or message) inside a loop — now between agents.
+    sources: [agent-survey-2023]
+
+  - from: tool-calling-loop
+    to: tool-schemas-and-validation
+    type: PREREQUISITE_OF
+    note: Schemas are how the loop's arguments become typed, checked calls.
+    sources: [react-2022]
+
+  - from: agent-failure-modes
+    to: multi-agent-failure-modes
+    type: PREREQUISITE_OF
+    note: Multi-agent failures are single-agent failures composed across handoffs.
+    sources: [agent-survey-2023]
+
+  - from: multi-agent-roles-and-handoffs
+    to: multi-agent-failure-modes
+    type: PREREQUISITE_OF
+    note: You cannot diagnose a bad handoff until roles and handoff contracts exist.
+    sources: [react-2022]
+
+  - from: agent-failure-modes
+    to: multi-agent-roles-and-handoffs
+    type: DEPENDS_ON
+    weight: 0.5
+    note: Knowing how one agent fails shapes how you split roles.
+
+  - from: tool-schemas-and-validation
+    to: data-exfiltration-via-tools
+    type: RELATED_TO
+    weight: 0.6
+    note: Validation narrows the channel exfiltration still tries to ride.
+    sources: [owasp-llm-top10]
+
+  # --- Inference infra ---------------------------------------------------------------------
+  - from: how-a-neuron-learns
+    to: batching-and-gpu-utilization
+    type: DEPENDS_ON
+    weight: 0.5
+    note: A batch is many forward passes sharing one kernel launch.
+    sources: [d2l]
+
+  - from: cost-latency-quality-tradeoffs
+    to: batching-and-gpu-utilization
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Batching is the usual lever when GPU idle time is the cost driver.
+    sources: [pytorch-autograd]
+
+  - from: next-token-prediction
+    to: kv-cache-and-inference-cost
+    type: PREREQUISITE_OF
+    note: The cache stores past key/value tensors from the autoregressive decode.
+    sources: [gpt3-2020]
+
+  - from: cost-latency-quality-tradeoffs
+    to: kv-cache-and-inference-cost
+    type: DEPENDS_ON
+    weight: 0.8
+    note: Cache size and reuse dominate token latency once the model is fixed.
+    sources: [lost-in-the-middle-2023]
+
+  - from: batching-and-gpu-utilization
+    to: kv-cache-and-inference-cost
+    type: RELATED_TO
+    weight: 0.6
+    note: Continuous batching and KV reuse are the two halves of serving throughput.
+
+  # --- Product and governance --------------------------------------------------------------
+  - from: llm-eval-harness-basics
+    to: ai-product-metrics
+    type: PREREQUISITE_OF
+    note: Product metrics still need an eval harness; the new question is which ones move the business.
+    sources: [openai-evals]
+
+  - from: precision-recall-and-f1
+    to: ai-product-metrics
+    type: DEPENDS_ON
+    weight: 0.6
+    note: Offline metrics remain the floor under online product KPIs.
+    sources: [model-cards-2018]
+
+  - from: cost-latency-quality-tradeoffs
+    to: ai-product-metrics
+    type: RELATED_TO
+    weight: 0.6
+    note: Latency and cost are product metrics whether or not the dashboard labels them that way.
+
+  - from: training-data-and-harm
+    to: accountability-and-oversight
+    type: PREREQUISITE_OF
+    note: Oversight without a data-harm story has nothing concrete to oversee.
+    sources: [nist-ai-rmf]
+
+  - from: llm-app-architecture-patterns
+    to: accountability-and-oversight
+    type: DEPENDS_ON
+    weight: 0.5
+    note: Who owns which component is an architecture decision as much as a policy one.
+    sources: [iso-42001]
+
+  - from: training-data-and-harm
+    to: when-not-to-use-ai
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Harm profiles are often the reason not to automate.
+    sources: [nist-ai-rmf]
+
+  - from: ai-product-metrics
+    to: when-not-to-use-ai
+    type: RELATED_TO
+    weight: 0.6
+    note: If no metric improves under a realistic eval, that is a stop signal.
+
+  - from: accountability-and-oversight
+    to: when-not-to-use-ai
+    type: RELATED_TO
+    weight: 0.7
+    note: No accountable owner is itself a reason not to ship an AI feature.
+
+  - from: llm-app-architecture-patterns
+    to: when-not-to-use-ai
+    type: RELATED_TO
+    weight: 0.5
+    note: Sometimes the right architecture is "no model in the path."

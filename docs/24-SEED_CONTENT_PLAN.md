@@ -122,6 +122,38 @@ assert draft invisibility). Business/entrepreneurship/governance domains stay ho
 
 Matching assessment YAMLs sit alongside under `seed/assessment/`.
 
+## Wave 4 — breadth completion (2026-09-20)
+
+Wave 3 left unsupervised learning, RL, generative models, multi-agent systems, inference infra,
+DSA/programming contracts, data science/engineering depth, vision/speech, and product/governance
+as honest empties or thin stubs. Wave 4 fills those with authored knowledge units at the same
+quality bar, still one page at a time.
+
+**~84 published knowledge units**, chapters under the newly filled domains, assessments per unit,
+edges through the new chain. `mixture-of-experts-draft` remains the intentional draft.
+`ai-engineer-core` is version **3.0.0**; the abridged path stays at ten published waypoints.
+
+### New files (curriculum)
+
+| File | Coverage |
+|------|----------|
+| `32-dsa.yml` | Big-O for ML engineers, hashing and lookup |
+| `33-programming.yml` | Abstraction and interfaces |
+| `36-data-engineering.yml` | Feature store vs pipeline, reproducible training data |
+| `37-data-science.yml` | EDA and question framing |
+| `48-unsupervised.yml` | K-means and clustering, PCA intuition |
+| `49-reinforcement.yml` | RL loop (state/action/reward), policy vs value |
+| `54-generative.yml` | GAN game intuition, diffusion denoising |
+| `55-ensembles-more.yml` | Bagging vs boosting |
+| `56-vision-speech.yml` | Detection vs classification, ASR pipeline |
+| `85-multi-agent.yml` | Multi-agent roles/handoffs, multi-agent failure modes |
+| `86-tool-calling.yml` | Tool schemas and validation |
+| `87-infra.yml` | Batching/GPU utilization, KV cache and inference cost |
+| `88-product-gov.yml` | AI product metrics, accountability/oversight, when not to use AI |
+
+Matching assessment YAMLs sit alongside under `seed/assessment/`. Graph edges and path waypoints
+for these units live in `80-edges.yml` (Wave 4 section) and `90-paths.yml`.
+
 ## Quality bar for a “complete” unit
 
 All of: why, 2+ explanation levels, one example, one misconception, one exercise, one quiz item, mastery criteria, at least one cited resource, difficulty, time, volatility, last_reviewed.

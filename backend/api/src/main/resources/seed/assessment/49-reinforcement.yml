@@ -1,0 +1,258 @@
+# Assessments for rl-foundations units (Wave 4).
+
+items:
+  # --- rl-loop-state-action-reward ---------------------------------------------------------
+  - slug: rl-loop-parts
+    unit: rl-loop-state-action-reward
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "One step of the agent–environment loop is best summarised as which sequence?"
+    choices:
+      - id: a
+        text: "Observe state → take action → receive reward and next state."
+        correct: true
+      - id: b
+        text: "Sample a label y → minimise cross-entropy → freeze weights."
+      - id: c
+        text: "Fit PCA → colour clusters → report silhouette."
+      - id: d
+        text: "Update discriminator → update generator → discard the state."
+    explanation: |
+      RL data arrives from interaction: (s, a, r, s'). Supervised, unsupervised, and GAN loops are
+      different games.
+
+  - slug: rl-return-not-reward
+    unit: rl-loop-state-action-reward
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: '"The agent only maximises the immediate reward from the last action." Correction?'
+    choices:
+      - id: a
+        text: "Standard objectives maximise expected return — a discounted sum of future rewards."
+        correct: true
+      - id: b
+        text: "Correct — RL never considers rewards beyond the next step."
+        misconception: rl.reward_equals_return
+      - id: c
+        text: "Immediate reward and return are identical by definition for all γ."
+      - id: d
+        text: "Agents maximise accuracy against a held-out label instead of rewards."
+    explanation: |
+      G_t = R_{t+1} + γ R_{t+2} + ···. Immediate reward is one term. Myopic behaviour is a special
+      case (γ near 0), not the definition of RL.
+
+  - slug: rl-discount-compute
+    unit: rl-loop-state-action-reward
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      Rewards from t=0 onward in a short fragment are 1, 0, 4 with γ = 0.5. What is G_0?
+      (Numeric; G_0 = 1 + 0.5·0 + 0.25·4.)
+    answer: 2.0
+    tolerance: 0.01
+    explanation: |
+      1 + 0.5·0 + 0.25·4 = 1 + 0 + 1 = 2. Discounting weights later rewards less when γ < 1.
+
+  - slug: rl-reward-design
+    unit: rl-loop-state-action-reward
+    type: true_false
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 80
+    stem: |
+      A misspecified reward can yield an agent that competently optimises expected return while
+      still doing the wrong thing for the product goal.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — the agent optimises the reward you coded. Goodhart / misspecification failures are
+      competent and unwanted at once.
+
+  - slug: rl-bandit-contrast
+    unit: rl-loop-state-action-reward
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "What makes a multi-armed bandit simpler than full gridworld-style RL?"
+    choices:
+      - id: a
+        text: "Actions do not create a long-term evolving state that changes future options."
+        correct: true
+      - id: b
+        text: "Bandits require a discriminator network."
+      - id: c
+        text: "Bandits forbid any notion of reward."
+      - id: d
+        text: "Gridworlds have no states, only actions."
+    explanation: |
+      Bandits are about choosing arms; full RL matters when today's action changes tomorrow's
+      state and opportunities.
+
+  # --- policy-vs-value-intuition -----------------------------------------------------------
+  - slug: rl-policy-def
+    unit: policy-vs-value-intuition
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "A policy π is best described as which of the following?"
+    choices:
+      - id: a
+        text: "A mapping from states to actions or action probabilities — the behaviour rule."
+        correct: true
+      - id: b
+        text: "The scalar expected return of a state under optimal play only."
+      - id: c
+        text: "The environment's transition probability p(s'|s,a)."
+      - id: d
+        text: "The learning rate α in a TD update."
+    explanation: |
+      Policy is what the agent does. Values score futures; transitions are the environment;
+      α is an optimiser knob.
+
+  - slug: rl-policy-vs-value
+    unit: policy-vs-value-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 4
+    estimateSeconds: 120
+    stem: '"Policy and value function are two names for the same learned object." Correction?'
+    choices:
+      - id: a
+        text: "Policy chooses actions; value forecasts expected return under a policy — methods may learn one, the other, or both."
+        correct: true
+      - id: b
+        text: "Correct — every RL method stores exactly one table called both names."
+        misconception: rl.policy_equals_value
+      - id: c
+        text: "Value functions are only used in supervised learning."
+      - id: d
+        text: "Policies cannot be stochastic."
+    explanation: |
+      Value-based, policy-based, and actor–critic methods differ by what they approximate. Mixing
+      the words makes papers unreadable.
+
+  - slug: rl-q-meaning
+    unit: policy-vs-value-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "What question does q_π(s,a) answer?"
+    choices:
+      - id: a
+        text: "Expected return if we take action a in s now, then follow π thereafter."
+        correct: true
+      - id: b
+        text: "The probability that s is a terminal state."
+      - id: c
+        text: "The discriminator score that s is real."
+      - id: d
+        text: "The Euclidean distance from s to the nearest centroid."
+    explanation: |
+      Action values compare moves. Terminals, GANs, and clustering are unrelated objects.
+
+  - slug: rl-greedy-improve
+    unit: policy-vs-value-intuition
+    type: true_false
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 80
+    stem: |
+      If you know q_π, acting greedily with respect to those action values is the intuition behind
+      improving on π (policy improvement).
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True at the textbook level: greedify Q, get a policy that is at least as good in the
+      dynamic-programming sense (with the usual caveats once you leave tabular exact DP).
+
+  - slug: rl-what-is-stored
+    unit: policy-vs-value-intuition
+    type: short_text
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      A method stores action probabilities π_θ(a|s) and updates θ with policy gradients. In one
+      word, is the primary learned object a "policy" or a "value"?
+    accepted:
+      - "policy"
+      - "Policy"
+      - "a policy"
+    explanation: |
+      Direct policy parameterisation is policy-based. A critic may exist in actor–critic variants,
+      but the object named in the stem is the policy.
+
+assessments:
+  - slug: rl-loop-state-action-reward-practice
+    title: "Practice: RL loop"
+    kind: practice
+    unit: rl-loop-state-action-reward
+    items:
+      - rl-loop-parts
+      - rl-discount-compute
+      - rl-reward-design
+
+  - slug: rl-loop-state-action-reward-quiz
+    title: "Quiz: state, action, reward"
+    kind: quiz
+    unit: rl-loop-state-action-reward
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - rl-loop-parts
+      - rl-return-not-reward
+      - rl-discount-compute
+      - rl-bandit-contrast
+
+  - slug: policy-vs-value-intuition-practice
+    title: "Practice: policy vs value"
+    kind: practice
+    unit: policy-vs-value-intuition
+    items:
+      - rl-policy-def
+      - rl-q-meaning
+      - rl-what-is-stored
+
+  - slug: policy-vs-value-intuition-quiz
+    title: "Quiz: policy vs value"
+    kind: quiz
+    unit: policy-vs-value-intuition
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - rl-policy-def
+      - rl-policy-vs-value
+      - rl-q-meaning
+      - rl-greedy-improve
+
+cards:
+  - slug: card-rl-return
+    unit: rl-loop-state-action-reward
+    front: "Immediate reward vs return?"
+    back: |
+      Return G_t is the discounted sum of future rewards. RL typically maximises expected return,
+      not only R_{t+1}.
+
+  - slug: card-rl-policy-value
+    unit: policy-vs-value-intuition
+    front: "Policy vs value — one line each."
+    back: |
+      Policy: what to do in a state. Value: how good a state (or state–action) is under a policy.
+      Not synonyms.

@@ -1,0 +1,448 @@
+# Wave 4: multi-agent systems — roles, handoffs, and failure modes.
+#
+# HIGH volatility and EMERGING: frameworks rename weekly. These pages describe coordination
+# patterns and the reliability arithmetic that does not care what the library is called.
+
+units:
+  - slug: multi-agent-systems-core
+    title: Multi-Agent Systems Core
+    kind: chapter
+    parent: multi-agent-systems
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 45
+    volatility: HIGH
+    knowledgeClass: EMERGING
+    lastReviewedAt: 2026-09-20
+    tags: [agents, multi-agent, coordination]
+    objectives:
+      - Separate role design from framework wiring.
+      - Decide when multiple agents earn their coordination cost.
+    description: >-
+      Several models coordinating on one task: who owns which step, how work is handed off, and
+      when the extra machinery is not worth it.
+
+  - slug: multi-agent-roles-and-handoffs
+    title: Roles and Handoffs
+    kind: knowledge_unit
+    parent: multi-agent-systems-core
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 38
+    volatility: HIGH
+    knowledgeClass: EMERGING
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [agents, multi-agent, handoff, roles]
+    objectives:
+      - Define a role as a scoped contract — inputs, outputs, tools, and stop conditions — not a persona name.
+      - Design a handoff that carries state explicitly rather than hoping the next agent reconstructs it.
+      - Explain why adding agents multiplies failure points unless each handoff is verified.
+      - Choose a single-agent loop vs a role split with a reason a reviewer accepts.
+    description: >-
+      Divide work among specialised agents only when each role has a clear contract and each
+      handoff is an explicit, checkable message — not vibes between personas.
+    blocks:
+      - type: why
+        markdown: |
+          Multi-agent demos look like teamwork. Production multi-agent systems look like distributed
+          systems with non-deterministic workers: every boundary is a place to lose state, duplicate
+          work, or disagree about what "done" means.
+
+          Roles and handoffs are the design. Frameworks are the wiring. If you cannot draw the
+          contracts on a whiteboard without naming a library, you do not have a design yet.
+
+      - type: eli5
+        markdown: |
+          A group project where one person researches, one writes, and one checks the bibliography.
+
+          That only works if the researcher hands the writer a *clear packet* — notes, sources,
+          what is still unknown — not a shrug and "I looked stuff up." The checker needs a finished
+          draft and a list of claims to verify, not the whole chat history.
+
+          Multi-agent systems fail the same way group projects fail: unclear jobs and messy
+          handovers.
+
+      - type: beginner
+        markdown: |
+          A **role** is a scoped job for one agent (or one model call with a fixed prompt and tool
+          set):
+
+          - **Inputs** it is allowed to see.
+          - **Outputs** it must produce (schema, not prose wishes).
+          - **Tools** it may call.
+          - **Stop conditions** — when it must hand off or finish.
+
+          A **handoff** is a message from one role to another that carries enough state for the next
+          role to continue without re-deriving the world from a raw transcript.
+
+          Typical patterns (names vary; the structure does not):
+
+          1. **Pipeline.** Researcher → writer → critic. Each stage consumes the previous output
+             schema.
+          2. **Router.** A triage agent classifies the task and sends it to one specialist.
+          3. **Supervisor.** A planner decomposes work, assigns subtasks, and merges results.
+
+          ReAct-style reasoning-and-acting still applies *inside* a role: the model proposes tool
+          calls, your code runs them, observations return. Multi-agent design is about what happens
+          *between* roles.
+
+          ```
+          Role A (research)
+            tools: search, fetch_url
+            output: {claims: [...], sources: [...], open_questions: [...]}
+
+          Handoff --> Role B (draft)
+            tools: none (or cite_formatter only)
+            input: Role A's output schema
+            output: {draft_md: "...", claims_used: [...]}
+          ```
+
+      - type: intermediate
+        markdown: |
+          **Persona labels are not contracts.** "You are a helpful critic" does not define what the
+          critic must return. A schema does: `{verdict, issues[], blocking: bool}`. Without that,
+          the next role parses vibes.
+
+          **Handoffs must be lossy on purpose.** Passing the entire conversation history is how
+          context explodes and how early mistakes become sacred text. Prefer a structured summary
+          plus pointers (ticket ids, doc ids, tool-result refs) over a dump of every token.
+
+          **Verify at the boundary.** Before accepting a handoff:
+
+          - Schema validation (types, required fields).
+          - Semantic checks you can automate (claim has a source id; draft length within bounds).
+          - A reject path that returns the packet to the previous role with a specific error.
+
+          **Authority stays in code.** Splitting roles does not split credentials. Each tool handler
+          still scopes permissions to the *user*, not to the "researcher persona." A compromised
+          handoff text must not widen privileges.
+
+          **When *not* to multi-agent.** If the sequence is known — retrieve, then answer; extract,
+          then format — a fixed workflow with one or two model calls usually beats three agents
+          debating. Multi-agent earns its keep when roles need *different* tool sets, different
+          risk levels (read-only vs side-effecting), or parallel work that merges cleanly.
+
+          Surveys of LLM agents repeatedly find that planning, memory, and action modules are the
+          reusable pieces; "number of agents" is not itself a capability. Treat agent count as a
+          cost and failure multiplier until a role boundary is justified.
+
+      - type: example
+        markdown: |
+          Task: `Summarise the latest incident ticket and propose a customer reply. Do not send.`
+
+          **Bad design — two chatty personas, shared tools:**
+
+          ```
+          Agent "Analyst" and Agent "Writer" share send_email + read_ticket.
+          They pass free-text messages back and forth for 12 turns.
+          Writer eventually proposes send_email(...).
+          ```
+
+          Failures waiting to happen: duplicated tool calls, no shared notion of "facts extracted,"
+          and a side-effecting tool visible to a role that should only draft.
+
+          **Better design — contracts + one irreversible gate:**
+
+          ```
+          1. extractor
+             tools: read_ticket
+             output: {
+               "incident_id": "INC-4419",
+               "facts": ["outage 14:02–14:41 UTC", "root cause: bad deploy"],
+               "customer_impact": "checkout failures",
+               "open": ["refund requested? unknown"]
+             }
+
+          2. validate(extractor.output)  # code: schema + non-empty facts
+
+          3. drafter
+             tools: none
+             input: extractor.output
+             output: {"reply_md": "...", "uses_facts": ["outage...", "root cause..."]}
+
+          4. human_or_policy_gate  # sending is not a model decision
+          ```
+
+          The handoff is the JSON packet. The drafter cannot invent a refund fact the extractor
+          marked unknown without failing a `uses_facts ⊆ facts` check in code.
+
+      - type: misconception
+        payload:
+          code: multiagent.more_agents_more_reliable
+          claim: "Adding more specialised agents makes the system more reliable."
+          markdown: |
+            **The claim:** if one agent is unreliable, three specialists will cover each other's
+            mistakes and overall success will rise.
+
+            **Why it feels right:** human teams specialise; demos show neat role names; surveys
+            catalogue many architectures, which reads as "more structure is better."
+
+            **What actually happens:** each extra agent adds another model decision, another
+            handoff, and another place for state to drop or contradict. Per-step reliability still
+            compounds. Unless every handoff is schema-checked and wrong packets are rejected, you
+            have *more* ways to fail — often with a confident final merge of inconsistent parts.
+
+            Specialisation helps only when it *reduces* tool blast radius or *shortens* each role's
+            task so each step is easier to verify. Agent count alone is not a reliability upgrade.
+
+            **How to catch yourself:** draw the sequence and multiply conservative per-step success
+            rates across agents *and* handoffs. If you cannot name what each boundary rejects, you
+            added surface area, not safety.
+
+      - type: common_mistake
+        markdown: |
+          **Shared god-mode toolbelt across roles.** The critic should not be able to refund; the
+          researcher should not email customers. Split tools with the roles.
+
+          **Handoff = paste the transcript.** You pay for tokens twice and bury the task definition.
+          Emit a schema; keep raw traces in logs, not in the next prompt by default.
+
+          **No owner for merge conflicts.** Two specialists return incompatible facts and a third
+          "synthesizer" invents a compromise. Prefer explicit arbitration rules or human review.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write JSON schemas for a three-role pipeline (research → draft → critique). Include
+               reject conditions for each handoff.
+            2. Take a task you would build as one agent. Split it into two roles and say what
+               *decreases* because of the split (tools? context? risk).
+            3. Design a router that classifies `billing | outage | how-to` and name one failure if
+               the router is wrong.
+            4. List every field a handoff must carry so the next role never needs the prior
+               transcript for your chosen task.
+            5. Argue in five sentences when a single ReAct loop beats multi-agent for the same task.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is a role, in engineering terms?"
+              answer: >-
+                A scoped contract: allowed inputs, required output schema, tool set, and stop or
+                handoff conditions — not a personality label.
+            - question: "What should a handoff carry?"
+              answer: >-
+                Explicit state the next role needs (structured fields and references), not the full
+                prior transcript by default.
+            - question: "When does adding agents help reliability?"
+              answer: >-
+                When specialisation shrinks each task or tool blast radius and boundaries are
+                verified — not merely because agent count increased.
+            - question: "Where does authority for side effects belong?"
+              answer: >-
+                In code and policy gates scoped to the user, not in whichever persona last spoke.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Write role contracts as schemas, not personas.
+            - Design a handoff that is checkable and rejectable.
+            - Explain the reliability cost of each extra agent.
+            - Choose single-agent vs multi-agent with an explicit reason.
+    resources:
+      - source: agent-survey-2023
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Surveys LLM agent modules (profile, memory, planning, action) used when designing role splits."
+      - source: react-2022
+        purpose: DEEPER_REFERENCE
+        relevance: 0.8
+        excerpt: "Reasoning–acting loop that still runs inside each role; multi-agent design sits between roles."
+
+  - slug: multi-agent-failure-modes
+    title: Multi-Agent Failure Modes
+    kind: knowledge_unit
+    parent: multi-agent-systems-core
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 36
+    volatility: HIGH
+    knowledgeClass: EMERGING
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [agents, multi-agent, reliability, failure-modes]
+    objectives:
+      - Name failure modes that appear only when multiple agents coordinate.
+      - Explain ping-pong loops, contradictory state, and supervisor collapse.
+      - Design observability for cross-agent traces, not only final answers.
+      - Decide when to collapse roles back into a workflow.
+    description: >-
+      What goes wrong when several agents share a task: loops between roles, divergent "facts,"
+      cost blowouts, and supervisors that become single points of failure.
+    blocks:
+      - type: why
+        markdown: |
+          Single-agent failures (loops, injection, compounding error) still apply. Multi-agent
+          systems add *coordination* failures: agents argue, overwrite each other, or wait forever
+          for a handoff that never validates.
+
+          These are design bugs. They show up after the happy-path demo, when two roles disagree
+          about the world.
+
+      - type: eli5
+        markdown: |
+          Two people editing the same homework in different documents, each sure theirs is latest.
+          They message "your turn" back and forth without a shared checklist. Eventually someone
+          submits a mash-up that cites both versions of the answer.
+
+          Multi-agent failures are that mess: no shared truth, endless "your turn," and a confident
+          final merge of contradictions.
+
+      - type: beginner
+        markdown: |
+          Failure modes that show up specifically with multiple agents:
+
+          1. **Ping-pong.** A ↔ B keep handing work back ("please revise" / "please clarify") with
+             no progress metric or turn limit.
+          2. **Divergent state.** Two roles hold incompatible facts; the merger smooths them into
+             fluent nonsense.
+          3. **Duplicate side effects.** Two agents call the same write tool because ownership was
+             never exclusive.
+          4. **Supervisor collapse.** The "orchestrator" does all the work and specialists are
+             unused — or the orchestrator is a single point of wrong plans.
+          5. **Cost fan-out.** Parallel agents each grow their own contexts; spend multiplies with
+             little shared memory discipline.
+
+          Mitigations that actually help:
+
+          - Turn budgets and "no progress" detectors *per role pair*.
+          - A single **source of truth** object (ticket state, scratchpad schema) updated
+            transactionally in code.
+          - Exclusive tool ownership per role.
+          - Merge rules written as code (`prefer extractor.facts`; never "average" claims).
+
+      - type: intermediate
+        markdown: |
+          **Handoffs are free in demos and expensive in compounding.** Each rejection that sends
+          work backwards multiplies another reliability factor. Cap retries; after N rejects,
+          escalate to a human or a deterministic fallback.
+
+          **Logging must be cross-agent.** A final answer log cannot show that agent B overwrote
+          agent A's `incident_id`. Record: role id, handoff payload hash, validation outcome,
+          tool calls, and the shared state version after each step.
+
+          **Evaluation is harder.** Task success alone hides whether specialists were used well.
+          Track: handoff accept rate, ping-pong length, duplicate tool calls, and disagreement rate
+          between roles on factual fields.
+
+          **Collapse when evidence says so.** If two roles always run in fixed order with the same
+          tools, they are a workflow wearing a costume. Prefer an explicit pipeline — fewer
+          decisions, clearer tests.
+
+          Agent surveys note that evaluation and reliability remain open problems even for single
+          agents; multi-agent setups inherit that and add coordination metrics. Do not treat a
+          multi-agent benchmark win as proof your production handoffs are safe.
+
+      - type: example
+        markdown: |
+          **Ping-pong.** Critic always returns `{blocking: true, issues: ["be clearer"]}`. Drafter
+          rewrites tone but never changes facts. After 15 turns the budget dies.
+
+          Fix in code:
+
+          ```
+          if handoff_count(pair="drafter-critic") > 3:
+              escalate("human_edit")
+          if critic.issues unchanged from previous:
+              reject("non_actionable_critique")
+          ```
+
+          **Divergent state.** Researcher says revenue is $12M; analyst's scratchpad still has $1.2M
+          from an earlier tool misread. Synthesizer outputs a paragraph using both.
+
+          Fix: one `facts` map keyed by claim id; writes go through
+
+          ```python
+          def upsert_fact(store, claim_id, value, source, role):
+              prev = store.get(claim_id)
+              if prev and prev.value != value:
+                  raise Conflict(claim_id, prev, value, role)
+              store[claim_id] = Fact(value, source, role)
+          ```
+
+          Conflicts escalate; they are not averaged in prose.
+
+      - type: misconception
+        payload:
+          code: multiagent.handoff_is_free
+          claim: "Handing work between agents is basically free — just send the message."
+          markdown: |
+            **The claim:** a handoff is only another chat message, so adding hops is cheap.
+
+            **Why it feels right:** APIs make `send_to_agent` a one-liner; demos never show rejected
+            packets or duplicated spends.
+
+            **What actually happens:** each handoff is a serialisation boundary, a validation gate,
+            more tokens in some context, and another chance to drop fields. Failed handoffs retry;
+            retries compound cost and error. Treating handoffs as free produces deep graphs nobody
+            can debug.
+
+            **How to catch yourself:** budget maximum handoffs the way you budget maximum tool
+            steps. If you cannot say what a failed handoff costs, you have not priced the design.
+
+      - type: common_mistake
+        markdown: |
+          **No conflict type — only more prose.** When agents disagree, writing a longer summary is
+          not reconciliation.
+
+          **Shared mutable scratchpad with no version.** Last writer wins silently.
+
+          **Measuring only final task success.** You will not see ping-pong until the bill arrives.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Invent a ping-pong transcript of six turns. Add the smallest code rule that stops it.
+            2. Design a shared `facts` store API with conflict behaviour.
+            3. List metrics you would chart for a three-agent system in its first week in production.
+            4. Take a multi-agent design and collapse it to a workflow; list what you lose and gain.
+            5. Write an incident blameless summary template for a wrong merge of two agents' facts.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is a ping-pong failure?"
+              answer: >-
+                Two roles repeatedly hand work back and forth without a progress metric or turn
+                limit, burning budget without converging.
+            - question: "How should conflicting facts be handled?"
+              answer: >-
+                Via an explicit shared store and conflict/escalation rules in code — not by fluent
+                merger prose.
+            - question: "Why log handoff payload hashes?"
+              answer: >-
+                So you can see whether state changed, was rejected, or was silently overwritten
+                across roles.
+            - question: "When should you collapse multi-agent to a workflow?"
+              answer: >-
+                When roles run in fixed order with overlapping tools and little branching — fewer
+                decisions, clearer tests.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Name multi-agent-specific failures and a mitigation for each.
+            - Instrument cross-agent traces and handoff health.
+            - Price handoffs as reliability and cost events.
+            - Collapse unjustified role graphs back into workflows.
+    resources:
+      - source: agent-survey-2023
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.85
+        excerpt: "Collects evaluation difficulties and architectural failure themes for LLM agents."
+      - source: react-2022
+        purpose: DEEPER_REFERENCE
+        relevance: 0.65
+        excerpt: "Single-agent acting loop whose failure modes compound across multi-agent hops."

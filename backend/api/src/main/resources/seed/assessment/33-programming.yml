@@ -1,0 +1,165 @@
+# Assessments for abstraction-and-interfaces.
+
+items:
+  - slug: iface-contract
+    unit: abstraction-and-interfaces
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      What should most callers depend on?
+    choices:
+      - id: a
+        text: "A small contract: operations, types, and invariants."
+        correct: true
+      - id: b
+        text: "Whatever concrete class is newest in the repo."
+      - id: c
+        text: "Vendor SDK types imported at every call site."
+      - id: d
+        text: "Global mutable state shared across notebooks."
+    explanation: |
+      Stability lives at the boundary. Callers program to the contract; adapters own vendors.
+
+  - slug: iface-not-layers
+    unit: abstraction-and-interfaces
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      When is adding another interface layer usually not worth it?
+    choices:
+      - id: a
+        text: "When nothing will be swapped or faked — ceremony without a seam."
+        correct: true
+      - id: b
+        text: "Never; more classes always mean cleaner code."
+        misconception: prog.abstraction_means_many_files
+      - id: c
+        text: "Only when the method has fewer than three parameters."
+      - id: d
+        text: "Only in languages without classes."
+    explanation: |
+      Abstract real seams (IO, vendors, storage). Deep hierarchies without a second
+      implementation are cost.
+
+  - slug: iface-leaky
+    unit: abstraction-and-interfaces
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      Which is a leaky feature-store abstraction?
+    choices:
+      - id: a
+        text: "Callers must know a private warehouse column name to use get_features correctly."
+        correct: true
+      - id: b
+        text: "get_features(user_id) returns a documented typed feature record."
+      - id: c
+        text: "Tests use a fake that implements the same contract."
+      - id: d
+        text: "SQL lives only inside the adapter."
+    explanation: |
+      If callers need private implementation knowledge, the boundary leaked.
+
+  - slug: iface-embedder-tf
+    unit: abstraction-and-interfaces
+    type: true_false
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 50
+    stem: |
+      A tiny Embedder protocol with a real adapter and a deterministic fake for tests is a
+      reasonable seam.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — that is the thin-contract pattern: swap/fake at an IO boundary without a framework.
+
+  - slug: iface-sdk-everywhere
+    unit: abstraction-and-interfaces
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Every notebook imports a vendor embedding SDK directly with copy-pasted retries. Best first
+      fix?
+    choices:
+      - id: a
+        text: "One adapter behind embed(texts) -> vectors; notebooks depend on that."
+        correct: true
+      - id: b
+        text: "Add five more abstract base classes with no second implementation."
+        misconception: prog.abstraction_means_many_files
+      - id: c
+        text: "Delete tests so imports stay flexible."
+      - id: d
+        text: "Paste the SDK calls into a macro."
+    explanation: |
+      Localise vendor churn in one place. Depth for its own sake is not the goal.
+
+  - slug: iface-name-seam
+    unit: abstraction-and-interfaces
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      Name one ML-shaped seam worth wrapping behind an interface (a few words).
+    accepted:
+      - "embeddings API"
+      - "embedder"
+      - "feature store"
+      - "get_features"
+      - "generation client"
+      - "LLM client"
+      - "storage backend"
+      - "model inference client"
+      - "vendor SDK"
+    explanation: |
+      Vendors, feature stores, and generation/embedding clients are the usual churn points.
+
+assessments:
+  - slug: abstraction-and-interfaces-practice
+    title: "Practice: abstraction and interfaces"
+    kind: practice
+    unit: abstraction-and-interfaces
+    items:
+      - iface-contract
+      - iface-embedder-tf
+      - iface-name-seam
+
+  - slug: abstraction-and-interfaces-quiz
+    title: "Quiz: abstraction and interfaces"
+    kind: quiz
+    unit: abstraction-and-interfaces
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - iface-contract
+      - iface-not-layers
+      - iface-leaky
+      - iface-embedder-tf
+      - iface-sdk-everywhere
+
+cards:
+  - slug: card-iface-contract
+    unit: abstraction-and-interfaces
+    front: "What is an interface, in practice?"
+    back: |
+      The contract callers rely on — operations, types, invariants — not today's concrete class.
+
+  - slug: card-iface-yagni
+    unit: abstraction-and-interfaces
+    front: "When are extra layers not abstraction?"
+    back: |
+      When nothing is swapped or faked. Ceremony without a seam is just indirection.

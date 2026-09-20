@@ -1,0 +1,263 @@
+# Assessments for generative-models units (Wave 4).
+
+items:
+  # --- gan-game-intuition ------------------------------------------------------------------
+  - slug: gan-two-players
+    unit: gan-game-intuition
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "In a GAN, what are the two players?"
+    choices:
+      - id: a
+        text: "A generator that maps noise to samples, and a discriminator that scores real vs fake."
+        correct: true
+      - id: b
+        text: "A policy network and a value network only."
+      - id: c
+        text: "K-means centroids and a PCA rotation."
+      - id: d
+        text: "A forward noise schedule and a Bayesian prior over γ."
+    explanation: |
+      G vs D is the Goodfellow et al. game. Actor–critic is RL; k-means/PCA are unsupervised;
+      noise schedules belong to diffusion.
+
+  - slug: gan-stable-loss
+    unit: gan-game-intuition
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 120
+    stem: '"If GAN losses look stable, the generator has learned the full data distribution." Correction?'
+    choices:
+      - id: a
+        text: "Loss calm can coexist with mode collapse — stability of scalars ≠ coverage of the distribution."
+        correct: true
+      - id: b
+        text: "Correct — flat losses prove distributional match in games."
+        misconception: gen.gan_always_converges
+      - id: c
+        text: "GANs never use losses, so the claim is meaningless."
+      - id: d
+        text: "Stable losses mean the discriminator has been deleted."
+    explanation: |
+      Games can look quiet while G occupies a few modes. Inspect sample diversity and coverage-
+      sensitive metrics; do not import supervised "flat loss = fit" habits wholesale.
+
+  - slug: gan-mode-collapse
+    unit: gan-game-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "What is mode collapse?"
+    choices:
+      - id: a
+        text: "The generator produces limited varieties of samples that fool the discriminator, missing much of the data diversity."
+        correct: true
+      - id: b
+        text: "The discriminator outputs exactly 0.5 for every input by mathematical necessity from step one."
+      - id: c
+        text: "PCA keeps too few components."
+      - id: d
+        text: "The learning rate is scheduled to zero."
+    explanation: |
+      Collapse is a coverage failure with samples that can still look individually sharp. Ideal
+      D=0.5 at equilibrium is a different (theoretical) story.
+
+  - slug: gan-no-likelihood
+    unit: gan-game-intuition
+    type: true_false
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 70
+    stem: "Classic GANs typically provide a sampling procedure via G(z) rather than an explicit likelihood p(x) for each sample."
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — you can sample; you do not automatically get a density value for arbitrary x.
+
+  - slug: gan-game-not-supervised
+    unit: gan-game-intuition
+    type: short_text
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      In one word: GAN training is best described as a "supervised" objective or a "game"?
+    accepted:
+      - "game"
+      - "Game"
+      - "a game"
+      - "minimax"
+      - "minimax game"
+    explanation: |
+      Each player changes the other's loss landscape. That is why optimisation can cycle or
+      collapse even when both networks are "learning."
+
+  # --- diffusion-denoising-intuition -------------------------------------------------------
+  - slug: diff-forward
+    unit: diffusion-denoising-intuition
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "What does the forward diffusion process do?"
+    choices:
+      - id: a
+        text: "Gradually adds noise to data on a fixed schedule until the sample is nearly pure noise."
+        correct: true
+      - id: b
+        text: "Trains a discriminator to reject fakes."
+      - id: c
+        text: "Assigns points to the nearest centroid."
+      - id: d
+        text: "Maximises expected discounted return."
+    explanation: |
+      Forward corruption is designed, not adversarially learned. The network learns the reverse /
+      denoising direction.
+
+  - slug: diff-not-gan
+    unit: diffusion-denoising-intuition
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 120
+    stem: '"Diffusion models are basically GANs with different marketing." Correction?'
+    choices:
+      - id: a
+        text: "Diffusion learns to reverse a fixed noise process with a denoising-style loss; GANs train a generator against a discriminator."
+        correct: true
+      - id: b
+        text: "Correct — both require a discriminator by definition."
+        misconception: gen.diffusion_is_just_gan
+      - id: c
+        text: "Diffusion is identical to k-means in disguise."
+      - id: d
+        text: "GANs and diffusion both maximise WCSS."
+    explanation: |
+      Different objectives, sampling procedures, and failure modes. Shared "neural net emits
+      images" headlines are not a technical identity.
+
+  - slug: diff-train-target
+    unit: diffusion-denoising-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "In the DDPM-style ε-prediction story, what does the network typically learn to predict?"
+    choices:
+      - id: a
+        text: "The noise that was mixed into x_t, given x_t and the timestep t."
+        correct: true
+      - id: b
+        text: "The discriminator logit for whether x_t is real."
+      - id: c
+        text: "The bootstrap cluster ID of x_0."
+      - id: d
+        text: "The policy π(a|s) for a gridworld."
+    explanation: |
+      Regression onto the forward-process noise (with timestep conditioning) is the landmark DDPM
+      training intuition. Other parameterisations exist; they are still denoising stories, not GAN
+      discriminators.
+
+  - slug: diff-sampling-start
+    unit: diffusion-denoising-intuition
+    type: true_false
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: "DDPM-style sampling typically starts from pure noise and iteratively denoises over many steps."
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — that iterative chain is why early diffusion sampling is slow relative to a one-shot
+      generator forward pass.
+
+  - slug: diff-steps
+    unit: diffusion-denoising-intuition
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Name the main practical downside of early DDPM-style sampling compared with a single forward
+      pass of a GAN generator. (Short phrase.)
+    accepted:
+      - "slow"
+      - "slow sampling"
+      - "many steps"
+      - "many network evaluations"
+      - "iterative / slow"
+      - "takes many denoising steps"
+      - "sequential steps are slow"
+    explanation: |
+      Dozens to thousands of sequential network evaluations in the original regime. Later work
+      shortens the chain; the core cost story remains "iteration."
+
+assessments:
+  - slug: gan-game-intuition-practice
+    title: "Practice: GAN game"
+    kind: practice
+    unit: gan-game-intuition
+    items:
+      - gan-two-players
+      - gan-mode-collapse
+      - gan-game-not-supervised
+
+  - slug: gan-game-intuition-quiz
+    title: "Quiz: GAN game intuition"
+    kind: quiz
+    unit: gan-game-intuition
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - gan-two-players
+      - gan-stable-loss
+      - gan-mode-collapse
+      - gan-no-likelihood
+
+  - slug: diffusion-denoising-intuition-practice
+    title: "Practice: diffusion denoising"
+    kind: practice
+    unit: diffusion-denoising-intuition
+    items:
+      - diff-forward
+      - diff-train-target
+      - diff-sampling-start
+
+  - slug: diffusion-denoising-intuition-quiz
+    title: "Quiz: diffusion denoising"
+    kind: quiz
+    unit: diffusion-denoising-intuition
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - diff-forward
+      - diff-not-gan
+      - diff-train-target
+      - diff-steps
+
+cards:
+  - slug: card-gan-players
+    unit: gan-game-intuition
+    front: "GAN in one sentence."
+    back: |
+      Generator maps noise to fakes; discriminator learns real vs fake; they train as a game.
+      Watch for mode collapse even when losses look calm.
+
+  - slug: card-diffusion-story
+    unit: diffusion-denoising-intuition
+    front: "Diffusion in one sentence."
+    back: |
+      Destroy data with a fixed noise schedule, learn to denoise, sample by iterative cleanup from
+      pure noise (DDPM-style).

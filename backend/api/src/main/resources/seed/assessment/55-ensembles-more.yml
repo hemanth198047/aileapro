@@ -1,0 +1,151 @@
+# Assessments for bagging-vs-boosting (Wave 4).
+
+items:
+  - slug: ens-bagging-def
+    unit: bagging-vs-boosting
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "Bagging primarily does which of the following?"
+    choices:
+      - id: a
+        text: "Trains base learners on bootstrap samples and aggregates — mainly to reduce variance."
+        correct: true
+      - id: b
+        text: "Sequentially fits each new learner to the residual errors of the current ensemble."
+      - id: c
+        text: "Adds Gaussian noise until the sample is pure noise."
+      - id: d
+        text: "Maximises a discriminator's ability to spot fakes."
+    explanation: |
+      Bootstrap aggregating (and forests' feature randomness) cuts variance. Sequential residual
+      fitting is boosting; noise schedules and discriminators are generative-model stories.
+
+  - slug: ens-same-thing
+    unit: bagging-vs-boosting
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 120
+    stem: '"Bagging and boosting are the same — both just train lots of trees and average." Correction?'
+    choices:
+      - id: a
+        text: "Bagging fits learners independently on resampled data (variance); boosting fits them sequentially to remaining loss (bias)."
+        correct: true
+      - id: b
+        text: "Correct — the names are interchangeable marketing."
+        misconception: ens.bagging_is_boosting
+      - id: c
+        text: "Boosting forbids trees; bagging requires neural nets."
+      - id: d
+        text: "Both require feature standardisation or they fail."
+    explanation: |
+      Ask whether tree t+1 needs current residuals. Yes → boosting; parallel bootstrap fits →
+      bagging. Trees usually skip scaling in both families.
+
+  - slug: ens-boosting-def
+    unit: bagging-vs-boosting
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "Gradient boosting is best described as which process?"
+    choices:
+      - id: a
+        text: "Sequentially fitting learners (often shallow trees) to residual / negative-gradient targets."
+        correct: true
+      - id: b
+        text: "Averaging deep trees trained on identical copies of the full dataset with no randomness."
+      - id: c
+        text: "Running k-means with k equal to the number of trees."
+      - id: d
+        text: "Training a generator against a discriminator."
+    explanation: |
+      Boosting spends capacity where loss remains. Forests bag and randomise; they do not
+      sequentially chase residuals by definition.
+
+  - slug: ens-trees-scaling
+    unit: bagging-vs-boosting
+    type: true_false
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: "Random forests and gradient-boosted trees generally do not require feature standardisation."
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — axis-aligned splits care about orderings within a feature. Both families still need
+      leakage-free features and honest validation.
+
+  - slug: ens-tell-apart
+    unit: bagging-vs-boosting
+    type: short_text
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      One diagnostic question: does model t+1 need the current ensemble's residuals/errors?
+      If yes, which family are you in — "bagging" or "boosting"?
+    accepted:
+      - "boosting"
+      - "Boosting"
+      - "boost"
+    explanation: |
+      Dependence on prior residuals is the boosting signature. Bagged trees could have been fit in
+      parallel on their own bootstrap draws.
+
+  - slug: ens-forest-random
+    unit: bagging-vs-boosting
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Why do random forests randomise eligible features at each split, beyond bootstrapping rows?"
+    choices:
+      - id: a
+        text: "To decorrelate trees so averaging reduces variance more effectively."
+        correct: true
+      - id: b
+        text: "Because trees require standardised Euclidean distances between features."
+      - id: c
+        text: "To implement the GAN discriminator update."
+      - id: d
+        text: "So that boosting can run in parallel across stages."
+    explanation: |
+      Correlated trees average poorly. Feature randomness pushes diversity. It is not about
+      Euclidean scaling, GANs, or making boosting parallel across stages.
+
+assessments:
+  - slug: bagging-vs-boosting-practice
+    title: "Practice: bagging vs boosting"
+    kind: practice
+    unit: bagging-vs-boosting
+    items:
+      - ens-bagging-def
+      - ens-trees-scaling
+      - ens-tell-apart
+
+  - slug: bagging-vs-boosting-quiz
+    title: "Quiz: bagging vs boosting"
+    kind: quiz
+    unit: bagging-vs-boosting
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - ens-bagging-def
+      - ens-same-thing
+      - ens-boosting-def
+      - ens-forest-random
+
+cards:
+  - slug: card-bag-vs-boost
+    unit: bagging-vs-boosting
+    front: "Bagging vs boosting in one contrast."
+    back: |
+      Bagging: parallel bootstrap (and feature randomness) → cut variance.
+      Boosting: sequential residual fitting → cut bias. Not the same algorithm in two fonts.

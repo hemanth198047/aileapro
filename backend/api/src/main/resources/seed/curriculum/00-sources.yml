@@ -746,3 +746,131 @@ sources:
     lastVerifiedAt: 2026-09-19
     httpStatus: 200
     difficulty: 3
+
+  # --- Wave 4 sources (2026-09-20) -----------------------------------------------------------
+  - slug: sklearn-clustering
+    title: "sklearn.cluster — Clustering"
+    authors: "scikit-learn developers"
+    publisher: scikit-learn
+    url: https://scikit-learn.org/stable/modules/clustering.html
+    sourceType: OFFICIAL_DOC
+    license: "BSD-3-Clause"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: sklearn-decomposition
+    title: "sklearn.decomposition — PCA"
+    authors: "scikit-learn developers"
+    publisher: scikit-learn
+    url: https://scikit-learn.org/stable/modules/decomposition.html
+    sourceType: OFFICIAL_DOC
+    license: "BSD-3-Clause"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: sutton-barto
+    title: "Reinforcement Learning: An Introduction (2nd ed.)"
+    authors: "Richard S. Sutton, Andrew G. Barto"
+    publisher: MIT Press
+    url: http://incompleteideas.net/book/the-book-2nd.html
+    sourceType: BOOK
+    license: "Free online draft / MIT Press"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: ddpm-2020
+    title: "Denoising Diffusion Probabilistic Models"
+    authors: "Jonathan Ho, Ajay Jain, Pieter Abbeel"
+    publisher: arXiv
+    url: https://arxiv.org/abs/2006.11239
+    doi: "10.48550/arXiv.2006.11239"
+    abstractText: >-
+      AILEAPRO summary: Establishes DDPM training and sampling for high-quality image generation
+      via a learned reverse diffusion process.
+    publishedOn: 2020-06-19
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 5
+
+  - slug: goodfellow-gan-2014
+    title: "Generative Adversarial Nets"
+    authors: "Ian J. Goodfellow et al."
+    publisher: arXiv
+    url: https://arxiv.org/abs/1406.2661
+    doi: "10.48550/arXiv.1406.2661"
+    abstractText: >-
+      AILEAPRO summary: Introduces the adversarial training game between generator and discriminator.
+    publishedOn: 2014-06-10
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: yolov3-2018
+    title: "YOLOv3: An Incremental Improvement"
+    authors: "Joseph Redmon, Ali Farhadi"
+    publisher: arXiv
+    url: https://arxiv.org/abs/1804.02767
+    doi: "10.48550/arXiv.1804.02767"
+    abstractText: >-
+      AILEAPRO summary: Single-shot object detection framing with multi-scale predictions.
+    publishedOn: 2018-04-08
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: whisper-2022
+    title: "Robust Speech Recognition via Large-Scale Weak Supervision"
+    authors: "Alec Radford et al."
+    publisher: arXiv
+    url: https://arxiv.org/abs/2212.04356
+    doi: "10.48550/arXiv.2212.04356"
+    abstractText: >-
+      AILEAPRO summary: Large-scale weakly supervised ASR showing transfer across domains and languages.
+    publishedOn: 2022-12-06
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: clrs-algorithms
+    title: "Introduction to Algorithms (CLRS) — companion resources"
+    authors: "Cormen, Leiserson, Rivest, Stein"
+    publisher: MIT Press
+    url: https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/
+    sourceType: BOOK
+    license: "Commercial text; cite concepts only"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: kafka-intro
+    title: "Apache Kafka Introduction"
+    authors: "Apache Software Foundation"
+    publisher: Apache
+    url: https://kafka.apache.org/intro
+    sourceType: OFFICIAL_DOC
+    license: "Apache-2.0"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: iso-42001
+    title: "ISO/IEC 42001 AI management systems"
+    authors: "ISO"
+    publisher: ISO
+    url: https://www.iso.org/standard/81230.html
+    sourceType: OFFICIAL_DOC
+    license: "ISO copyright; summary citation only"
+    lastVerifiedAt: 2026-09-20
+    httpStatus: 200
+    difficulty: 3

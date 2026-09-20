@@ -1,0 +1,386 @@
+# Wave 4: AI infrastructure — batching, GPU use, KV cache, and inference cost.
+#
+# Concepts over vendor SKUs. Numbers are orders of magnitude for intuition, not quotes.
+
+units:
+  - slug: ai-compute
+    title: AI Compute
+    kind: chapter
+    parent: ai-infrastructure
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 50
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    tags: [infrastructure, gpu, inference]
+    objectives:
+      - Name what usually limits training and inference throughput.
+      - Connect batching and caching choices to cost and latency.
+    description: >-
+      Accelerators, memory bandwidth, batching, and the caches that dominate LLM serving cost.
+
+  - slug: batching-and-gpu-utilization
+    title: Batching and GPU Utilization
+    kind: knowledge_unit
+    parent: ai-compute
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 38
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [gpu, batching, throughput, training, inference]
+    objectives:
+      - Explain why GPUs want large, regular batches of similar work.
+      - Distinguish throughput batching from latency constraints.
+      - Identify common under-utilization causes (tiny batches, host bottlenecks, fragmentation).
+      - Relate autograd/training graphs to why batch size interacts with memory.
+    description: >-
+      GPUs shine on bulk parallel math. Batching is how you feed them; memory and latency are why
+      you cannot batch forever.
+    blocks:
+      - type: why
+        markdown: |
+          A GPU that is half idle still burns power and rental cost. Most "we need more GPUs"
+          incidents start as "we fed them one sample at a time" or "the CPU could not keep the
+          device busy."
+
+          Batching is the primary lever for utilization — until memory or latency SLOs say stop.
+
+      - type: eli5
+        markdown: |
+          A pizza oven that holds eight pizzas. Baking one pizza at a time wastes heat and time.
+          Baking eight similar pizzas together uses the oven well.
+
+          If every pizza needs a different temperature, you cannot stack them. If customers need a
+          pizza in thirty seconds, you cannot wait to fill the oven. GPUs are the oven; batching is
+          filling it without breaking the rules.
+
+      - type: beginner
+        markdown: |
+          **Batching** groups multiple examples (training) or requests (inference) so matrix
+          multiplies run as large GEMMs instead of many tiny ones.
+
+          Rough intuitions:
+
+          - **Throughput** rises with batch size while the GPU remains compute-bound and fits in
+            memory.
+          - **Latency** for each item can rise if you wait to form a batch (server-side continuous
+            batching tries to keep the device full *without* making every user wait for a full
+            static batch).
+          - **Memory** scales with batch size (activations in training; KV and activations in
+            inference). Out-of-memory is the hard stop.
+
+          Under-utilization checklist:
+
+          1. Batch size 1 in training "for simplicity."
+          2. Data loader / host preprocessing slower than the GPU step.
+          3. Frequent device↔host syncs (tiny launches).
+          4. Highly divergent sequence lengths without packing or bucketing.
+
+          Dive-into-DL-style texts emphasise that modern accelerators need ample parallel work;
+          tiny graphs leave the device waiting.
+
+      - type: intermediate
+        markdown: |
+          **Training.** Autograd builds a graph whose peak memory includes activations for the
+          batch. Larger batches improve hardware efficiency but may change optimisation dynamics
+          (noise of the gradient estimate). Gradient accumulation simulates a larger batch when
+          memory is tight: several micro-batches, one optimiser step.
+
+          **Inference.** Static batching waits for `N` requests — bad for sparse traffic. Continuous
+          / in-flight batching adds/removes sequences as they finish so the GPU stays fed while
+          respecting per-request latency.
+
+          **Occupancy vs memory.** Raising batch size only helps while you are not memory-bound.
+          When you are, techniques like activation checkpointing (training) or smaller context /
+          quantisation (inference) matter more than "just batch more."
+
+          **Measure the right thing.** `GPU utilization %` alone lies if the kernel is
+          memory-bandwidth bound. Track samples/s or tokens/s, batch size, and memory high-water
+          marks together.
+
+          ```python
+          # Conceptual: accumulate to effective batch 32 with micro-batch 8
+          for i, micro in enumerate(loader):
+              loss = model(micro).loss / accumulation_steps
+              loss.backward()  # autograd accumulates grads
+              if (i + 1) % accumulation_steps == 0:
+                  optimiser.step()
+                  optimiser.zero_grad()
+          ```
+
+      - type: example
+        markdown: |
+          Training step takes 120 ms compute + 80 ms waiting on the data loader → ~60% of the step
+          is not device math. Fixing the loader (more workers, pinned memory, cached decode) drops
+          wait to 10 ms. Throughput rises without a bigger GPU.
+
+          Inference: 1 req/s, batch wait 500 ms to fill batch=8 → every user pays ~500 ms extra.
+          Continuous batching keeps average batch high while starting work immediately — better
+          p50 latency at similar utilization.
+
+      - type: misconception
+        payload:
+          code: infra.batch_size_unlimited
+          claim: "Bigger batches are always better — raise batch size until training is fastest."
+          markdown: |
+            **The claim:** maximum batch size that fits is always optimal for speed and quality.
+
+            **Why it feels right:** utilization charts go up; blog posts equate large batches with
+            "proper" GPU use.
+
+            **What actually happens:** memory caps you; beyond a point you are bandwidth-bound;
+            latency SLOs forbid waiting; very large training batches can hurt generalisation unless
+            you retune the optimiser. Accumulation and continuous batching exist because "max batch"
+            is not a single knob.
+
+            **How to catch yourself:** plot tokens/s and validation quality (or p95 latency) against
+            batch size. If quality or latency collapses while utilization looks great, you optimised
+            the wrong metric.
+
+      - type: common_mistake
+        markdown: |
+          **Reading only utilization %.** A busy GPU copying memory is not a productive GPU.
+
+          **Ignoring host bottlenecks.** More GPUs will not fix a single-threaded JSON parser.
+
+          **One global batch size for all sequence lengths.** Pad waste can erase batching gains;
+          bucket or pack.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Given 40 ms compute and 60 ms data wait per step, what fraction of time is useful
+               device work? Name two fixes.
+            2. Explain when gradient accumulation is preferable to raising batch size.
+            3. Contrast static vs continuous batching for a chat API with spiky traffic.
+            4. List three metrics you would dashboard for a training job's hardware health.
+            5. Why might tokens/s fall after you increase batch size?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why do GPUs favour larger batches?"
+              answer: >-
+                Large, regular GEMMs keep the device busy; tiny launches leave it waiting and waste
+                memory bandwidth setup.
+            - question: "What stops unlimited batch growth?"
+              answer: >-
+                Device memory, latency SLOs, and sometimes optimisation/generalisation effects.
+            - question: "What is gradient accumulation for?"
+              answer: >-
+                To simulate a larger effective batch when a true large batch does not fit in memory.
+            - question: "Why is utilization % alone insufficient?"
+              answer: >-
+                The GPU can be busy on bandwidth-bound or copy-heavy work that does not raise
+                tokens/s.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Diagnose under-utilization from a simple step-time breakdown.
+            - Choose batching vs accumulation vs continuous batching with a reason.
+            - Read memory and latency as hard constraints on batch size.
+    resources:
+      - source: d2l
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.85
+        excerpt: "Hardware-aware deep learning: parallelism and why bulk linear algebra matters on accelerators."
+      - source: pytorch-autograd
+        purpose: DEEPER_REFERENCE
+        relevance: 0.75
+        excerpt: "How backward graphs and retained activations interact with batch size and memory."
+
+  - slug: kv-cache-and-inference-cost
+    title: KV Cache and Inference Cost
+    kind: knowledge_unit
+    parent: ai-compute
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 40
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [inference, kv-cache, latency, cost, llm]
+    objectives:
+      - Explain what the KV cache stores and why it grows with context length.
+      - Separate prefill cost from decode cost.
+      - Connect long contexts to both dollar cost and quality failure modes.
+      - Name levers that cut inference cost without pretending context is free.
+    description: >-
+      Autoregressive serving reuses key/value tensors across tokens. That cache is why long
+      contexts cost memory and money — and why stuffing the window is not free quality.
+    blocks:
+      - type: why
+        markdown: |
+          LLM API bills and GPU memory both explode with context length. Teams discover this when a
+          "just paste the repo" prototype meets production traffic.
+
+          The KV cache is the concrete mechanism: you pay memory for every past token you might
+          attend to, and you pay compute to build that cache on prefill.
+
+      - type: eli5
+        markdown: |
+          Reading a book aloud one word at a time. To pick the next word well, you keep sticky notes
+          on everything already read. Longer book → more sticky notes on the table → less room for
+          anything else, and it takes longer to lay out the notes at the start.
+
+          Those sticky notes are the KV cache. They make the next word faster than re-reading the
+          whole book each time — but they are not free.
+
+      - type: beginner
+        markdown: |
+          Autoregressive transformers compute attention using **keys (K)** and **values (V)** for
+          past tokens. The **KV cache** stores those tensors so decode steps reuse them instead of
+          recomputing the whole prompt every token.
+
+          Two phases:
+
+          1. **Prefill** — process the prompt (and tool results, RAG chunks, chat history); build
+             the initial KV cache. Cost scales with prompt length.
+          2. **Decode** — generate new tokens one by one (or in small speculative chunks); each
+             step appends to K/V. Cost per token depends on model size and cache size read.
+
+          Memory sketch (order of magnitude thinking):
+
+          $$
+          \text{KV memory} \propto \text{layers} \times \text{heads} \times \text{seq\_len} \times \text{dim}
+          $$
+
+          Longer `seq_len` → more memory per request → fewer concurrent requests on a GPU → higher
+          cost per user or more hardware.
+
+          Large few-shot models showed that long prompts can steer behaviour without training —
+          which is powerful and is also how contexts quietly become huge.
+
+      - type: intermediate
+        markdown: |
+          **Cost model for an API call (simplified):**
+
+          - Input tokens ≈ prefill + billed prompt length.
+          - Output tokens ≈ decode steps.
+          - Cache hits (prefix reuse across requests) can amortise prefill when the system supports
+            it; cold long prompts do not.
+
+          **Quality is not monotonic in length.** "Lost in the middle" results show models under-use
+          material buried mid-context. So a 100k paste can raise cost *and* miss the sentence that
+          mattered.
+
+          **Levers:**
+
+          | Lever | Effect |
+          |-------|--------|
+          | Retrieval instead of paste | Shorter prompts, higher signal |
+          | Summarise old turns | Shrink cache growth in long sessions |
+          | Cap max input | Hard cost/latency bound |
+          | Quantisation / efficient attention | Fit more concurrent KV |
+          | Prompt caching / prefix reuse | Amortise repeated system prompts |
+
+          **Batching interacts with KV.** Continuous batching packs many sequences; each carries its
+          own cache. Memory, not FLOPs, often caps concurrency first.
+
+      - type: example
+        markdown: |
+          Chat app keeps full history. After 40 turns ≈ 12k tokens of history + 3k RAG each call.
+
+          ```
+          Before: every turn prefills ~15k tokens, bills input heavily, p95 latency climbs,
+                  GPU OOMs at modest concurrency.
+
+          After:  sliding window of last 4 turns + retrieve top-5 chunks (≈2k tokens),
+                  system prompt prefix cached,
+                  hard cap 4k input.
+          ```
+
+          Same product answers; bill and tail latency drop. A needle in a dumped log is found by
+          search, not by hoping mid-context attention notices it.
+
+      - type: misconception
+        payload:
+          code: infra.kv_cache_free
+          claim: "Once the model has seen the prompt, continuing the chat is basically free."
+          markdown: |
+            **The claim:** prefill was the expensive part; further tokens and long sessions do not
+            really cost memory or money.
+
+            **Why it feels right:** interactive decode feels snappy after the first pause; UIs hide
+            token counts.
+
+            **What actually happens:** KV memory stays allocated for the live session; every new
+            turn that resends history repays input cost; decode still scales with model size and
+            cache reads. Long-running agents with growing tool traces are a classic bill shock.
+
+            **How to catch yourself:** chart tokens in/out and GPU memory vs turn index for a single
+            session. If both climb without bound, context policy is missing.
+
+      - type: common_mistake
+        markdown: |
+          **Equating context window size with quality budget.** Max length is a capacity, not a
+          target.
+
+          **No session compaction.** Agents that never summarise tool results pay forever.
+
+          **Ignoring concurrency.** One long context may fit; a hundred will not — capacity planning
+          is about KV footprints times QPS.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Sketch prefill vs decode costs for a 8k prompt and 200 output tokens.
+            2. Given KV memory ∝ seq_len, what happens to max concurrent requests when average
+               context doubles?
+            3. Propose a context policy for a support bot (what stays, what is retrieved, what is
+               summarised).
+            4. Explain how "lost in the middle" changes a "paste everything" design review.
+            5. List three infra metrics for an LLM serving fleet tied to KV pressure.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does the KV cache store?"
+              answer: >-
+                Key and value tensors for past tokens so decode can attend without recomputing the
+                whole prompt each step.
+            - question: "What is prefill?"
+              answer: >-
+                The phase that processes the prompt and builds the initial KV cache; cost scales
+                with input length.
+            - question: "Why can longer context hurt quality?"
+              answer: >-
+                Models often under-attend mid-context content; more tokens can bury the needed
+                evidence while raising cost.
+            - question: "Name two cost levers besides 'buy more GPUs'."
+              answer: >-
+                Retrieval/summarisation/caps to shorten inputs, and prefix caching or quantisation
+                to improve memory efficiency.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Explain KV growth with sequence length to a sceptical finance partner.
+            - Separate prefill and decode in a cost discussion.
+            - Design a context policy that respects both bills and lost-in-the-middle evidence.
+    resources:
+      - source: gpt3-2020
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.75
+        excerpt: "Few-shot prompting via long contexts — the product pattern that makes prompt length a first-class cost."
+      - source: lost-in-the-middle-2023
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Empirical evidence that mid-context evidence is under-used — length ≠ quality."

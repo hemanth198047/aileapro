@@ -1,0 +1,400 @@
+# Wave 4: data engineering for ML — features, pipelines, and reproducible training data.
+#
+# Stable ideas: contracts between training and serving, lineage, and documentation. Tool names
+# (Kafka, MLflow) appear as examples of the pattern, not as vendor lock-in.
+
+units:
+  - slug: data-for-ml
+    title: Data for ML
+    kind: chapter
+    parent: data-engineering
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 45
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    tags: [data-engineering, features, reproducibility]
+    objectives:
+      - Separate streaming/batch movement of data from point-in-time feature serving.
+      - Make training datasets reconstructible from versioned inputs.
+    description: >-
+      Getting data to models without silent skew: pipelines, feature access patterns, and
+      reproducible training sets.
+
+  - slug: feature-store-vs-pipeline
+    title: Feature Store vs Pipeline
+    kind: knowledge_unit
+    parent: data-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 36
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [features, feature-store, pipelines, kafka, mlops]
+    objectives:
+      - Distinguish data pipelines (move/transform events) from feature stores (serve consistent features).
+      - Explain point-in-time correctness for training labels vs online serving.
+      - Choose when a lightweight shared transform library beats a full feature platform.
+      - Connect streaming ingestion to the freshness guarantees models actually need.
+    description: >-
+      Pipelines move and transform data. Feature stores (or equivalent discipline) make the *same*
+      feature definitions available for training and serving without leakage.
+    blocks:
+      - type: why
+        markdown: |
+          Teams say "we have a pipeline" when they mean "a nightly job dumps a CSV." Then serving
+          recomputes something vaguely similar in the API. Predictions drift from the offline metric
+          and nobody can say which definition of `user_avg_spend_30d` was used.
+
+          The distinction between **moving data** and **serving features with a contract** is what
+          prevents that story.
+
+      - type: eli5
+        markdown: |
+          A bakery truck (pipeline) delivers flour to the kitchen every morning. A recipe card
+          (feature definition) says exactly how to measure flour for every cake, whether you bake
+          now or tomorrow from frozen dough.
+
+          Having trucks is not the same as having one recipe card both shifts use. Without the card,
+          night bakers invent their own scoops.
+
+      - type: beginner
+        markdown: |
+          A **data pipeline** ingests, validates, and transforms events or tables into storage
+          (batch jobs, streams). Example: click events land in a log; a consumer writes cleaned
+          rows to a warehouse. Systems like Kafka shine as a durable log between producers and
+          many consumers — movement and fan-out, not feature semantics by themselves.
+
+          A **feature store** (product or patterned discipline) provides:
+
+          - **Registered feature definitions** (code + metadata).
+          - **Offline access** for training with **point-in-time joins** (as-of label time).
+          - **Online access** for low-latency serving with the same definitions.
+          - **Lineage** back to source data and transform versions.
+
+          You can implement much of this with a shared library + tables + a key-value cache. The
+          product name matters less than the contract: train and serve call one definition.
+
+          ```
+          Pipeline:  events -> clean tables / topics
+          Features:  definitions over those tables
+          Training:  point-in-time join features to labels
+          Serving:   online get(entity_id) -> feature vector
+          ```
+
+      - type: intermediate
+        markdown: |
+          **Point-in-time correctness.** When training on "did the user churn by day T?", features
+          must use only information knowable before T. A naive join to "current" aggregates leaks
+          the future. Feature platforms emphasise time-travel joins for this reason; rolling your
+          own means you own that bug.
+
+          **Freshness vs consistency.** Streams can update online features in seconds. Training
+          snapshots might be daily. Document the skew you accept; monitor online/offline feature
+          distributions.
+
+          **When not to buy a feature store.** Few models, one team, shared transform package,
+          strong review culture — start there. Add a store when many consumers need the same
+          features, or when point-in-time bugs keep recurring.
+
+          **Experiment tracking complements but does not replace features.** Logging runs (e.g. via
+          MLflow-style tracking) records *which* data version and code produced a model; it does
+          not by itself guarantee online serving uses that code. Wire them: run → feature view
+          version → model version → deployment config.
+
+      - type: example
+        markdown: |
+          Feature: `orders_7d` for fraud scoring.
+
+          **Pipeline-only mistake:**
+
+          ```
+          Nightly job: COUNT(*) FROM orders WHERE user_id=? AND ts > now()-7d  -> train.csv
+          API:         COUNT(*) FROM orders WHERE user_id=? AND ts > now()-7d  // live SQL
+          ```
+
+          Looks identical until: timezone differs, soft-deleted orders excluded in one path, or
+          training used a warehouse snapshot while serving hit the primary DB mid-write.
+
+          **Contract approach:**
+
+          ```python
+          # features/orders.py  — single definition
+          def orders_7d(entity_id, as_of: datetime) -> int:
+              return count_orders(entity_id, start=as_of - days(7), end=as_of)
+
+          # training
+          df["orders_7d"] = [orders_7d(u, label_time) for u, label_time in rows]
+
+          # serving
+          value = orders_7d(user_id, as_of=request_time)
+          ```
+
+          Online path may read a precomputed table updated from a Kafka consumer; the *function
+          meaning* stays one module. Precompute is an optimisation, not a second definition.
+
+      - type: misconception
+        payload:
+          code: data.feature_store_is_pipeline
+          claim: "If events flow through Kafka into a warehouse, we already have a feature store."
+          markdown: |
+            **The claim:** a robust ingestion pipeline equals feature management for ML.
+
+            **Why it feels right:** data engineering delivered reliable tables; dashboards work;
+            "the data is there."
+
+            **What actually happens:** pipelines move bytes. Feature stores (or equivalent
+            discipline) define *point-in-time semantics*, train/serve parity, and entity-keyed
+            retrieval. You can have pristine Kafka topics and still leak labels or diverge online
+            SQL from training notebooks.
+
+            **How to catch yourself:** ask for the function or config that both training and serving
+            import for one feature. If the answer is "the ETL job" and "the API query," you have two
+            definitions.
+
+      - type: common_mistake
+        markdown: |
+          **Training on warehouse "current state" tables** for historical labels. Instant leakage.
+
+          **Duplicating SQL in the notebook and the service.** Calendar-driven skew.
+
+          **Equating freshness with correctness.** A fast wrong feature still hurts.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Define `orders_7d` with an `as_of` argument and write one leaking join that ignores it.
+            2. Draw boxes: Kafka topic, cleaner job, feature table, training join, online cache.
+               Label which box owns the feature *definition*.
+            3. List three signals that you have outgrown a shared library and need stronger feature
+               platform practices.
+            4. For a recommendation model, pick three features and state required freshness.
+            5. Explain how an MLflow-tracked run should record feature view / transform versions.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does a pipeline guarantee that a feature contract still must add?"
+              answer: >-
+                Pipelines move and clean data; feature contracts add shared definitions,
+                point-in-time training access, and train/serve parity.
+            - question: "What is point-in-time correctness?"
+              answer: >-
+                Features for a label at time T use only information available at or before T — no
+                future leakage.
+            - question: "When might a shared library suffice?"
+              answer: >-
+                Few models, one team, strong review — until many consumers or repeated PIT bugs
+                demand heavier platformisation.
+            - question: "How does streaming relate to features?"
+              answer: >-
+                Streams can update online values quickly; they do not replace a single feature
+                definition or PIT training joins.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Draw pipeline vs feature-definition responsibilities on one diagram.
+            - Spot a leaking join in a training query.
+            - Decide library vs feature platform with explicit criteria.
+    resources:
+      - source: mlflow-docs
+        purpose: DEEPER_REFERENCE
+        relevance: 0.7
+        excerpt: "Tracking runs and artefacts so feature/transform versions attach to trained models."
+      - source: kafka-intro
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.75
+        excerpt: "Durable event log pattern for ingestion and fan-out — movement layer under features."
+
+  - slug: reproducible-training-data
+    title: Reproducible Training Data
+    kind: knowledge_unit
+    parent: data-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 34
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-20
+    lastVerifiedAt: 2026-09-20
+    tags: [reproducibility, datasets, lineage, datasheets]
+    objectives:
+      - Snapshot or version the exact rows and transforms used for a training run.
+      - Record dataset motivation, composition, and limitations alongside metrics.
+      - Reconstruct a past training set well enough to debug a regression.
+      - Refuse "train on whatever is in prod today" as a process.
+    description: >-
+      Training data as a versioned artefact: snapshots, hashes, lineage, and datasheets — so a
+      model metric refers to a real, recoverable dataset.
+    blocks:
+      - type: why
+        markdown: |
+          "We got 0.91 last month" is meaningless if nobody can rebuild last month's training table.
+          Without snapshots and docs, every retrain is a new experiment wearing old clothes, and
+          every incident review devolves into folklore.
+
+          Reproducibility is how offline metrics stay scientific.
+
+      - type: eli5
+        markdown: |
+          A science fair volcano. Judges ask how you made it. "Stuff from the kitchen" is not an
+          answer. A recipe with amounts, date, and photo of the ingredients is.
+
+          Training data needs that recipe: what rows, from where, filtered how, on which date.
+
+      - type: beginner
+        markdown: |
+          Minimum bar for a training run:
+
+          1. **Data version** — snapshot id, query + as-of timestamp, or dataset hash.
+          2. **Code version** — transform/feature commit hash.
+          3. **Label definition** — documented and versioned.
+          4. **Split method** — random seed, time-based cut, group keys.
+          5. **Run record** — links the above to metrics and model artefact (experiment tracking).
+
+          Practical patterns:
+
+          - Materialise `s3://…/datasets/fraud_v2026-09-01/` with a manifest (`row_count`,
+            `checksum`, `query.sql`, `label_version`).
+          - Or store a deterministic query plus warehouse time-travel stamp.
+          - Log all of it on the training run.
+
+          **Datasheets for datasets** argue that every dataset should document motivation,
+          composition, collection, and recommended uses — so consumers know when *not* to use it.
+          A metric without that context overclaims.
+
+      - type: intermediate
+        markdown: |
+          **Mutable tables are not versions.** `SELECT * FROM users` today is not what you trained
+          on. Prefer immutable snapshots or time-travel reads pinned in the run.
+
+          **Splits leak across time.** Random splits on time-correlated rows inflate metrics.
+          Document and enforce time-based or entity-grouped splits where needed.
+
+          **PII and retention.** Snapshots inherit compliance duties. Retention policies and access
+          controls are part of reproducibility engineering, not afterthoughts.
+
+          **When data changes under you.** Schema drifts, category vocabularies, and delayed labels
+          all shift the distribution. Pin versions; monitor skew between training snapshot and live
+          feature distributions.
+
+          **Tracking tools.** MLflow-style run logging is useful when every run records
+          `data_version`, `git_commit`, parameters, and metrics. Empty "accuracy=0.9" runs without
+          those fields are souvenirs, not science.
+
+          ```yaml
+          # manifest.yml next to a snapshot
+          name: fraud_train
+          as_of: 2026-09-01T00:00:00Z
+          row_count: 1250004
+          checksum_sha256: "…"
+          label_version: churn_v3
+          split: {type: time, train_end: 2026-08-01, valid_end: 2026-08-15}
+          datasheet: docs/fraud_train_datasheet.md
+          ```
+
+      - type: example
+        markdown: |
+          Incident: production precision dropped after a "routine retrain."
+
+          Without reproducibility: engineers retrain again on "current warehouse," metrics move
+          randomly, blame oscillates between model and "bad data."
+
+          With reproducibility:
+
+          ```
+          1. Open run R_8841 → data_version=fraud_v2026-08-01, commit=a1b2c3
+          2. Rebuild snapshot from manifest; checksum matches
+          3. Diff vs new fraud_v2026-09-01 → new bot traffic segment, label delay changed
+          4. Datasheet notes label_v3 assumes 7-day observation window; ops shortened to 2 days
+          5. Fix label job; pin window in definition; add monitor
+          ```
+
+          The datasheet made the observation-window assumption discoverable instead of tribal.
+
+      - type: misconception
+        payload:
+          code: data.snapshot_optional
+          claim: "As long as we track model metrics in a dashboard, snapshots are optional."
+          markdown: |
+            **The claim:** metrics and model files are enough; data can always be regenerated from
+            live systems.
+
+            **Why it feels right:** storage costs money; warehouses feel permanent; tracking UIs
+            emphasise charts.
+
+            **What actually happens:** live systems mutate, jobs change, and "regenerate" produces
+            a different dataset. Metrics then compare unequal experiments. Dashboards without data
+            versions create false confidence.
+
+            **How to catch yourself:** try to recreate last quarter's training table from docs alone
+            in one hour. If you cannot, snapshots were not optional.
+
+      - type: common_mistake
+        markdown: |
+          **Checksumming only the model file.** The dataset is half the story.
+
+          **Datasheet as empty template.** Unfilled fields help nobody; write the failure modes you
+          already know.
+
+          **One eternal `train.csv` overwritten nightly.** You destroyed history.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write a manifest for a dataset you know; list fields a stranger needs to rebuild it.
+            2. Draft five datasheet questions for a click-prediction dataset (motivation, sampling,
+               harms).
+            3. Design a time-based split policy and one test that fails if someone uses a random
+               split.
+            4. List what an MLflow run must log for a training job to be auditable.
+            5. Plan retention: how long to keep snapshots vs aggregates for your compliance story.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What belongs in a training-data manifest?"
+              answer: >-
+                Identity of rows (snapshot/query/as-of), checksums, label and split versions, and
+                pointers to docs/datasheet.
+            - question: "Why are mutable warehouse tables insufficient?"
+              answer: >-
+                Their contents change; a past metric cannot be tied to a recoverable input set.
+            - question: "What do datasheets add beyond checksums?"
+              answer: >-
+                Motivation, composition, collection process, and recommended uses/limitations for
+                human judgement.
+            - question: "What must an experiment run record for auditability?"
+              answer: >-
+                Data version, transform/code version, parameters, metrics, and model artefact links.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Produce a manifest that lets a teammate rebuild a training set.
+            - Attach a useful datasheet, not a blank form.
+            - Reject unreproducible "train on prod today" processes in review.
+    resources:
+      - source: mlflow-docs
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.85
+        excerpt: "Run and artefact tracking patterns for pinning data and code versions to metrics."
+      - source: datasheets-2018
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Dataset documentation standard: motivation, composition, collection, recommended uses."

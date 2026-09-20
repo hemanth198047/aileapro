@@ -1,0 +1,167 @@
+# Assessments for eda-and-question-framing.
+
+items:
+  - slug: eda-four-parts
+    unit: eda-and-question-framing
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      Which set belongs in a well-framed data question?
+    choices:
+      - id: a
+        text: "Population, decision, outcome/label, and success metric."
+        correct: true
+      - id: b
+        text: "Only the CSV filename and a favourite algorithm."
+      - id: c
+        text: "Charts first; framing later if anyone asks."
+        misconception: ds.eda_is_the_answer
+      - id: d
+        text: "GPU type and batch size only."
+    explanation: |
+      Without those four, modelling optimises a convenient surrogate for an unspecified decision.
+
+  - slug: eda-purpose
+    unit: eda-and-question-framing
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      In this unit's claim, what is EDA primarily for?
+    choices:
+      - id: a
+        text: "Checking whether the table can support the framed question — and revising when it cannot."
+        correct: true
+      - id: b
+        text: "Replacing the need for a question by revealing the truth in plots."
+        misconception: ds.eda_is_the_answer
+      - id: c
+        text: "Proving causation from scatterplots alone."
+      - id: d
+        text: "Tuning learning rates."
+    explanation: |
+      EDA stress-tests framing and data feasibility; it is not a substitute for the ask.
+
+  - slug: eda-fishing
+    unit: eda-and-question-framing
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      You slice twenty segments until one shows a striking difference, then report it as the finding.
+      What went wrong?
+    choices:
+      - id: a
+        text: "Exploration was treated as confirmation without a held-out or pre-specified check."
+        correct: true
+      - id: b
+        text: "Nothing — more charts always mean more truth."
+        misconception: ds.eda_is_the_answer
+      - id: c
+        text: "You should have used a deeper neural net first."
+      - id: d
+        text: "Segments are illegal in analytics."
+    explanation: |
+      Hunting creates hypotheses. Confirm with a pre-specified metric or a held-out slice.
+
+  - slug: eda-leakage-tf
+    unit: eda-and-question-framing
+    type: true_false
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 60
+    stem: |
+      Finding that a feature is computed with post-outcome timestamps is a valid reason to revise
+      the pipeline before modelling.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — that is leakage. EDA that surfaces it is doing its job.
+
+  - slug: eda-churn-frame
+    unit: eda-and-question-framing
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      Sales says "predict churn." Which reframing is most actionable?
+    choices:
+      - id: a
+        text: "Among subscribers active at day t, predict cancel-within-30d to prioritise offers; judge lift net of cost."
+        correct: true
+      - id: b
+        text: "Plot everything in the warehouse until churn becomes obvious."
+        misconception: ds.eda_is_the_answer
+      - id: c
+        text: "Maximise training accuracy on all historical rows including post-cancel features."
+      - id: d
+        text: "Skip labels and cluster users instead of defining an outcome."
+    explanation: |
+      Population, time, decision, and a business-linked metric beat a bare verb.
+
+  - slug: eda-name-check
+    unit: eda-and-question-framing
+    type: short_text
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      Name one EDA check you should run before a first baseline (a few words).
+    accepted:
+      - "missingness"
+      - "label rate"
+      - "base rate by segment"
+      - "distributions"
+      - "skew / zeros"
+      - "leakage / timestamps"
+      - "feature vs label"
+      - "counts per column"
+      - "impossible values"
+    explanation: |
+      Missingness, base rates, distributions, bivariate views, and leakage smells are the usual
+      first pass.
+
+assessments:
+  - slug: eda-and-question-framing-practice
+    title: "Practice: EDA and question framing"
+    kind: practice
+    unit: eda-and-question-framing
+    items:
+      - eda-four-parts
+      - eda-leakage-tf
+      - eda-name-check
+
+  - slug: eda-and-question-framing-quiz
+    title: "Quiz: EDA and question framing"
+    kind: quiz
+    unit: eda-and-question-framing
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - eda-four-parts
+      - eda-purpose
+      - eda-fishing
+      - eda-leakage-tf
+      - eda-churn-frame
+
+cards:
+  - slug: card-eda-frame
+    unit: eda-and-question-framing
+    front: "Four lines before the first fancy plot?"
+    back: |
+      Population, decision, outcome/label, success metric.
+
+  - slug: card-eda-role
+    unit: eda-and-question-framing
+    front: "What is EDA for here?"
+    back: |
+      Falsify or refine the question — not replace it with chart fishing.

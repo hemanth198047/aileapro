@@ -1,7 +1,7 @@
 # The seeded paths. Both contain exactly the units that are authored and published, in the order
 # they should be studied, and neither promises a curriculum that does not exist yet.
 #
-# ai-engineer-core is the full authored route after Wave 3 (~60 published knowledge units).
+# ai-engineer-core is the full authored route after Wave 4 (~84 published knowledge units).
 # ai-engineer-abridged stays at ten published waypoints — pinned by CatalogApiTest.
 #
 # mixture-of-experts-draft is the authoring-queue waypoint: dropped for learners until published.
@@ -11,14 +11,16 @@ paths:
     title: AI Engineer (core)
     roleTarget: AI Engineer
     status: published
-    version: 2.0.0
+    version: 3.0.0
     description: >-
-      The full authored route through the seed: programs and Python, linear algebra and calculus,
-      probability and statistics, optimisation, SQL for features, classical ML and evaluation,
-      neural nets through CNNs and RNNs, attention and transformers, language models, embeddings
-      and RAG quality, fine-tuning and LoRA, multimodal embeddings, agents and memory, then
-      evaluation, security, MLOps/LLMOps, and system-design choices. Authored pages only — empty
-      domains on the map still say they are empty.
+      The full authored route through the seed: programs and Python, DSA and interfaces, linear
+      algebra and calculus, probability and statistics, optimisation, SQL and data engineering,
+      EDA, classical ML (supervised, unsupervised, ensembles), evaluation, neural nets through
+      CNNs and RNNs, RL intuition, generative models, attention and transformers, language models,
+      embeddings and RAG quality, fine-tuning and LoRA, multimodal embeddings, vision and speech,
+      agents, multi-agent handoffs and tool schemas, then evaluation, security, MLOps/LLMOps,
+      inference infra, system-design choices, and product/governance judgment. Authored pages
+      only — empty domains on the map still say they are empty.
     waypoints:
       - unit: instructions-and-state
         requiredMasteryState: PRACTICED
@@ -33,6 +35,12 @@ paths:
       - unit: python-control-flow
         requiredMasteryState: PRACTICED
       - unit: python-numpy-essentials
+        requiredMasteryState: PRACTICED
+      - unit: big-o-for-ml-engineers
+        requiredMasteryState: PRACTICED
+      - unit: hashing-and-lookup
+        requiredMasteryState: PRACTICED
+      - unit: abstraction-and-interfaces
         requiredMasteryState: PRACTICED
       - unit: sql-select-join-aggregate
         requiredMasteryState: PRACTICED
@@ -60,6 +68,8 @@ paths:
       - unit: confidence-intervals-intuition
         requiredMasteryState: PRACTICED
 
+      - unit: eda-and-question-framing
+        requiredMasteryState: PRACTICED
       - unit: supervised-learning-framing
         requiredMasteryState: PRACTICED
       - unit: linear-regression-intuition
@@ -72,7 +82,17 @@ paths:
         requiredMasteryState: MASTERED
       - unit: feature-leakage-and-scaling
         requiredMasteryState: MASTERED
+      - unit: feature-store-vs-pipeline
+        requiredMasteryState: PRACTICED
+      - unit: reproducible-training-data
+        requiredMasteryState: PRACTICED
       - unit: decision-trees-and-ensembles
+        requiredMasteryState: PRACTICED
+      - unit: bagging-vs-boosting
+        requiredMasteryState: PRACTICED
+      - unit: kmeans-and-clustering
+        requiredMasteryState: PRACTICED
+      - unit: pca-for-intuition
         requiredMasteryState: PRACTICED
       - unit: precision-recall-and-f1
         requiredMasteryState: MASTERED
@@ -95,6 +115,16 @@ paths:
         requiredMasteryState: PRACTICED
       - unit: lstm-gates-intuition
         requiredMasteryState: PRACTICED
+      - unit: rl-loop-state-action-reward
+        requiredMasteryState: PRACTICED
+      - unit: policy-vs-value-intuition
+        requiredMasteryState: PRACTICED
+      - unit: gan-game-intuition
+        requiredMasteryState: PRACTICED
+      - unit: diffusion-denoising-intuition
+        requiredMasteryState: PRACTICED
+      - unit: detection-vs-classification
+        requiredMasteryState: PRACTICED
 
       - unit: scaled-dot-product-attention
         requiredMasteryState: MASTERED
@@ -114,6 +144,8 @@ paths:
         requiredMasteryState: PRACTICED
       - unit: peft-lora-intuition
         requiredMasteryState: PRACTICED
+      - unit: asr-pipeline-intuition
+        requiredMasteryState: PRACTICED
 
       - unit: what-embeddings-capture
         requiredMasteryState: PRACTICED
@@ -128,9 +160,15 @@ paths:
 
       - unit: tool-calling-loop
         requiredMasteryState: PRACTICED
+      - unit: tool-schemas-and-validation
+        requiredMasteryState: PRACTICED
       - unit: agent-failure-modes
         requiredMasteryState: PRACTICED
       - unit: agent-memory-patterns
+        requiredMasteryState: PRACTICED
+      - unit: multi-agent-roles-and-handoffs
+        requiredMasteryState: PRACTICED
+      - unit: multi-agent-failure-modes
         requiredMasteryState: PRACTICED
 
       - unit: training-data-and-harm
@@ -145,9 +183,19 @@ paths:
         requiredMasteryState: PRACTICED
       - unit: cost-latency-quality-tradeoffs
         requiredMasteryState: PRACTICED
+      - unit: batching-and-gpu-utilization
+        requiredMasteryState: PRACTICED
+      - unit: kv-cache-and-inference-cost
+        requiredMasteryState: PRACTICED
       - unit: observability-for-llm-apps
         requiredMasteryState: PRACTICED
       - unit: llm-app-architecture-patterns
+        requiredMasteryState: PRACTICED
+      - unit: ai-product-metrics
+        requiredMasteryState: PRACTICED
+      - unit: accountability-and-oversight
+        requiredMasteryState: PRACTICED
+      - unit: when-not-to-use-ai
         requiredMasteryState: PRACTICED
 
       - unit: mixture-of-experts-draft
