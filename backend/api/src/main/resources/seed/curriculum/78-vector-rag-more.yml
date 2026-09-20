@@ -1,0 +1,439 @@
+# Wave 3: vector indexes and the chunking quality problems RAG pipelines inherit.
+#
+# Expands beyond rag-pipeline-basics without repeating that unit's five-stage overview.
+# HIGH volatility on products; ANN trade-offs and chunking failure modes are durable.
+
+units:
+  - slug: vector-stores
+    title: Vector Stores and Indexes
+    kind: chapter
+    parent: vector-databases
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 70
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    tags: [vector-databases, ann, retrieval, indexing]
+    objectives:
+      - Explain why exact nearest neighbour search becomes impractical at scale.
+      - State the recall-versus-latency trade-off of approximate indexes.
+      - Place vector search beside keyword and metadata filters in a real query.
+    description: >-
+      Storing embeddings is easy; retrieving the right neighbours under a latency budget is the
+      engineering problem. Approximate indexes, filters, and hybrid search are the tools.
+    blocks:
+      - type: why
+        markdown: |
+          A cosine similarity demo on a thousand vectors hides the production question: how do
+          you find near neighbours among millions without scanning every row on each query?
+
+          Approximate nearest-neighbour indexes answer that question by trading a controlled
+          amount of recall for latency. Misunderstanding the trade makes "fast RAG" quietly miss.
+
+  - slug: approximate-nearest-neighbors
+    title: Approximate Nearest Neighbours
+    kind: knowledge_unit
+    parent: vector-stores
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 35
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [ann, faiss, pgvector, vector-databases, retrieval]
+    objectives:
+      - Contrast exact search with approximate nearest-neighbour (ANN) indexes.
+      - Explain recall, latency, and build-time trade-offs in plain language.
+      - Describe when IVF/HNSW-style indexes help and what they can miss.
+      - Relate ANN settings to RAG failure modes when the right chunk scores high but is absent.
+    description: >-
+      Exact nearest neighbour is a scan. ANN indexes return *likely* neighbours fast. The dials
+      control how often the true top-$k$ set is incomplete.
+    blocks:
+      - type: why
+        markdown: |
+          Retrieval quality discussions often stop at "the embedding model." In production, an
+          equally common failure is: the right chunk's vector is in the table, its similarity to
+          the query is high, and the **index never returned it**.
+
+          That is an ANN miss. You cannot prompt your way out of a neighbour the search never saw.
+
+      - type: eli5
+        markdown: |
+          Exact search: check every book in the library against your query. Perfect, slow.
+
+          Approximate search: use a floor plan that clusters similar books into rooms. You only
+          search a few rooms. Usually you find the best matches. Sometimes the best book was in a
+          room you skipped.
+
+          Index settings choose how many rooms you visit. More rooms → slower, fewer misses.
+
+      - type: beginner
+        markdown: |
+          **Exact nearest neighbour.** For each query vector, score every stored vector (or use
+          an exact structure that still guarantees the true top-$k$). Correct; cost grows with
+          corpus size and dimension.
+
+          **Approximate nearest neighbour (ANN).** Build an index that navigates the space
+          heuristically — inverted file lists over coarse clusters (IVF), graph walks (HNSW),
+          product quantisation for compressed distance estimates, and combinations. Query time
+          examines only a subset of candidates.
+
+          **Recall@k** (for search): fraction of true top-$k$ neighbours that appear in the
+          returned set. ANN tunes for high recall under a latency budget, not for 100% unless you
+          pay for it.
+
+          Two widely used open building blocks:
+
+          - **Faiss** — library of index types for large-scale similarity search; you choose the
+            structure and parameters explicitly.
+          - **pgvector** — vector types and indexes inside PostgreSQL, so vectors live beside
+            relational filters and transactions.
+
+      - type: intermediate
+        markdown: |
+          **The trade-off surface.**
+
+          | Push this up     | Usually costs you        |
+          |------------------|--------------------------|
+          | Recall           | Latency / CPU            |
+          | Speed            | Recall (missed neighbours) |
+          | Compression      | Distance fidelity        |
+          | Fresh inserts    | Rebuild / rebalance cost |
+
+          IVF-style indexes partition vectors into lists; queries probe `nprobe` lists. Raise
+          `nprobe` → better recall, more work. HNSW builds a navigable graph; build parameters
+          and `efSearch` trade memory and latency for recall.
+
+          **Filters change the picture.** "Top-10 by similarity among tenant = X" is not the same
+          as "top-10 globally, then drop other tenants." Post-filtering can return fewer than $k$
+          hits or empty sets even when matches exist. Prefer indexes/query plans that apply
+          metadata constraints during candidate generation when your store supports it.
+
+          **Hybrid search.** ANN on embeddings catches paraphrase; keyword search catches exact
+          IDs and rare tokens embeddings blur. Many production systems fuse both scores. ANN
+          parameters still matter for the dense branch.
+
+          **Operational habits.** Measure recall on a labelled query set whenever you change index
+          type or parameters. Log when search returns low scores or empty filtered sets. Do not
+          treat "we use vectors" as "we retrieve correctly."
+
+          **Volatility note.** Managed vector DBs and default index types churn. Faiss and
+          pgvector document the same underlying dials; learn the dials, not a vendor slogan.
+
+      - type: example
+        markdown: |
+          Corpus: 2M chunks. Exact scan at query time is too slow for interactive RAG.
+
+          You build an IVF index with 4,096 lists and query with `nprobe = 8`. Latency is fine;
+          offline evaluation shows Recall@5 = 0.82 on your gold set — almost one in five queries
+          misses at least one of the five true neighbours.
+
+          Raising `nprobe` to 32 lifts Recall@5 to 0.95 and adds 12 ms. For a support bot where a
+          miss means a wrong policy answer, that trade is easy. For a bulk offline job, exact or
+          higher-recall settings may be worth it.
+
+          **pgvector sketch.** Store `embedding vector(768)`, create an index (IVFFlat/HNSW
+          depending on version and needs), query `ORDER BY embedding <=> $1 LIMIT k` with a
+          tenant predicate. Verify the query plan still uses the index under your filters —
+          sequential scans reappear when planners give up.
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            Conceptual Faiss IVF flow — parameters matter more than the wrapper API.
+
+            ```python
+            import faiss
+            import numpy as np
+
+            d = 768
+            xb = ...  # (n, d) float32, L2-normalised if using inner-product as cosine
+
+            quantizer = faiss.IndexFlatIP(d)
+            nlist = 4096
+            index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
+            index.train(xb)
+            index.add(xb)
+
+            index.nprobe = 16          # raise to buy recall
+            D, I = index.search(xq, k=5)
+            ```
+
+            Mirror the same idea in SQL with pgvector: one column of vectors, an approximate
+            index, and `nprobe`/`ef_search`-style GUCs or index options documented for your
+            version. Re-check recall after every change.
+
+      - type: misconception
+        payload:
+          code: ann.exact_enough
+          claim: "Approximate search is close enough that misses do not matter."
+          markdown: |
+            **The claim:** ANN returns "basically the same" neighbours as exact search, so RAG
+            quality is unchanged.
+
+            **Why it feels right:** demos look identical, and default parameters are tuned to
+            look good on standard datasets.
+
+            **What actually happens:** every ANN index has a recall curve. On *your* embedding
+            space and filters, defaults may drop the supporting chunk for the queries that hurt
+            most — rare entities, short queries, filtered tenants. The generator then answers from
+            distractors with fluent confidence.
+
+            **How to catch yourself:** maintain a gold retrieval set; report Recall@$k$ whenever
+            index parameters change; compare against exact search on a sample until you know your
+            margin.
+
+      - type: common_mistake
+        markdown: |
+          **Post-filtering away all candidates.** Top-50 globally, keep tenant matches, end up
+          with three irrelevant rows. Push filters into the search path or retrieve more
+          candidates deliberately and measure.
+
+          **Changing embedding models without rebuilding.** Vectors from model A in an index
+          built for model A are meaningless next to queries from model B.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Define Recall@5 for nearest-neighbour search in one sentence.
+            2. Explain why raising `nprobe` (or `efSearch`) often improves RAG answer quality.
+            3. Give a case where exact search is still the right choice.
+            4. Why can "vector search + SQL filter afterward" return empty results incorrectly?
+            5. What must you remeasure when you switch from IndexFlat to an IVF index?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does ANN trade for speed?"
+              answer: "Guaranteed exact neighbours — recall may drop unless parameters buy it back."
+            - question: "Why do ANN misses hurt RAG specifically?"
+              answer: >-
+                Generation only conditions on returned chunks; a missed supporting passage cannot
+                be cited or used.
+            - question: "Name one open tool for large-scale vector indexes and one for vectors in Postgres."
+              answer: "Faiss for library-scale indexes; pgvector for vectors inside PostgreSQL."
+            - question: "What should you measure when tuning an index?"
+              answer: "Retrieval recall on a labelled set, plus latency under realistic filters."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Explain ANN vs exact search without hand-waving "the database handles it."
+            - Tune a recall/latency dial and predict the RAG symptom of setting it too low.
+            - Design a minimal gold set to detect index regressions.
+            - Place hybrid search and metadata filters in the same design conversation as ANN.
+    resources:
+      - source: faiss
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: "Index families and the recall/speed parameters behind IVF, HNSW, and related structures."
+      - source: pgvector
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: "Vector storage and approximate indexes beside relational filters in Postgres."
+      - source: rag-2020
+        purpose: DEEPER_REFERENCE
+        relevance: 0.5
+        excerpt: "Why retrieval quality matters at all for generation conditioned on passages."
+
+  - slug: chunking-and-retrieval-quality
+    title: Chunking and Retrieval Quality
+    kind: knowledge_unit
+    parent: retrieval-augmented-generation
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [rag, chunking, retrieval, embeddings]
+    objectives:
+      - Explain how chunk boundaries change what an embedding can represent.
+      - Choose structure-aware splitting and overlap for a document type.
+      - Separate retrieval failures caused by chunking from those caused by ANN or the embedder.
+      - Design a small offline test that catches destructive chunking.
+    description: >-
+      Beyond the basic RAG pipeline: chunking is where many "retrieval is bad" bugs are born.
+      Size, structure, and overlap decide whether the supporting sentence is retrievable at all.
+    blocks:
+      - type: why
+        markdown: |
+          The RAG basics unit shows a refund policy split across chunks so the exception never
+          travels with the rule. That failure is not exotic — it is the default outcome of naive
+          fixed-size splitting on real documents.
+
+          This page stays on chunking and retrieval quality: how to split, what to measure, and
+          how to tell a chunking bug from an index bug.
+
+      - type: eli5
+        markdown: |
+          You tear a textbook into index cards for a quiz game. If a definition spans two cards,
+          the card with the term might not include the meaning, and the card with the meaning
+          might not include the term. Search finds one card; the answer is incomplete.
+
+          Good chunking keeps ideas that must travel together on the same card, and lets cards
+          share a little overlap so sentences are not chopped in half.
+
+      - type: beginner
+        markdown: |
+          Each chunk is embedded as **one vector**. That vector is a compressed summary of
+          everything in the chunk. Mixing unrelated topics in one chunk blurs the vector; cutting
+          a thought across two chunks hides the full meaning from either vector.
+
+          Practical defaults to start from (then measure):
+
+          - Prefer **structure**: headings, sections, pages, or semantic breaks over raw character
+            counts when the format allows.
+          - Target a size your embedder and prompt budget like (often hundreds of tokens, not
+            tens of thousands).
+          - Add **overlap** (a trailing window of the previous chunk) so boundary sentences appear
+            intact in at least one chunk.
+          - Store **metadata**: document id, section title, URLs, dates, tenant — for filters and
+            citations, not only for vectors.
+
+          Query-side: embed the question with the **same** model used for documents. Mismatched
+          models make similarity meaningless.
+
+      - type: intermediate
+        markdown: |
+          **Failure signatures.**
+
+          | Symptom | Suspect chunking if… |
+          |---------|----------------------|
+          | Answer cites a real passage but misses a caveat | Caveat lived in a neighbour chunk |
+          | Good keyword hit, weak vector hit | Chunk text lost the exact token / heading |
+          | Similar scores for irrelevant chunks | Chunks too large / multi-topic |
+          | Never retrieves the right doc | Wrong metadata filter or embedder mismatch |
+
+          **Parent document / small-to-big patterns.** Retrieve small chunks for precision, then
+          expand to the parent section for generation so the model sees local context. That helps
+          when tight chunks retrieve well but read poorly alone.
+
+          **Tables, code, and lists.** Fixed character splits destroy rows and function bodies.
+          Keep rows together; keep functions or logical blocks together; consider specialised
+          extractors rather than one splitter for every MIME type.
+
+          **Evaluation.** Build 20–50 questions with known supporting spans. For each splitter
+          candidate, measure whether the supporting span lands in the retrieved top-$k$ (retrieval
+          recall). Only then look at answer quality. If recall is low, do not tune the prompt.
+
+          **Relation to ANN.** A perfect chunk still fails if the index drops it. Diagnose with
+          exact search on a sample: if exact finds the chunk and ANN does not, fix the index; if
+          neither finds it, fix chunking, metadata, or the embedding model.
+
+      - type: example
+        markdown: |
+          Document section:
+
+          ```
+          ## Digital licences
+          Refunds are available within 30 days of purchase.
+          Exception: digital licences are non-refundable after activation.
+          ```
+
+          **Fixed 80-character chunks** (caricature): chunk A ends after "purchase."; chunk B
+          starts at "Exception…". Query "Can I refund an activated licence?" matches A; model
+          answers yes with a true citation of A.
+
+          **Structure-aware chunk:** one chunk for the whole `## Digital licences` section with
+          a short overlap into the previous section's last sentence. Both rule and exception
+          embed together; retrieval can surface the caveat.
+
+          Same embedder, same index — different chunker, different product behaviour.
+
+      - type: misconception
+        payload:
+          code: rag.bigger_chunks_better
+          claim: "Bigger chunks are always better because they keep more context."
+          markdown: |
+            **The claim:** maximise chunk size so nothing important is left out; retrieval will
+            still find the right document.
+
+            **Why it feels right:** humans prefer reading full sections, and tiny chunks feel
+            lossy.
+
+            **What actually happens:** large multi-topic chunks embed to an average that matches
+            nothing precisely. You retrieve a vaguely related blob; the supporting sentence is
+            buried; long context then dilutes attention. Precision retrieval wants focused
+            chunks; generation can expand afterward.
+
+            **How to catch yourself:** if top hits are "about the right document" but not the
+            right paragraph, shrink and structure-split, then remeasure Recall@$k$ on gold spans.
+
+      - type: common_mistake
+        markdown: |
+          **One splitter for PDFs, HTML, and source code.** Formats break differently; so should
+          chunkers.
+
+          **Tuning the LLM temperature to fix missing caveats.** If the caveat never entered the
+          prompt, sampling will not invent the correct policy reliably — and if it does, you got
+          lucky, not grounded.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Rewrite the digital-licence section into chunks that keep the exception with the
+               rule; note what you sacrifice.
+            2. Describe a parent-document retrieval pattern in three steps.
+            3. You change only the chunker and Recall@5 drops. What did you likely break?
+            4. Exact search finds the gold chunk; ANN does not. Where do you look next?
+            5. Design five gold questions for a 20-page employee handbook focused on chunking
+               edge cases (negation, tables, exceptions).
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why do multi-topic chunks hurt vector retrieval?"
+              answer: >-
+                One embedding averages several subjects, so similarity matches vaguely rather than
+                precisely.
+            - question: "What is overlap for?"
+              answer: >-
+                Keeping sentences that sit on boundaries intact in at least one chunk.
+            - question: "What should you measure before blaming the generator?"
+              answer: >-
+                Whether the supporting span appears in the retrieved set (retrieval recall).
+            - question: "Same embedder for queries and documents — why?"
+              answer: >-
+                Vectors from different models are not comparable; similarity becomes meaningless.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Design a structure-aware chunking scheme for a real document type.
+            - Diagnose caveat-split failures from symptoms alone.
+            - Separate chunking misses from ANN misses with a concrete test.
+            - Refuse to "fix retrieval" by only editing the generation prompt when recall is low.
+    resources:
+      - source: rag-2020
+        purpose: PRIMARY_SOURCE
+        relevance: 0.85
+        excerpt: "Retrieve-then-generate framing — retrieval quality bounds what generation can use."
+      - source: sentence-transformers
+        purpose: TOOL_REFERENCE
+        relevance: 0.8
+        excerpt: "Embedding practice for passages and queries used in dense retrieval."
+      - source: sbert-2019
+        purpose: DEEPER_REFERENCE
+        relevance: 0.7
+        excerpt: "Sentence-level embeddings whose geometry retrieval quality depends on."
+      - source: pgvector
+        purpose: TOOL_REFERENCE
+        relevance: 0.5
+        excerpt: "Where chunk vectors and metadata typically live together in application databases."

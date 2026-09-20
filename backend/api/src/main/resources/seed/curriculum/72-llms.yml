@@ -1,0 +1,738 @@
+# Wave 2, part 7: large language models as components you engineer around.
+#
+# HIGH volatility. These pages are written against properties that follow from the training
+# objective and the architecture, not against any vendor's current model or pricing. Numbers that
+# will date are labelled as examples rather than as facts.
+#
+# prompting-as-specification sits under prompt-engineering rather than large-language-models,
+# because it is a specification skill and belongs with the other prompting material.
+
+units:
+  - slug: next-token-prediction
+    title: Next-Token Prediction, and What Follows From It
+    kind: knowledge_unit
+    parent: large-language-models
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [llm, generation, sampling, tokens]
+    objectives:
+      - State the training objective of an autoregressive language model precisely.
+      - Explain how one next-token distribution becomes a paragraph.
+      - Describe what temperature and top-p do to the sampling distribution.
+      - Derive why fluent, confident, false output is expected rather than anomalous.
+    description: >-
+      One objective — predict the next token — repeated. Almost every property of an LLM that
+      surprises people, good and bad, is a consequence of that single fact.
+    blocks:
+      - type: why
+        markdown: |
+          Teams design around LLMs with a mental model of "it knows things and sometimes gets them
+          wrong". That model makes hallucination look like a defect that a better version will fix,
+          and it leads to architectures that assume reliability the system cannot provide.
+
+          The accurate model is narrower and more useful: the system produces a probability
+          distribution over the next token, conditioned on everything so far, then samples from it.
+          Fluency, hallucination, sensitivity to phrasing, and the value of retrieval all follow
+          from that, and can be reasoned about in advance.
+
+      - type: eli5
+        markdown: |
+          A phone keyboard suggests the next word as you type. Tap the suggestion repeatedly and it
+          produces a sentence — usually a boring one, but a real sentence.
+
+          A language model is that, made enormously better: it has read far more text, it looks at
+          everything written so far rather than the last two words, and its suggestions are good
+          enough to be paragraphs.
+
+          But the job is unchanged. It is choosing a likely next piece of text. "Likely" and "true"
+          are not the same thing, and nothing in the job description mentions truth.
+
+      - type: beginner
+        markdown: |
+          Text is split into **tokens** — subword pieces, roughly 3–4 characters of English each.
+          The model's job is to produce a probability distribution over the whole vocabulary for
+          what comes next:
+
+          $$
+          P(t_{n+1} \mid t_1, t_2, \ldots, t_n)
+          $$
+
+          Training minimises the cross-entropy of that distribution against the token that actually
+          followed, over an enormous corpus. There is no separate fact-checking objective, no
+          retrieval, and no notion of truth in the loss. The model is rewarded for putting high
+          probability on the real continuation.
+
+          **Generation** is that distribution applied repeatedly:
+
+          ```
+          prompt: "The capital of France is"
+            -> distribution over vocabulary: " Paris" 0.87, " the" 0.04, " a" 0.02, ...
+            -> pick " Paris", append it
+          prompt: "The capital of France is Paris"
+            -> next distribution ...
+          ```
+
+          Each token is chosen, appended, and fed back in. That loop is why output arrives word by
+          word, why cost scales with tokens generated, and why the model cannot revise something it
+          already emitted.
+
+          **Sampling controls** shape the distribution before the draw:
+
+          - **Temperature** $T$ divides the logits before the softmax. $T < 1$ sharpens (more
+            deterministic), $T > 1$ flattens (more varied). $T \to 0$ is greedy selection.
+          - **Top-k** restricts the draw to the $k$ most likely tokens.
+          - **Top-p (nucleus)** restricts it to the smallest set whose probability sums to $p$,
+            which adapts to how confident the model is at that step.
+
+      - type: intermediate
+        markdown: |
+          **Where hallucination comes from.** The model is trained to produce *likely* text. A
+          plausible citation has exactly the shape of a real one: plausible author names, a
+          plausible journal, a plausible year. Nothing in the objective penalises a well-formed
+          fabrication more than a well-formed truth — both are high-probability continuations.
+
+          This has three consequences worth designing around:
+
+          - Hallucination is not a bug to be patched out. It is the same mechanism that produces
+            correct output, applied where the model has no grounding.
+          - Confidence is uninformative about accuracy. The fluency of a sentence reflects the
+            token probabilities, and a confidently wrong answer is one the model found likely.
+          - Retrieval helps because it changes the conditioning, not because it changes the
+            objective. With the right passage in context, the true continuation becomes the likely
+            one. This is the argument for RAG, stated at the level of the loss function.
+
+          **Greedy decoding is not the best decoding.** Choosing the most likely token at each step
+          does not produce the most likely sequence — a high-probability sequence can begin with a
+          token that was only third-best. It also produces noticeably degenerate output on open-ended
+          tasks, with repetition loops. Sampling with top-p avoids that while keeping coherence,
+          which is why it is the common default.
+
+          **Tokenisation leaks into behaviour** in ways that look like reasoning failures:
+
+          - Character-level tasks are hard because the model does not see characters. Counting the
+            letters in a word means reasoning about the contents of a token it only knows as an
+            index.
+          - Arithmetic is affected by how numbers happen to split into tokens.
+          - Rare words and non-English text use more tokens, so they cost more and consume context
+            faster.
+
+          **Instruction tuning and RLHF change the distribution, not the mechanism.** A chat model
+          has been further trained so that helpful, instruction-following continuations are the
+          likely ones. That is a large behavioural change and no change at all to what the system
+          is doing: it is still sampling from a next-token distribution.
+
+      - type: example
+        markdown: |
+          **How temperature changes the draw.** Suppose the model's logits over four candidate
+          tokens give these probabilities at $T = 1$:
+
+          | Token    | $T = 0.2$ | $T = 1.0$ | $T = 2.0$ |
+          |----------|-----------|-----------|-----------|
+          | " Paris" | 0.999     | 0.87      | 0.52      |
+          | " the"   | 0.001     | 0.04      | 0.14      |
+          | " a"     | ~0        | 0.02      | 0.10      |
+          | (232 others) | ~0    | 0.07      | 0.24      |
+
+          At $T = 0.2$ the answer is effectively fixed. At $T = 2.0$ there is nearly a one-in-two
+          chance of *not* saying Paris — which is why high temperature is right for brainstorming
+          and wrong for extraction.
+
+          **A fabricated citation, step by step.** Prompt: `A good paper on transformer efficiency
+          is`. The model has seen thousands of citation strings. Its likely continuations are:
+
+          - `"Efficient Transformers: A Survey" by Tay et al. (2020)` — real.
+          - `"Scaling Efficient Attention" by Chen et al. (2021)` — the same shape, and invented.
+
+          Both are high-probability sequences under a model trained on citation-shaped text. The
+          second is not a malfunction; it is the model doing exactly what it was trained to do in a
+          region where it has no specific memory. It will be delivered with identical fluency,
+          because fluency is the only thing being optimised.
+
+          **What actually helps.** Put the abstract in the context and ask the model to answer from
+          it. The true continuation is now the likely one, because the conditioning changed. Nothing
+          about the model changed.
+
+      - type: misconception
+        payload:
+          code: llm.model_looks_things_up
+          claim: "The model looks up facts it learned and reports them."
+          markdown: |
+            **The claim:** training stored a body of facts, and answering retrieves the relevant one,
+            so errors are lookup failures in a mostly reliable database.
+
+            **Why it feels right:** it usually gets common facts right, and the behaviour is
+            indistinguishable from lookup when the answer is well represented in the training data.
+
+            **What actually happens:** there is no lookup step and no fact store to query. Generation
+            samples from a distribution over next tokens. Frequently-seen facts have high
+            probability and come out reliably; rare ones do not, and the shortfall is filled with
+            whatever is plausible rather than with an error.
+
+            The practical difference matters. A database that lacks a record returns nothing. A
+            language model always returns a fluent continuation, because that is the only thing it
+            can do. There is no internal signal distinguishing "recalled" from "constructed", so
+            there is nothing to surface as a confidence score.
+
+            **How to catch yourself:** ask what the system would do if it did not know. If your
+            design assumes it would say so, the design is built on the lookup model and needs
+            retrieval with citations, or a verification step, to be correct.
+
+      - type: common_mistake
+        markdown: |
+          **Treating temperature 0 as "accurate mode".** It removes variability, not error. A
+          deterministic wrong answer is still wrong, and it is now reproducibly wrong.
+
+          **Asking the model how confident it is.** Self-reported confidence is another generated
+          continuation, trained to look like a confidence statement. It is not derived from the
+          token probabilities.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write the training objective in one sentence, and say what it does not contain.
+            2. Choose temperature and top-p for: extracting a date from an invoice; brainstorming
+               product names; writing SQL from a question. Justify each.
+            3. Explain why "count the letter r in strawberry" is hard, in terms of tokens.
+            4. Give two reasons a model might produce a plausible but non-existent API method, and
+               one design change that makes it much less likely.
+            5. Explain why retrieval improves factuality using only the conditional probability in
+               the objective.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What exactly is an autoregressive LLM trained to do?"
+              answer: >-
+                Minimise cross-entropy between its predicted distribution over the next token and the
+                token that actually followed, conditioned on everything before it.
+            - question: "Why is hallucination expected rather than anomalous?"
+              answer: >-
+                The objective rewards likely continuations. A well-formed fabrication is as likely as
+                a well-formed truth where the model has no specific grounding.
+            - question: "What does temperature do?"
+              answer: >-
+                It scales the logits before the softmax: below one sharpens the distribution toward
+                the top token, above one flattens it toward more variety.
+            - question: "Why does retrieval reduce fabrication?"
+              answer: >-
+                It changes what the generation is conditioned on, so the true continuation becomes
+                the high-probability one. The objective is unchanged.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - State the objective precisely and derive at least three observed behaviours from it.
+            - Choose sampling parameters from the task rather than from habit.
+            - Explain hallucination to a stakeholder without either excusing it or promising a fix.
+            - Identify a design that has assumed lookup semantics and say what it needs instead.
+    resources:
+      - source: gpt3-2020
+        purpose: PRIMARY_SOURCE
+        relevance: 0.8
+        excerpt: >-
+          Describes the autoregressive objective and in-context learning, which is the behaviour the
+          prompting unit builds on.
+      - source: attention-2017
+        purpose: DEEPER_REFERENCE
+        relevance: 0.6
+        excerpt: "The architecture underneath the objective described here."
+      - source: rag-2020
+        purpose: DEEPER_REFERENCE
+        relevance: 0.7
+        excerpt: "The conditioning argument for retrieval, made formally."
+
+  - slug: context-window-limits
+    title: The Context Window, and Why It Is Not Memory
+    kind: knowledge_unit
+    parent: large-language-models
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 32
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [llm, context, cost, architecture]
+    objectives:
+      - Explain what the context window is and what it costs.
+      - Distinguish stated context length from usable context length.
+      - Estimate token usage and cost for a described application.
+      - Decide between a longer prompt and retrieval for a given problem.
+    description: >-
+      Everything the model can see is in the context window, it is rebuilt on every call, and
+      quality does not hold uniformly across it. All three facts have architectural consequences.
+    blocks:
+      - type: why
+        markdown: |
+          The context window is the single hardest constraint in LLM application design. It decides
+          whether a conversation can continue, whether a document fits, what a request costs, and
+          whether retrieval is necessary.
+
+          It is also routinely misunderstood as memory. A model does not remember the previous turn;
+          the previous turn is re-sent. Once that is clear, conversation state, cost, and the
+          argument for RAG all fall into place at once.
+
+      - type: eli5
+        markdown: |
+          Imagine someone who can read anything you hand them but forgets it completely the moment
+          they look away.
+
+          To continue a conversation you must hand them the whole transcript again, every time. They
+          are fast readers, so this works — but there is a limit to how many pages they will accept,
+          and you pay by the page.
+
+          And if you hand them two hundred pages with one important sentence in the middle, do not
+          be surprised if they miss it.
+
+      - type: beginner
+        markdown: |
+          The **context window** is the maximum number of tokens the model can process in one call,
+          covering the system prompt, the conversation history, any retrieved documents, and the
+          response it is about to generate. All of it shares one budget.
+
+          Three properties that surprise people:
+
+          - **It is not memory.** The model holds no state between calls. A multi-turn conversation
+            works because the client re-sends the whole history each time.
+          - **It is recomputed every call.** You pay for the full input on every request, not just
+            the new part. Prompt caching reduces the cost, not the concept.
+          - **It includes the output.** A 4,000-token prompt in an 8,192-token window leaves at most
+            4,192 for the answer.
+
+          A rough budget for a chat feature, as an illustration rather than a specification:
+
+          | Component            | Tokens |
+          |----------------------|--------|
+          | System prompt        | 400    |
+          | Retrieved passages   | 2,000  |
+          | Conversation history | 1,500  |
+          | User message         | 100    |
+          | Reserved for output  | 800    |
+          | **Total**            | **4,800** |
+
+          English runs roughly 0.75 words per token, so 1,000 tokens is about 750 words. Code, rare
+          words, and non-English text are less efficient.
+
+      - type: intermediate
+        markdown: |
+          **Stated length is not usable length.** Measured retrieval accuracy across a long context
+          is strongly position-dependent: highest when the relevant passage sits near the beginning
+          or the end, and noticeably worse in the middle. A model that accepts 128k tokens is making
+          a claim about its input validation, not a guarantee about quality at token 60,000.
+
+          Two consequences for design: put the most important material at the start or the end of
+          the prompt, and measure on your own data rather than trusting the number on the
+          specification sheet.
+
+          **Cost and latency scale with input, not just output.** Attention's score computation grows
+          quadratically in sequence length, so doubling the prompt more than doubles the work. Input
+          tokens are usually cheaper per token than output tokens, but there are far more of them —
+          for most retrieval applications, input dominates the bill. Prompt caching helps when a
+          long, stable prefix is reused across calls, and is worth structuring prompts around: put
+          the invariant part first.
+
+          **Long prompt or retrieval?** Now a real engineering decision rather than a foregone one.
+
+          - **Long prompt** when the material is small enough to fit comfortably, is needed in full,
+            and changes per request. Simple, no retrieval infrastructure, no chunking failures.
+          - **Retrieval** when the corpus exceeds the window, when only a small part is relevant,
+            when cost per call matters, or when you need citations. Retrieval also fails in its own
+            ways — see the RAG unit — but it makes the failure inspectable.
+
+          A useful heuristic: if the relevant fraction of your corpus is under about 10%, retrieval
+          usually wins on both cost and quality, because it also removes the distractor text that
+          degrades long-context performance.
+
+          **Managing a conversation that outgrows the window.** Truncation loses the beginning,
+          which is usually where the task definition lives. The practical options are a rolling
+          summary of older turns, retrieval over the conversation history, or an explicit structured
+          state object maintained outside the model. All three are covered in the agent memory
+          domain; the point here is that the window forces the choice.
+
+          **A volatility note.** Context lengths have grown by orders of magnitude in a few years
+          and will keep moving. The reasoning on this page — one shared budget, recomputed per call,
+          quality not uniform across it, cost superlinear in length — is structural and should
+          outlast any particular number. Specific limits and prices are deliberately absent.
+
+      - type: example
+        markdown: |
+          A support assistant over a 50,000-document knowledge base.
+
+          **Approach A: long context.** The knowledge base is roughly 40 million tokens. It does not
+          fit in any window, and would not be affordable per request if it did. Rejected on
+          arithmetic, not on principle.
+
+          **Approach B: retrieval.** Retrieve the 5 most relevant chunks, about 2,000 tokens.
+
+          ```
+          system prompt          400
+          5 retrieved chunks   2,000
+          last 3 turns         1,200
+          user question          100
+          ----------------------------
+          input                3,700
+          output (reserved)      600
+          ```
+
+          About 4,300 tokens per call rather than 40 million. The saving is four orders of
+          magnitude, and it is what makes the feature exist at all.
+
+          **Where it breaks.** At turn 15 the history has grown to 6,000 tokens and the input is
+          over 8,000. Options, with what each costs:
+
+          - Truncate the oldest turns. Cheap, and it silently drops the user's original goal.
+          - Summarise turns 1–10 into 300 tokens. Costs one extra model call and loses detail, but
+            keeps the thread.
+          - Retrieve from the conversation as well as the corpus. Most robust, most machinery.
+
+          **Where placement matters.** With ten retrieved chunks instead of five, the answer quality
+          measurably drops even though the correct passage is still present — it has moved into the
+          middle of a longer context, and the extra passages act as distractors. More retrieved
+          context is not monotonically better, which is a genuinely counterintuitive result and a
+          good reason to tune $k$ rather than maximise it.
+
+      - type: misconception
+        payload:
+          code: llm.context_is_memory
+          claim: "The model remembers our conversation."
+          markdown: |
+            **The claim:** the model retains the conversation between turns, the way a person would.
+
+            **Why it feels right:** the interface presents a continuous conversation, and the model
+            refers accurately to things said ten turns ago.
+
+            **What actually happens:** each call is stateless. The client re-sends the entire history
+            with every request, so the model appears to remember because it is re-reading. Nothing
+            persists in the model between calls.
+
+            This is not pedantry; it changes the design.
+
+            - You pay for the whole history on every turn, so cost grows with conversation length.
+            - When the history exceeds the window, something must be dropped, and whatever you drop
+              is genuinely gone.
+            - Anything that must persist — preferences, state, decisions — has to be stored by you
+              and re-injected. Assuming the model will keep it produces a feature that works in
+              testing and fails on long sessions.
+
+            **How to catch yourself:** ask what would happen if the process restarted between turns.
+            If the answer is "nothing changes", you have the right model. If your design would break,
+            it is relying on memory that does not exist.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Budget the tokens for a document-QA feature: 600-token system prompt, three 800-token
+               passages, a 5-turn history averaging 250 tokens, a 60-token question, 500 tokens of
+               output. Does it fit in 8,192?
+            2. At turn 20 the same conversation no longer fits. Describe two strategies and what each
+               one loses.
+            3. Explain why doubling the prompt more than doubles the compute.
+            4. For each, choose long prompt or retrieval and justify: summarising one 30-page
+               contract; answering from a 10,000-page policy library; rewriting a user's email.
+            5. Give two reasons why retrieving 20 chunks can be worse than retrieving 5.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does the context window contain?"
+              answer: >-
+                Everything in one call — system prompt, history, retrieved material, and the
+                generated output — all sharing a single token budget.
+            - question: "Why is the context window not memory?"
+              answer: >-
+                The model is stateless between calls. Continuity comes from the client re-sending the
+                whole history each time, which is also why cost grows with conversation length.
+            - question: "Why is stated context length not usable context length?"
+              answer: >-
+                Retrieval accuracy varies with position in the context and degrades toward the
+                middle, so quality is not uniform across the advertised window.
+            - question: "When does retrieval beat a longer prompt?"
+              answer: >-
+                When the corpus exceeds the window, when only a small fraction is relevant, when cost
+                per call matters, or when citations are required.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Budget tokens for a described feature and say whether it fits.
+            - Explain statelessness clearly enough that a product decision changes as a result.
+            - Choose between long context and retrieval with a reason that is not fashion.
+            - Say why more retrieved context can lower answer quality.
+    resources:
+      - source: lost-in-the-middle-2023
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: "Measures position-dependent accuracy across long contexts, which is the evidence for the usable-length caution."
+      - source: attention-2017
+        purpose: DEEPER_REFERENCE
+        relevance: 0.6
+        excerpt: "The quadratic score matrix that makes long context expensive."
+      - source: rag-2020
+        purpose: DEEPER_REFERENCE
+        relevance: 0.7
+        excerpt: "The alternative to a longer prompt, and the original argument for it."
+
+  - slug: prompting-as-specification
+    title: Prompting as Specification
+    kind: knowledge_unit
+    parent: prompt-engineering
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 34
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [llm, prompting, evaluation, specification]
+    objectives:
+      - "Write a prompt as a specification: role, task, constraints, format, examples."
+      - Explain why examples often outperform longer instructions.
+      - Build a small evaluation set and use it to compare prompt versions.
+      - Distinguish techniques with evidence from folklore.
+    description: >-
+      A prompt is a specification written in prose for a reader who will not ask clarifying
+      questions. Treating it that way — and measuring it — is the whole of the skill.
+    blocks:
+      - type: why
+        markdown: |
+          Prompting has more folklore per unit of substance than any other part of AI practice.
+          Much of what circulates is untested, model-specific, or superstition that survived because
+          nobody measured it.
+
+          The useful framing is unglamorous: you are writing a specification for a capable reader
+          who will not ask for clarification and will not tell you when it guessed. Everything that
+          makes a good specification — explicit constraints, a defined output format, worked
+          examples, stated edge cases — makes a good prompt. Everything that makes a good
+          engineering practice, especially an evaluation set, makes prompting into engineering.
+
+      - type: eli5
+        markdown: |
+          You are leaving instructions for someone to do a job while you are out. They are quick and
+          capable and they cannot phone you.
+
+          "Tidy up" gets you something. It may not be what you wanted.
+
+          "Put the books on the shelf, put the dishes in the dishwasher, do not touch the papers on
+          the desk, and leave a note saying what you did" gets you what you wanted. Same worker,
+          different instructions.
+
+          And if you leave the same note every week, it is worth checking occasionally whether the
+          results are actually good — rather than assuming, because the note sounds thorough.
+
+      - type: beginner
+        markdown: |
+          A prompt that works usually has five parts. Not all are always needed, but leaving one out
+          should be a decision.
+
+          1. **Role or context.** What perspective to answer from. Brief; this is the most
+             over-invested part.
+          2. **Task.** What to do, stated as an instruction rather than a description.
+          3. **Constraints.** Length, tone, what to avoid, and what to do when the input is
+             unsuitable.
+          4. **Output format.** The exact shape expected, especially if something will parse it.
+          5. **Examples.** One to five input-output pairs. Usually the highest-value part.
+
+          A comparison, on a real task:
+
+          **Weak:** `Summarise this support ticket.`
+
+          **Specified:**
+
+          ```
+          Summarise this support ticket for an engineer picking it up cold.
+
+          Output exactly these three lines:
+          Problem: <one sentence>
+          Tried: <what the customer already attempted, or "nothing stated">
+          Urgency: <low | medium | high>
+
+          Base urgency only on what the customer wrote. If the ticket does not
+          state the problem clearly, write "Problem: unclear" and nothing else.
+          ```
+
+          The second is longer, and it can be parsed, tested, and fixed. The first cannot.
+
+      - type: intermediate
+        markdown: |
+          **Why examples beat instructions.** An instruction describes the output; an example *is*
+          the output. Large models were trained to continue patterns, so a demonstration sets a
+          pattern far more precisely than a paragraph describing one. Two or three examples that
+          cover the boundary cases usually outperform several paragraphs of careful prose, and are
+          quicker to write.
+
+          Choose them deliberately: examples that are all straightforward teach the easy case, which
+          the model would have handled anyway. Include the awkward ones — an empty field, an
+          ambiguous input, the case where the right answer is to refuse.
+
+          **Techniques with evidence, and what the evidence says:**
+
+          - **Asking for intermediate steps** measurably improves multi-step reasoning, and the
+            effect appears only in sufficiently large models. It costs output tokens and latency.
+          - **Few-shot examples** reliably improve format adherence and consistency.
+          - **Explicit refusal instructions** ("if the context does not contain the answer, say so")
+            reduce fabrication, though they do not eliminate it.
+          - **Structured output requests** improve parseability; schema-constrained decoding, where
+            available, is stronger than asking politely.
+
+          **Folklore, which should be treated as untested until you test it on your task:** offering
+          a tip, threatening consequences, elaborate persona construction, "take a deep breath",
+          and most prompt templates circulated without an evaluation. Some of these have shown
+          effects on some models at some times. None of them are reliable enough to adopt without
+          measurement, and they date quickly as models change.
+
+          **Evaluation is what separates this from guessing.** The minimum viable version is
+          achievable in an afternoon:
+
+          1. Collect 20–50 real inputs, including the awkward ones.
+          2. Write the correct or acceptable output for each.
+          3. Score each prompt version against the set — exact match, a rubric, or a careful human
+             pass.
+          4. Change one thing at a time and re-run.
+
+          Without this, "the new prompt is better" means "the three examples I happened to try
+          looked better", which is a sample size of three, chosen by the person hoping for an
+          improvement.
+
+          **Prompts are versioned artefacts.** They are code: they belong in source control, they
+          need a change log, and a model upgrade can break them silently. A prompt that is not
+          version-controlled and not evaluated is an undocumented dependency in production.
+
+      - type: example
+        markdown: |
+          Extracting structured data from invoices. Three versions, measured on the same 30 real
+          invoices.
+
+          **Version 1.** `Extract the invoice details as JSON.`
+
+          Result: 18/30 parsed. Field names varied (`total`, `amount`, `totalAmount`), dates came
+          back in three formats, and missing fields were sometimes omitted and sometimes filled with
+          a guess.
+
+          **Version 2.** Added an explicit schema:
+
+          ```
+          Return JSON with exactly these keys:
+            invoice_number (string)
+            date (ISO 8601, YYYY-MM-DD)
+            total (number, no currency symbol)
+            currency (ISO 4217 code)
+          Use null for any field not present in the document.
+          Return only the JSON object, with no commentary.
+          ```
+
+          Result: 26/30 parsed. Remaining failures were all handwritten dates and one invoice where
+          two totals appeared.
+
+          **Version 3.** Added two examples — one ordinary invoice, one with a missing invoice
+          number showing `"invoice_number": null` — and one instruction for the ambiguous case:
+          `If more than one total appears, use the one labelled as due.`
+
+          Result: 29/30. The last failure was genuinely ambiguous and a human would also have had to
+          ask.
+
+          **What to take from this.** The improvement came from specification, not from cleverness:
+          an exact schema, a stated null policy, and an example of the awkward case. And the only
+          reason any of it is known is the 30-invoice evaluation set, which took about an hour to
+          build and paid for itself immediately.
+
+      - type: misconception
+        payload:
+          code: llm.prompt_magic_words
+          claim: "There are magic phrases that unlock better output."
+          markdown: |
+            **The claim:** particular incantations — offering a tip, "you are a world-class expert",
+            "this is very important to my career" — reliably improve results, so collecting them is
+            the skill.
+
+            **Why it feels right:** some of these have produced measurable effects in published
+            experiments, on particular models and tasks. And the confirmation loop is strong: you
+            try a phrase, the output looks better, you keep it. Nobody re-runs the old prompt.
+
+            **What actually happens:** the reliable gains come from specification — a clear task,
+            explicit constraints, a defined output format, and examples covering the edge cases.
+            Where phrase effects exist they are small, model-specific, and unstable across versions;
+            a phrase that helped one model can do nothing or actively hurt on the next.
+
+            The real cost is displacement. Time spent collecting incantations is time not spent
+            building the evaluation set that would tell you whether any of it works. Teams with a
+            30-example eval and a plain prompt consistently outperform teams with an elaborate
+            prompt and no measurement.
+
+            **How to catch yourself:** for any phrase you are tempted to keep, run the prompt with
+            and without it on your evaluation set. Keep it if the numbers move. That rule costs ten
+            minutes and retires most of the folklore.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Rewrite `Write a product description` as a full specification with all five parts.
+            2. Build a 10-item evaluation set for "classify this email as urgent or not", including
+               three genuinely ambiguous cases with your reasoning for each.
+            3. Take a prompt you use and remove one element at a time. Predict the effect of each
+               removal before testing, then test.
+            4. Write three few-shot examples for extracting a meeting date, where one input has no
+               date and one has two.
+            5. A colleague says adding "think step by step" made their classifier better. Describe
+               the smallest experiment that would settle it.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What are the five parts of a specified prompt?"
+              answer: "Role or context, task, constraints, output format, and examples."
+            - question: "Why do examples often beat longer instructions?"
+              answer: >-
+                An example demonstrates the output rather than describing it, and the model was
+                trained to continue patterns. Examples also pin down edge cases that prose leaves
+                ambiguous.
+            - question: "What is the minimum evaluation setup worth having?"
+              answer: >-
+                Twenty to fifty real inputs with expected outputs, scored per prompt version, changing
+                one thing at a time.
+            - question: "How should you treat a prompting technique you read about?"
+              answer: >-
+                As untested on your task until measured on your evaluation set. Effects are often
+                model-specific and do not survive version changes.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Turn a vague request into a prompt with all five parts, including the edge-case policy.
+            - Choose few-shot examples that cover the awkward cases rather than the easy ones.
+            - Build and run a small evaluation set, and change one variable at a time.
+            - Tell an evidenced technique from folklore, and say what would settle the question.
+    resources:
+      - source: gpt3-2020
+        purpose: PRIMARY_SOURCE
+        relevance: 0.8
+        excerpt: "Establishes in-context learning from examples in the prompt, which is why few-shot works."
+      - source: chain-of-thought-2022
+        purpose: PRIMARY_SOURCE
+        relevance: 0.8
+        excerpt: >-
+          Measures the effect of asking for intermediate steps, including the finding that it emerges
+          only at scale.
+      - source: nist-ai-rmf
+        purpose: DEEPER_REFERENCE
+        relevance: 0.4
+        excerpt: "The Measure function is the general form of the argument made here for evaluation sets."

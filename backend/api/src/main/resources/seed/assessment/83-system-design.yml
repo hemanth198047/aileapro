@@ -1,0 +1,193 @@
+# Assessments for the Wave 3 system-design unit.
+
+items:
+  - slug: arch-rag-default
+    unit: llm-app-architecture-patterns
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "When is RAG the default choice over fine-tuning?"
+    choices:
+      - id: a
+        text: "When answers must track a changing corpus and/or cite evidence."
+        correct: true
+      - id: b
+        text: "Whenever you want an open-ended agent loop instead."
+        misconception: architecture.agents_subsume_rag
+      - id: c
+        text: "Only when you have no evaluation suite."
+      - id: d
+        text: "Never; fine-tuning always keeps facts fresher than retrieval."
+    explanation: |
+      Weights do not update when the wiki changes. RAG (or live tool reads) is the freshness and
+      citation pattern; fine-tuning shines for stable format/style given enough labels.
+
+  - slug: arch-workflow-vs-agent
+    unit: llm-app-architecture-patterns
+    type: mcq
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      You can write down the step order for a task that needs a few tool calls. What should you
+      prefer?
+    choices:
+      - id: a
+        text: "A fixed workflow with typed tool calls at known steps."
+        correct: true
+      - id: b
+        text: "An open agent loop, because agents replace workflows and RAG."
+        misconception: architecture.agents_subsume_rag
+      - id: c
+        text: "Fine-tuning only, with no tools."
+      - id: d
+        text: "No model — tools cannot be combined with LLMs."
+    explanation: |
+      Known control flow means fewer model decisions, higher reliability, lower cost. Reserve open
+      loops for residual uncertainty about what to do next.
+
+  - slug: arch-agents-subsume
+    unit: llm-app-architecture-patterns
+    type: mcq
+    bloom: evaluate
+    difficulty: 5
+    estimateSeconds: 150
+    stem: |
+      A proposal says: "Ship one general agent with search and write tools; it replaces RAG and
+      fine-tuning." Strongest reply?
+    choices:
+      - id: a
+        text: "Open loops multiply failures and still need a real retrieval design; agents are not a default container for every pattern."
+        correct: true
+      - id: b
+        text: "Agree — one agent loop subsumes specialised architectures."
+        misconception: architecture.agents_subsume_rag
+      - id: c
+        text: "Agree only if the system prompt is long enough."
+      - id: d
+        text: "Disagree only because agents cannot call tools."
+    explanation: |
+      Search-without-an-index reinvent a worse RAG stack inside an unreliable loop. Walk the
+      decision tree from constraints, not from demo fashion.
+
+  - slug: arch-instruct-grounding
+    unit: llm-app-architecture-patterns
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Preference-tuned chat models improve instruction following but do not replace retrieval when
+      truth lives outside the weights.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Better UX and compliance with formats is not the same as grounded, citable knowledge.
+
+  - slug: arch-fine-tune-facts
+    unit: llm-app-architecture-patterns
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Why is fine-tuning a poor primary strategy for teaching frequently changing facts?"
+    choices:
+      - id: a
+        text: "You will retrain forever and still lack first-class citations from a live corpus."
+        correct: true
+      - id: b
+        text: "Fine-tuning cannot change model behaviour at all."
+      - id: c
+        text: "Agents automatically keep facts fresh without retrieval."
+        misconception: architecture.agents_subsume_rag
+      - id: d
+        text: "Changing facts are illegal to store in databases."
+    explanation: |
+      Put churning knowledge in stores you can update and retrieve; use fine-tunes for stable
+      skills/style after a prompt+RAG baseline loses on the suite.
+
+  - slug: arch-fallbacks
+    unit: llm-app-architecture-patterns
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What belongs on an LLM architecture diagram besides the model box?"
+    choices:
+      - id: a
+        text: "Eval loops, cost/latency budgets, human review for high-risk intents, and degrade/fallback paths."
+        correct: true
+      - id: b
+        text: "Only an arrow from the model to the user — the rest is optional polish."
+      - id: c
+        text: "A note that agents replace the need for fallbacks."
+        misconception: architecture.agents_subsume_rag
+      - id: d
+        text: "The training cluster rack layout."
+    explanation: |
+      Probabilistic components need designed failure. Empty retrieval still produces fluent text
+      unless you specify refusals, queues, or alternate UX.
+
+  - slug: arch-decision-tree
+    unit: llm-app-architecture-patterns
+    type: short_text
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      Internal policies update daily; answers must cite sources; no side effects. Which pure pattern
+      does the decision tree pick first?
+    accepted:
+      - "RAG"
+
+      - "retrieval-augmented generation"
+      - "retrieval"
+      - "RAG with citations"
+    explanation: |
+      Side effects: no. Attribution to a changing corpus: yes → RAG with citation policy and
+      retrieval eval. Fine-tune loses on churn; agents add needless loop risk.
+
+assessments:
+  - slug: llm-app-architecture-patterns-practice
+    title: "Practice: LLM app architecture patterns"
+    kind: practice
+    unit: llm-app-architecture-patterns
+    items:
+      - arch-rag-default
+      - arch-workflow-vs-agent
+      - arch-instruct-grounding
+
+  - slug: llm-app-architecture-patterns-quiz
+    title: "Quiz: LLM app architecture patterns"
+    kind: quiz
+    unit: llm-app-architecture-patterns
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - arch-rag-default
+      - arch-workflow-vs-agent
+      - arch-agents-subsume
+      - arch-instruct-grounding
+      - arch-fine-tune-facts
+      - arch-fallbacks
+      - arch-decision-tree
+
+cards:
+  - slug: card-arch-tree
+    unit: llm-app-architecture-patterns
+    front: "RAG vs fine-tune vs agents — first questions?"
+    back: |
+      Side effects? Known step order? Changing corpus / citations? Stable format with labels? Then
+      budgets, evals, fallbacks — agents are not the default container.
+
+  - slug: card-arch-workflow
+    unit: llm-app-architecture-patterns
+    front: "Known step order — agent or workflow?"
+    back: |
+      Fixed workflow with typed tools at known steps. Open loops multiply cost and failure for no
+      control-flow gain.

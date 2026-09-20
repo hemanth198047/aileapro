@@ -1,0 +1,283 @@
+# Items for the model-evaluation units.
+
+items:
+  - slug: prf-compute-precision
+    unit: precision-recall-and-f1
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 100
+    stem: |
+      A model produces TP = 80, FP = 920, FN = 20, TN = 8,980. What is its precision?
+      Answer as a decimal to two places.
+    answer: 0.08
+    tolerance: 0.005
+    explanation: |
+      $80 / (80 + 920) = 0.08$. Recall, for contrast, is $80/100 = 0.80$.
+
+      Accuracy here is $(80 + 8980)/10000 = 0.906$, and a model that predicts "negative" for
+      everything scores 0.99. Accuracy ranks the useless model above the useful one, which is the
+      whole argument against it on imbalanced data in a single line.
+
+  - slug: prf-conditioning
+    unit: precision-recall-and-f1
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "What is the difference between precision and recall, stated by what each is conditioned on?"
+    choices:
+      - id: a
+        text: "Precision is conditioned on the prediction; recall is conditioned on the true class."
+        correct: true
+      - id: b
+        text: "Precision is conditioned on the true class; recall is conditioned on the prediction."
+      - id: c
+        text: "Precision measures the positive class and recall measures the negative class."
+      - id: d
+        text: "Precision is for regression and recall is for classification."
+    explanation: |
+      Precision asks: of the things I flagged, how many were real? Recall asks: of the real ones,
+      how many did I flag?
+
+      They are the two conditional probabilities from the Bayes unit under different names, which
+      is also why precision moves with the base rate and recall does not.
+
+  - slug: prf-threshold-direction
+    unit: precision-recall-and-f1
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "You lower the decision threshold so the model predicts positive more often. What happens?"
+    choices:
+      - id: a
+        text: "Recall rises or stays the same; precision usually falls."
+        correct: true
+      - id: b
+        text: "Both rise, because the model catches more cases."
+      - id: c
+        text: "Both fall, because the model becomes less careful."
+      - id: d
+        text: "Neither changes; the threshold only affects accuracy."
+    explanation: |
+      Predicting positive more often can only increase TP and FP. TP is in recall's numerator with
+      a fixed denominator, so recall cannot fall; precision's denominator grows, so it usually
+      does.
+
+      There is no threshold that improves both, which is why a single operating point is a choice
+      rather than a result — and why it should be chosen on validation data, like any other
+      hyperparameter.
+
+  - slug: prf-accuracy-is-enough
+    unit: precision-recall-and-f1
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A stakeholder asks for one headline number for a fraud model where 1% of transactions are
+      fraudulent. What should you push back with?
+    choices:
+      - id: a
+        text: "The confusion matrix, because a constant \"not fraud\" model would score 99% accuracy."
+        correct: true
+      - id: b
+        text: "Accuracy, since it is the number everyone understands."
+        misconception: eval.accuracy_is_enough
+      - id: c
+        text: "F1 alone, since it combines precision and recall into one figure."
+      - id: d
+        text: "ROC-AUC, which is threshold-free and therefore always safe here."
+    explanation: |
+      Compute what a majority-class model would score before quoting accuracy. If that number is
+      close to yours, accuracy is measuring the base rate.
+
+      (c) is a real trap: precision 0.9/recall 0.5 and precision 0.62/recall 0.62 both give F1
+      ≈ 0.64 and are entirely different systems to operate. (d) is also weak at a 1% base rate,
+      because the false positive rate has an enormous denominator — PR-AUC is the more honest
+      threshold-free summary there.
+
+  - slug: prf-f1-harmonic
+    unit: precision-recall-and-f1
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 80
+    stem: |
+      A model with precision 1.0 and recall 0.0 has an F1 score of 0.0.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — the harmonic mean is $2pr/(p + r) = 0$ when $r = 0$. An arithmetic mean would have
+      rewarded it with 0.5.
+
+      That is exactly why the harmonic mean is used: a model that finds nothing should not score
+      half marks for being right about the nothing it found.
+
+  - slug: cv-kfold-definition
+    unit: holdout-vs-cross-validation
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "In 5-fold cross-validation, how many times is each example used for evaluation?"
+    choices:
+      - id: a
+        text: "Once, and for training four times."
+        correct: true
+      - id: b
+        text: "Five times, once per fold."
+      - id: c
+        text: "Four times, once per training fold."
+      - id: d
+        text: "It depends on the random seed."
+    explanation: |
+      Each fold is held out exactly once and used for training in the other four rounds. That is
+      why the estimate is more stable than a single holdout of the same size: every example
+      contributes to the evaluation.
+
+  - slug: cv-spread-matters
+    unit: holdout-vs-cross-validation
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      Model A scores 0.81 ± 0.015 across five folds and model B scores 0.81 ± 0.13. What is the
+      most defensible conclusion?
+    choices:
+      - id: a
+        text: "Prefer A: same mean, far more predictable, and B's spread says it is fitting whatever is in each sample."
+        correct: true
+      - id: b
+        text: "They are equivalent, since the means match."
+      - id: c
+        text: "Prefer B, because its best fold reached a higher score."
+      - id: d
+        text: "Neither can be judged without a test set."
+    explanation: |
+      The spread is a result, not a footnote. A model whose performance swings by 13 points
+      depending on which rows it trained on will behave unpredictably in deployment, and the
+      variation itself is a lead: check whether the worst fold shares a subgroup, a time period, or
+      a data quality problem.
+
+      (c) is selection on noise — the same error as reporting the best of three random seeds.
+
+  - slug: cv-variant-choice
+    unit: holdout-vs-cross-validation
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      You have 5,000 rows covering 500 patients, roughly 10 visits each. Which cross-validation
+      variant is correct?
+    choices:
+      - id: a
+        text: "Group k-fold, keeping all of a patient's rows in one fold."
+        correct: true
+      - id: b
+        text: "Plain k-fold with shuffling."
+      - id: c
+        text: "Stratified k-fold on the outcome."
+      - id: d
+        text: "Leave-one-out, to use as much data as possible."
+    explanation: |
+      Without grouping, the same patient appears in both the training and the evaluation fold, and
+      the model can recognise the patient rather than the pattern. Every fold then looks
+      optimistic.
+
+      Stratification (c) addresses class imbalance and may be needed *as well*, but it does not
+      solve the grouping problem. These choices follow from the structure of the data, not from
+      habit.
+
+  - slug: cv-still-need-test
+    unit: holdout-vs-cross-validation
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      You tuned hyperparameters using cross-validated scores and want to publish the best one.
+      What is the problem?
+    choices:
+      - id: a
+        text: "The score was used to select, so it is a selection result rather than an unbiased estimate."
+        correct: true
+      - id: b
+        text: "Nothing — cross-validation uses all the data, so it is already honest."
+        misconception: eval.cv_removes_the_need_for_a_test_set
+      - id: c
+        text: "Cross-validated scores are always pessimistic, so it understates performance."
+      - id: d
+        text: "The folds should have been averaged with a weighted mean."
+    explanation: |
+      Cross-validation controls the noise of a single split. It does nothing about selection: once
+      those scores drive a choice, the winner is optimistic for the same reason a repeatedly
+      consulted validation set is.
+
+      The fixes are nested cross-validation, where an inner loop selects and an outer loop
+      measures, or a final holdout that was never involved in any decision.
+
+assessments:
+  - slug: precision-recall-and-f1-practice
+    title: "Practice: precision, recall, and F1"
+    kind: practice
+    unit: precision-recall-and-f1
+    items:
+      - prf-compute-precision
+      - prf-conditioning
+      - prf-f1-harmonic
+
+  - slug: precision-recall-and-f1-quiz
+    title: "Quiz: precision, recall, and F1"
+    kind: quiz
+    unit: precision-recall-and-f1
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - prf-compute-precision
+      - prf-conditioning
+      - prf-threshold-direction
+      - prf-accuracy-is-enough
+
+  - slug: holdout-vs-cross-validation-practice
+    title: "Practice: holdout and cross-validation"
+    kind: practice
+    unit: holdout-vs-cross-validation
+    items:
+      - cv-kfold-definition
+      - cv-variant-choice
+      - cv-spread-matters
+
+  - slug: holdout-vs-cross-validation-quiz
+    title: "Quiz: holdout and cross-validation"
+    kind: quiz
+    unit: holdout-vs-cross-validation
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - cv-kfold-definition
+      - cv-spread-matters
+      - cv-variant-choice
+      - cv-still-need-test
+
+cards:
+  - slug: card-eval-precision-recall
+    unit: precision-recall-and-f1
+    front: "Precision and recall, in one sentence each."
+    back: |
+      Precision: of what I flagged, how much was real. Recall: of what was real, how much did I
+      flag. Lowering the threshold raises recall and usually lowers precision.
+
+  - slug: card-eval-fold-spread
+    unit: holdout-vs-cross-validation
+    front: "Two models share a cross-validated mean. What else do you look at?"
+    back: |
+      The standard deviation across folds. A large spread means the model depends heavily on which
+      rows it trained on — and the worst fold is usually worth investigating.

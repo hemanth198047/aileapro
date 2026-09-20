@@ -995,6 +995,21 @@ Apply / MASTERED still waits on Project Studio (Phase 10).
 
 ## After launch (not a phase number — rolling)
 
+- **2026-09-19 — Curriculum expansion, Wave 2.** The seed went from the 14-unit vertical slice to
+  32 published knowledge units, all authored against the quality bar in `24-SEED_CONTENT_PLAN.md`
+  and none generated. New: calculus and probability for ML, the supervised learning core,
+  evaluation (precision/recall, cross-validation), MLP / activations / unstable gradients, the
+  transformer block and positional encoding, LLM behaviour (next-token, context window, prompting),
+  embeddings, agents, and one responsible-AI unit. 22 new sources, arXiv and open docs only and
+  all HEAD-checked that day; 48 new typed edges extending the chain through maths → classical ML →
+  evaluation → NNs → transformers → LLMs → agents; 94 new assessment items with a practice and a
+  quiz set per unit.
+  New path `ai-engineer-core` (32 waypoints). `ai-engineer-abridged` keeps its ten waypoints and
+  is now described as the sampler it is. `scaled-dot-product-attention` stays a draft — it is the
+  next thing in the authoring queue, and `CatalogApiTest` pins that it stays invisible. One test
+  moved with the seed: `GraphApiTest` measured "a neighbourhood is a slice" as a node count that
+  only held at 71 units, and now asserts the radius the server actually walked. Inventory in
+  `24-SEED_CONTENT_PLAN.md`; `.run/check_seed.py` mirrors the loaders' validation offline.
 - Weekly review of HIGH-volatility units
 - Add graph nodes instead of rewriting fundamentals
 - Community, voice, extra lab languages, i18n locales — only after P0 is stable

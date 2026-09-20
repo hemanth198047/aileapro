@@ -74,11 +74,11 @@ class CatalogApiTest {
 
     @Test
     void draftUnitIsInvisibleToLearners() throws Exception {
-        assertThat(units.findBySlugAndLocale("scaled-dot-product-attention", "en"))
+        assertThat(units.findBySlugAndLocale("mixture-of-experts-draft", "en"))
                 .as("the draft unit exists in the database")
                 .isPresent();
 
-        mockMvc.perform(get("/v1/units/scaled-dot-product-attention").with(user("ada").roles("LEARNER")))
+        mockMvc.perform(get("/v1/units/mixture-of-experts-draft").with(user("ada").roles("LEARNER")))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("not_found"));
     }
@@ -95,7 +95,7 @@ class CatalogApiTest {
                 .andExpect(jsonPath("$.waypoints.length()").value(10))
                 .andExpect(jsonPath("$.waypoints[0].unit.slug").value("instructions-and-state"))
                 .andExpect(jsonPath("$.waypoints[*].unit.slug")
-                        .value(everyItem(not("scaled-dot-product-attention"))))
+                        .value(everyItem(not("mixture-of-experts-draft"))))
                 .andExpect(jsonPath("$.estimateMinutes").value(300));
     }
 

@@ -1,0 +1,367 @@
+# Assessments for Wave 3 eval and security units.
+
+items:
+  - slug: eval-harness-parts
+    unit: llm-eval-harness-basics
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "Which set names the four parts of an LLM eval harness?"
+    choices:
+      - id: a
+        text: "Cases, production-faithful runner, scorers, and a versioned report."
+        correct: true
+      - id: b
+        text: "Playground, vibes, screenshots, and a Slack thread."
+        misconception: eval.playground_is_eval
+      - id: c
+        text: "GPU, dataset, optimizer, and checkpoint."
+      - id: d
+        text: "CDN, load balancer, cache, and WAF."
+    explanation: |
+      A harness is repeatable software: fixed cases, a runner that matches production wiring,
+      scorers, and reports you can diff across prompt/model versions.
+
+  - slug: eval-playground
+    unit: llm-eval-harness-basics
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Why is playground success not evaluation?"
+    choices:
+      - id: a
+        text: "It overfits a few author-chosen prompts and is not a versioned, repeatable suite."
+        correct: true
+      - id: b
+        text: "It is evaluation — interactive trial is the gold standard for generative systems."
+        misconception: eval.playground_is_eval
+      - id: c
+        text: "Playgrounds cannot call models at all."
+      - id: d
+        text: "Playgrounds only work for classifiers with labels."
+    explanation: |
+      Demos sample the happy path under the author's style. Harnesses sample the cases you claim to
+      support — including hostile and long-tail ones — the same way every time.
+
+  - slug: eval-deterministic-first
+    unit: llm-eval-harness-basics
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "When should you prefer a deterministic scorer over model-as-judge?"
+    choices:
+      - id: a
+        text: "Whenever schema, required citations, IDs, or other mechanical properties can decide pass/fail."
+        correct: true
+      - id: b
+        text: "Never; judges are always more accurate than code."
+      - id: c
+        text: "Only in the playground, not in CI."
+        misconception: eval.playground_is_eval
+      - id: d
+        text: "Only when you lack an API key for a judge model."
+    explanation: |
+      Deterministic checks are cheap, stable, and unbiased by verbosity. Reserve humans/judges for
+      the residual nuance — and calibrate judges against a human gold subset.
+
+  - slug: eval-model-card
+    unit: llm-eval-harness-basics
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Eval scores should be accompanied by intended use, what was measured, what was not, and known
+      limits — not reported as a lone leaderboard number.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — that is the model-card honesty habit applied to an application. A number without scope
+      is marketing.
+
+  - slug: eval-regression-gate
+    unit: llm-eval-harness-basics
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "What makes an eval suite a regression gate rather than a wiki page?"
+    choices:
+      - id: a
+        text: "Running it on every prompt/model change and failing the release when critical slices drop."
+        correct: true
+      - id: b
+        text: "Showing it once in a playground review meeting."
+        misconception: eval.playground_is_eval
+      - id: c
+        text: "Deleting failing cases until the score is green."
+      - id: d
+        text: "Reporting only the overall average pass rate."
+    explanation: |
+      Gates enforce thresholds on slices and must-not-fail cases. Deleting failures deletes
+      requirements; averages hide quiet regressions.
+
+  - slug: security-indirect-injection
+    unit: prompt-injection-and-trust
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What is indirect prompt injection?"
+    choices:
+      - id: a
+        text: "Hostile instructions embedded in content the model reads (docs, web, tool results), not typed as the user chat."
+        correct: true
+      - id: b
+        text: "A SQL injection that bypasses the ORM."
+      - id: c
+        text: "Using a smaller model to save cost."
+      - id: d
+        text: "Any user message that asks a clarifying question."
+    explanation: |
+      Indirect injection rides along in retrieved or fetched text. The user may be innocent; the
+      document is not.
+
+  - slug: security-prompt-boundary
+    unit: prompt-injection-and-trust
+    type: mcq
+    bloom: evaluate
+    difficulty: 5
+    estimateSeconds: 150
+    stem: |
+      A team says a firmly worded system prompt is their primary defence against prompt injection.
+      What should you recommend instead as primary?
+    choices:
+      - id: a
+        text: "Capability control in code — least-privilege tools, allow-lists, confirmation for irreversible actions."
+        correct: true
+      - id: b
+        text: "Make the system prompt longer and more emphatic; that is the security boundary."
+        misconception: security.prompt_is_boundary
+      - id: c
+        text: "Disable HTTPS so attackers cannot read traffic."
+      - id: d
+        text: "Remove all evaluation cases that mention injection."
+    explanation: |
+      System text and untrusted text share one token channel. Prompt hardening is secondary.
+      Assume the model can propose anything; block unacceptable side effects in handlers.
+
+  - slug: security-trust-classes
+    unit: prompt-injection-and-trust
+    type: mcq
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "How should retrieved document text be treated in the context window?"
+    choices:
+      - id: a
+        text: "As untrusted / hostile until proven otherwise — same channel as instructions, no privilege bit."
+        correct: true
+      - id: b
+        text: "As trusted as the system prompt, because your indexer stored it."
+        misconception: security.prompt_is_boundary
+      - id: c
+        text: "As equivalent to cryptographic authentication."
+      - id: d
+        text: "As irrelevant to security if the model is large."
+    explanation: |
+      Indexing does not sanitise intent. Delimiters help somewhat; they do not create isolation.
+      Design tools as if retrieval can contain instructions.
+
+  - slug: security-agent-stakes
+    unit: prompt-injection-and-trust
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Giving an LLM tools increases the blast radius of a successful injection because proposals can
+      become side effects.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Action loops turn linguistic compromise into fraud, mail, or writes — which is why tool
+      policy must tighten as autonomy rises.
+
+  - slug: security-fetch-exfil
+    unit: data-exfiltration-via-tools
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "How can an HTTP fetch tool exfiltrate secrets?"
+    choices:
+      - id: a
+        text: "By requesting an attacker URL with secrets encoded in the path or query string."
+        correct: true
+      - id: b
+        text: "Only by downloading malware onto the model provider's GPU."
+      - id: c
+        text: "It cannot; alignment prevents all exfiltration."
+        misconception: security.model_refusal_stops_exfil
+      - id: d
+        text: "Only if the user types the attacker URL into the chat box."
+    explanation: |
+      Callback-style exfiltration uses the server as a messenger. Indirect instructions can supply
+      the URL; the handler must allow-list destinations.
+
+  - slug: security-refusal-myth
+    unit: data-exfiltration-via-tools
+    type: mcq
+    bloom: evaluate
+    difficulty: 5
+    estimateSeconds: 140
+    stem: |
+      Someone claims preference-tuned refusals mean send/fetch tools are safe to expose with broad
+      credentials. What is wrong?
+    choices:
+      - id: a
+        text: "Alignment is not an authorisation layer; indirect framing still only needs one obedient handler to cause loss."
+        correct: true
+      - id: b
+        text: "Nothing — refusals fully solve tool exfiltration."
+        misconception: security.model_refusal_stops_exfil
+      - id: c
+        text: "Refusals only fail for classifiers, not generative models."
+      - id: d
+        text: "Broad credentials are required for RAG to work."
+    explanation: |
+      Instruct-style training helps in clean settings. Production security assumes the model may
+      propose the worst legal-looking call; controls live in allow-lists, DLP, confirms, and scoped
+      tokens.
+
+  - slug: security-allow-list
+    unit: data-exfiltration-via-tools
+    type: mcq
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "What should an exfiltration-focused eval assert for a hostile send-email case?"
+    choices:
+      - id: a
+        text: "That the handler denied the call (or required confirm) — not merely that the model textually refused."
+        correct: true
+      - id: b
+        text: "That the model wrote a polite refusal, even if the tool still executed."
+        misconception: security.model_refusal_stops_exfil
+      - id: c
+        text: "That latency stayed under 200ms."
+      - id: d
+        text: "That the email was sent so the suite can inspect the body."
+    explanation: |
+      Textual refusal with a successful side effect is a failed control. Assert on handler outcomes.
+
+  - slug: security-confused-deputy
+    unit: data-exfiltration-via-tools
+    type: short_text
+    bloom: understand
+    difficulty: 4
+    estimateSeconds: 110
+    stem: |
+      In one sentence, what is a confused-deputy failure for a multi-tenant LLM tool?
+    accepted:
+      - "The app uses broad authority to act on a steered request, e.g. reading another tenant's data."
+
+      - "Tool runs with app-wide power and accesses the wrong tenant"
+      - "Missing tenant binding so the model can read another customer's records"
+    explanation: |
+      Bind every tool call to the caller's tenant/user permissions. A steered model plus a god-mode
+      bot account is a cross-tenant breach waiting to happen.
+
+assessments:
+  - slug: llm-eval-harness-basics-practice
+    title: "Practice: LLM eval harness"
+    kind: practice
+    unit: llm-eval-harness-basics
+    items:
+      - eval-harness-parts
+      - eval-playground
+      - eval-model-card
+
+  - slug: llm-eval-harness-basics-quiz
+    title: "Quiz: LLM eval harness basics"
+    kind: quiz
+    unit: llm-eval-harness-basics
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - eval-harness-parts
+      - eval-playground
+      - eval-deterministic-first
+      - eval-model-card
+      - eval-regression-gate
+
+  - slug: prompt-injection-and-trust-practice
+    title: "Practice: prompt injection and trust"
+    kind: practice
+    unit: prompt-injection-and-trust
+    items:
+      - security-indirect-injection
+      - security-trust-classes
+      - security-agent-stakes
+
+  - slug: prompt-injection-and-trust-quiz
+    title: "Quiz: prompt injection and trust"
+    kind: quiz
+    unit: prompt-injection-and-trust
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - security-indirect-injection
+      - security-prompt-boundary
+      - security-trust-classes
+      - security-agent-stakes
+
+  - slug: data-exfiltration-via-tools-practice
+    title: "Practice: data exfiltration via tools"
+    kind: practice
+    unit: data-exfiltration-via-tools
+    items:
+      - security-fetch-exfil
+      - security-allow-list
+      - security-confused-deputy
+
+  - slug: data-exfiltration-via-tools-quiz
+    title: "Quiz: data exfiltration via tools"
+    kind: quiz
+    unit: data-exfiltration-via-tools
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - security-fetch-exfil
+      - security-refusal-myth
+      - security-allow-list
+      - security-confused-deputy
+
+cards:
+  - slug: card-eval-harness
+    unit: llm-eval-harness-basics
+    front: "Four parts of an LLM eval harness?"
+    back: |
+      Cases, production-faithful runner, scorers, versioned report — gated in CI, not a playground
+      anecdote.
+
+  - slug: card-injection-primary
+    unit: prompt-injection-and-trust
+    front: "Primary defence against prompt injection?"
+    back: |
+      Capability control in code (least privilege, allow-lists, confirms). Prompt hardening is
+      secondary — not a boundary.
+
+  - slug: card-exfil-handler
+    unit: data-exfiltration-via-tools
+    front: "Where must exfiltration be stopped?"
+    back: |
+      In the tool handler: destination allow-lists, scoped credentials, DLP, confirms. Model refusal
+      is not authorisation.

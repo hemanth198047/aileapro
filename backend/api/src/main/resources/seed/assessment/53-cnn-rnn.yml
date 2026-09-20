@@ -1,0 +1,474 @@
+# Assessments for CNN and RNN/LSTM units (Wave 3).
+
+items:
+  # --- Convolution -------------------------------------------------------------------------
+  - slug: cnn-two-constraints
+    unit: convolution-intuition
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "What two constraints distinguish a convolution from a dense layer on pixels?"
+    choices:
+      - id: a
+        text: "Local receptive fields and weight sharing across positions."
+        correct: true
+      - id: b
+        text: "Softmax outputs and batch normalisation."
+      - id: c
+        text: "Recurrence through time and gating."
+      - id: d
+        text: "Global average pooling and residual shortcuts."
+    explanation: |
+      Those are the inductive biases that cut parameters and buy translation equivariance. Pooling
+      and residuals are separate architectural choices.
+
+  - slug: cnn-not-just-dense
+    unit: convolution-intuition
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 120
+    stem: '"A convolution is just a fully connected layer with a fancy name." Correction?'
+    choices:
+      - id: a
+        text: "Implementation may use matmuls, but local support and tied weights are the model — untie them and parameter count explodes with location."
+        correct: true
+      - id: b
+        text: "The claim is accurate; structure does not matter."
+        misconception: cnn.conv_is_matrix_multiply_dense
+      - id: c
+        text: "Convolutions cannot be implemented with matrix multiplication at all."
+      - id: d
+        text: "Convolutions only work on text, not images."
+    explanation: |
+      im2col-style matmul is an implementation. The definition is shared local filters. They are
+      used heavily on images; the claim about text-only is false.
+
+  - slug: cnn-param-growth
+    unit: convolution-intuition
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 70
+    stem: "For a fixed kernel and channel configuration, convolution parameter count does not grow with image height and width."
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — that is the point of weight sharing. Dense layers on flattened images do grow with H×W.
+
+  - slug: cnn-shape-params
+    unit: convolution-intuition
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 140
+    stem: |
+      A 5×5 convolution with 8 output channels on a single-channel input has how many kernel
+      weights (ignore biases)? Integer answer.
+    answer: "200"
+    tolerance: 0
+    explanation: |
+      8 × 5 × 5 × 1 = 200.
+
+  - slug: cnn-1x1
+    unit: convolution-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "What does a 1×1 convolution primarily mix?"
+    choices:
+      - id: a
+        text: "Channels at each spatial position, without spatial neighbourhood mixing."
+        correct: true
+      - id: b
+        text: "Only spatial neighbours, never channels."
+      - id: c
+        text: "Timesteps in a sequence model."
+      - id: d
+        text: "Nothing — 1×1 kernels are identity by definition."
+    explanation: |
+      A 1×1 kernel has no spatial extent; it is a learned per-position linear map across channels
+      (often to change channel count).
+
+  # --- Pooling / RF ------------------------------------------------------------------------
+  - slug: pool-what
+    unit: pooling-and-receptive-fields
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "What does 2×2 stride-2 max pooling typically do?"
+    choices:
+      - id: a
+        text: "Halve height and width, keeping the maximum in each window."
+        correct: true
+      - id: b
+        text: "Double the number of channels."
+      - id: c
+        text: "Replace convolution entirely."
+      - id: d
+        text: "Apply dropout to spatial positions."
+    explanation: |
+      It downsamples spatially. Channels unchanged unless you design otherwise; it is not dropout.
+
+  - slug: pool-not-dropout
+    unit: pooling-and-receptive-fields
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 110
+    stem: '"Pooling exists mainly as regularisation, like dropout." Best correction?'
+    choices:
+      - id: a
+        text: "Primary jobs are downsampling and growing receptive fields; any regularisation effect is secondary."
+        correct: true
+      - id: b
+        text: "Correct — pooling is interchangeable with dropout."
+        misconception: cnn.pooling_is_just_regularisation
+      - id: c
+        text: "Pooling only exists to increase parameter count."
+      - id: d
+        text: "Pooling is illegal in classification networks."
+    explanation: |
+      You can regularise without pooling; you pool (or stride) to shrink maps and enlarge RF with
+      small kernels.
+
+  - slug: pool-rf-def
+    unit: pooling-and-receptive-fields
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "What is a receptive field?"
+    choices:
+      - id: a
+        text: "The region of the input that influences a given activation."
+        correct: true
+      - id: b
+        text: "The learning rate schedule."
+      - id: c
+        text: "The set of classes in the dataset."
+      - id: d
+        text: "The GPU memory reserved for one batch."
+    explanation: |
+      RF tracks how much of the input a unit can see after convolutions, strides, and pooling.
+
+  - slug: pool-segmentation
+    unit: pooling-and-receptive-fields
+    type: true_false
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 80
+    stem: "Aggressive pooling can hurt dense prediction tasks because it discards spatial precision."
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — classification can tolerate coarse position; segmentation and detection often cannot.
+
+  - slug: pool-half-size
+    unit: pooling-and-receptive-fields
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 60
+    stem: "After one 2×2 stride-2 pool, a 64×64 map becomes what height? Integer."
+    answer: "32"
+    tolerance: 0
+    explanation: |
+      Stride-2 halves spatial dimensions: 64 → 32.
+
+  # --- RNN ---------------------------------------------------------------------------------
+  - slug: rnn-share
+    unit: rnn-sequence-modeling
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "What is shared across timesteps in a basic RNN?"
+    choices:
+      - id: a
+        text: "The cell parameters (e.g. W_h, W_x), applied at every t."
+        correct: true
+      - id: b
+        text: "A brand-new random network per timestep with no shared weights."
+      - id: c
+        text: "Only the bias, never the weight matrices."
+      - id: d
+        text: "The attention score matrix from a transformer block."
+    explanation: |
+      Sharing across time is the recurrent analogue of sharing across space in CNNs.
+
+  - slug: rnn-memory-lossless
+    unit: rnn-sequence-modeling
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 120
+    stem: '"The hidden state stores the entire past losslessly." Correction?'
+    choices:
+      - id: a
+        text: "h_t is a fixed-size bottleneck that compresses and can overwrite earlier information."
+        correct: true
+      - id: b
+        text: "The claim is true by construction of recurrence."
+        misconception: rnn.state_is_lossless_memory
+      - id: c
+        text: "Hidden states are stored on disk for every past token automatically."
+      - id: d
+        text: "Lossless storage holds if and only if you use tanh."
+    explanation: |
+      Fixed width cannot archive unbounded history losslessly. Attention keeps past tokens explicit;
+      RNNs must squeeze them into h.
+
+  - slug: rnn-vanish
+    unit: rnn-sequence-modeling
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Why do plain RNNs struggle with long-range dependencies?"
+    choices:
+      - id: a
+        text: "Gradients through many multiplied Jacobians vanish (or explode), so early tokens stop influencing learning."
+        correct: true
+      - id: b
+        text: "RNNs cannot share weights across time."
+      - id: c
+        text: "Softmax is undefined on sequences longer than 10."
+      - id: d
+        text: "They require images as input."
+    explanation: |
+      BPTT multiplies many ∂h_t/∂h_{t-1} maps; tanh RNNs often shrink those signals. Weight sharing
+      is present; that is not the failure mode.
+
+  - slug: rnn-bptt
+    unit: rnn-sequence-modeling
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 70
+    stem: "BPTT means unrolling the recurrence across timesteps and backpropagating through that chain."
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — backpropagation through time is just backprop on the unrolled graph.
+
+  # --- LSTM --------------------------------------------------------------------------------
+  - slug: lstm-forget
+    unit: lstm-gates-intuition
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "What does the LSTM forget gate scale?"
+    choices:
+      - id: a
+        text: "How much of the previous cell state c_{t-1} is kept."
+        correct: true
+      - id: b
+        text: "The learning rate at time t."
+      - id: c
+        text: "The embedding dimension of x_t."
+      - id: d
+        text: "Whether dropout is enabled."
+    explanation: |
+      c_t includes f_t ⊙ c_{t-1}. Learning rate and dropout are optimiser/regularisation choices.
+
+  - slug: lstm-gates-not-code
+    unit: lstm-gates-intuition
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 110
+    stem: '"LSTM gates are hand-written if/then rules." Correction?'
+    choices:
+      - id: a
+        text: "Gates are learned smooth sigmoids trained by gradient descent, not author-written symbolic logic."
+        correct: true
+      - id: b
+        text: "Correct — engineers set discrete thresholds per dataset."
+        misconception: lstm.gates_are_symbolic_rules
+      - id: c
+        text: "Gates exist only at inference, not during training."
+      - id: d
+        text: "Only the output gate is learned; forget and input are fixed at 1."
+    explanation: |
+      Names sound imperative; the mechanism is differentiable soft switching learned from data.
+
+  - slug: lstm-additive
+    unit: lstm-gates-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Why does an additive cell update help long-range learning versus a plain tanh RNN?"
+    choices:
+      - id: a
+        text: "A near-copy path (forget≈1, input≈0) keeps gradients from vanishing as fast as through repeated tanh Jacobians."
+        correct: true
+      - id: b
+        text: "Addition makes the model unsupervised."
+      - id: c
+        text: "Additive updates remove the need for any nonlinearity forever."
+      - id: d
+        text: "They guarantee perfect 10,000-step memory in every trained model."
+    explanation: |
+      Possibility of identity-like flow is the point; guarantees of arbitrary memory are not. Nonlinearity
+      remains in candidates and gates.
+
+  - slug: lstm-copy
+    unit: lstm-gates-intuition
+    type: true_false
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 80
+    stem: "If f_t = 1 and i_t = 0 for many steps, the cell state can pass forward nearly unchanged."
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — that is the highway behaviour that carries bits across time when gates learn to hold.
+
+  - slug: lstm-purpose
+    unit: lstm-gates-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "LSTMs were primarily introduced to address which problem?"
+    choices:
+      - id: a
+        text: "Vanishing gradients / failed long-range credit assignment in plain RNNs."
+        correct: true
+      - id: b
+        text: "GPU memory fragmentation in convolutions."
+      - id: c
+        text: "Label leakage in tabular pipelines."
+      - id: d
+        text: "The need for positional encodings in transformers."
+    explanation: |
+      Hochreiter & Schmidhuber target long-term gradient flow. Positional encodings are a
+      transformer concern; leakage is classical ML hygiene.
+
+assessments:
+  - slug: convolution-intuition-practice
+    title: "Practice: convolution"
+    kind: practice
+    unit: convolution-intuition
+    items:
+      - cnn-two-constraints
+      - cnn-shape-params
+      - cnn-param-growth
+
+  - slug: convolution-intuition-quiz
+    title: "Quiz: convolution"
+    kind: quiz
+    unit: convolution-intuition
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - cnn-two-constraints
+      - cnn-not-just-dense
+      - cnn-param-growth
+      - cnn-1x1
+
+  - slug: pooling-and-receptive-fields-practice
+    title: "Practice: pooling and receptive fields"
+    kind: practice
+    unit: pooling-and-receptive-fields
+    items:
+      - pool-what
+      - pool-rf-def
+      - pool-half-size
+
+  - slug: pooling-and-receptive-fields-quiz
+    title: "Quiz: pooling and receptive fields"
+    kind: quiz
+    unit: pooling-and-receptive-fields
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - pool-what
+      - pool-not-dropout
+      - pool-rf-def
+      - pool-segmentation
+
+  - slug: rnn-sequence-modeling-practice
+    title: "Practice: RNNs"
+    kind: practice
+    unit: rnn-sequence-modeling
+    items:
+      - rnn-share
+      - rnn-vanish
+      - rnn-bptt
+
+  - slug: rnn-sequence-modeling-quiz
+    title: "Quiz: RNNs"
+    kind: quiz
+    unit: rnn-sequence-modeling
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - rnn-share
+      - rnn-memory-lossless
+      - rnn-vanish
+      - rnn-bptt
+
+  - slug: lstm-gates-intuition-practice
+    title: "Practice: LSTM gates"
+    kind: practice
+    unit: lstm-gates-intuition
+    items:
+      - lstm-forget
+      - lstm-copy
+      - lstm-purpose
+
+  - slug: lstm-gates-intuition-quiz
+    title: "Quiz: LSTM gates"
+    kind: quiz
+    unit: lstm-gates-intuition
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - lstm-forget
+      - lstm-gates-not-code
+      - lstm-additive
+      - lstm-purpose
+
+cards:
+  - slug: card-cnn-sharing
+    unit: convolution-intuition
+    front: "Convolution vs dense — two constraints?"
+    back: "Local receptive fields and weight sharing across spatial positions."
+
+  - slug: card-rf
+    unit: pooling-and-receptive-fields
+    front: "What is a receptive field?"
+    back: "The region of the input that influences a given activation."
+
+  - slug: card-rnn-share
+    unit: rnn-sequence-modeling
+    front: "What does an RNN share across time?"
+    back: "The same cell parameters at every timestep; state h_t carries the memory."
+
+  - slug: card-lstm-forget
+    unit: lstm-gates-intuition
+    front: "Forget gate does what?"
+    back: "Scales how much of c_{t-1} is kept in the additive cell update."

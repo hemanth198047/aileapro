@@ -1,0 +1,703 @@
+# Wave 3: convolutional nets and sequence models (RNN/LSTM intuition).
+#
+# Domains from 10-domains.yml: convolutional-neural-networks, recurrent-neural-networks.
+# Chapters nest under those domains; knowledge units nest under the chapters.
+
+units:
+  - slug: convnets
+    title: Convolutional Networks
+    kind: chapter
+    parent: convolutional-neural-networks
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 90
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [deep-learning, vision, cnn]
+    objectives:
+      - Explain convolution as shared local filters sliding over a grid.
+      - Relate pooling and depth to receptive-field growth.
+    description: >-
+      The inductive bias that made vision work: local receptive fields, weight sharing, and
+      pooling — before residual networks made depth easy.
+    blocks:
+      - type: why
+        markdown: |
+          Images are grids with locality and translation structure. Dense layers ignore that and
+          pay for it with parameters. Convolution builds the right bias in: the same small detector
+          runs everywhere. These two pages are that bias, plus how pooling and depth grow what each
+          unit can see.
+
+  - slug: convolution-intuition
+    title: Convolution as Shared Local Filters
+    kind: knowledge_unit
+    parent: convnets
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [deep-learning, cnn, convolution, vision]
+    objectives:
+      - Describe a 2D convolution as a small kernel applied at every spatial location.
+      - Explain weight sharing and local connectivity as the two parameter savings.
+      - Read output shape from input size, kernel, stride, and padding at a high level.
+      - Say what a channel is and why early layers learn edges.
+    description: >-
+      A convolutional layer is a bank of small filters slid across the input. Same weights
+      everywhere; each filter responds to a local pattern.
+    blocks:
+      - type: why
+        markdown: |
+          Before residual nets and transformers-for-vision, almost every successful vision model was
+          a stack of convolutions. The reason is not fashion: natural images are full of the same
+          patterns in many places, and convolution is the operation that searches for a pattern
+          with one shared template.
+
+      - type: eli5
+        markdown: |
+          Take a small cardboard stencil — say a little edge shape — and slide it over a photo,
+          marking every place the stencil matches. Use several stencils (horizontal edge, vertical
+          edge, blob). The marks become a new, smaller sketch of "where each pattern appeared."
+
+          You did not learn a separate stencil for every pixel. One stencil, many positions — that
+          is weight sharing.
+
+      - type: beginner
+        markdown: |
+          An image is a tensor $H \times W \times C$ (height, width, channels). A **kernel** (filter)
+          is a small tensor $k_h \times k_w \times C$. At each location, multiply the kernel by the
+          patch under it and sum — that scalar is one output activation. Slide across space to fill
+          an output map. Several kernels produce several output channels.
+
+          Two design choices do the work:
+
+          1. **Local connectivity.** Each output depends only on a patch, not on the whole image.
+          2. **Weight sharing.** The same kernel is reused at every location.
+
+          Compared with a dense layer from all pixels to all outputs, parameters drop from millions
+          to the size of a few small kernels. Translation of a pattern moves the activation with it
+          — a useful equivariance for vision.
+
+          **Stride** jumps the kernel by more than one pixel (downsamples). **Padding** adds a
+          border so spatial size can be preserved. Exact shape arithmetic is in every library doc;
+          the idea is: kernel and stride decide how fast the map shrinks.
+
+      - type: intermediate
+        markdown: |
+          **Channels as feature types.** Early layers tend to learn oriented edges and colour blobs;
+          deeper layers combine them into textures and parts. That progression is not magic — it is
+          composition of local detectors, which is why depth matters even before residual shortcuts.
+
+          **Cross-channel mixing.** A kernel spans all input channels, so a "red-green edge"
+          detector is expressible in one filter. Output channel $c'$ is a different filter, not a
+          copy.
+
+          **1×1 convolutions** are dense layers *across channels* at each position — used to change
+          channel count cheaply without spatial mixing. They look like a trick until you see them as
+          per-position feature transforms.
+
+          **Parameter count.** For output channels $C_\mathrm{out}$, parameters are roughly
+          $C_\mathrm{out} \times k_h \times k_w \times C_\mathrm{in}$ (plus biases). Independent of
+          $H$ and $W$ — that is the point of sharing.
+
+          LeCun et al.'s document-recognition work made this stack practical: convolution, pooling,
+          and gradient learning on pixels rather than hand features.
+
+      - type: example
+        markdown: |
+          Input $28\times28\times1$ (grayscale digit). One $5\times5$ kernel, stride 1, no padding:
+
+          - Spatial output: $24\times24$ (shrinks by 2 on each side).
+          - With 8 kernels: output $24\times24\times8$.
+          - Parameters: $8\times5\times5\times1 = 200$ weights (+ 8 biases).
+
+          A dense layer from $784$ pixels to $24\times24\times8 = 4608$ units would need
+          $784\times4608$ weights — orders of magnitude more — and would not share an edge detector
+          across locations.
+
+          ```python
+          # Conceptual: one output pixel
+          # out[i, j, c] = sum_{u,v,cin} K[u, v, cin, c] * x[i+u, j+v, cin]
+          ```
+
+      - type: misconception
+        payload:
+          code: cnn.conv_is_matrix_multiply_dense
+          claim: "A convolution is just a fully connected layer with a fancy name."
+          markdown: |
+            **The claim:** convolution is dense linear algebra in disguise, so the structure does
+            not matter.
+
+            **Why it feels right:** im2col implementations literally multiply a patched matrix by
+            filter weights.
+
+            **What actually happens:** the *support* is local and the *weights are tied* across
+            positions. Those constraints are the model. Untie them (a different filter per location)
+            and you have a locally connected layer with far more parameters and no translation
+            sharing. The multiply is an implementation; the inductive bias is the definition.
+
+            **How to catch yourself:** count parameters as image size grows. For a conv net they stay
+            flat in $H,W$; for a dense net they explode.
+
+      - type: common_mistake
+        markdown: |
+          **Confusing stride with pooling.** Both downsample; stride skips positions inside the
+          convolution, pooling aggregates a neighbourhood after (or instead). They are not
+          interchangeable in every architecture.
+
+          **Forgetting channel depth in parameter counts.** A $3\times3$ on 256 input channels is
+          not "9 weights" — it is $3\times3\times256$ per output channel.
+
+          **Expecting global understanding in one layer.** One convolution sees only its kernel;
+          large receptive fields need depth, pooling, or dilated kernels.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. For $32\times32\times3$ input and a $3\times3$ conv with 16 output channels, stride 1,
+               padding 1, what is the output shape? Roughly how many weights?
+            2. Why does weight sharing help with translated objects?
+            3. Contrast a dense layer on flattened pixels with a conv layer in two bullet points.
+            4. What does a $1\times1$ convolution mix, and what does it not mix?
+            5. Correct: "convolution is just a fully connected layer."
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What two constraints define a conv layer versus dense?"
+              answer: "Local receptive fields and weight sharing across spatial positions."
+            - question: "Why do early CNN layers often look like edge detectors?"
+              answer: >-
+                Small kernels fit local contrast patterns; training on natural images makes those
+                detectors useful first.
+            - question: "Do conv parameter counts grow with image height and width?"
+              answer: "No — they grow with kernel size and channel counts, not H×W."
+            - question: "What is a channel in a CNN feature map?"
+              answer: >-
+                One filter's response map — a spatial grid of how strongly that pattern matched.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Compute a toy output shape and parameter count for a single conv layer.
+            - Explain weight sharing without appealing to framework magic.
+            - Distinguish implementation (im2col matmul) from the inductive bias.
+            - Cite LeCun's CNN work and a modern tutorial implementation (d2l) as references.
+    resources:
+      - source: lecun-cnn-1998
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: "Gradient-based CNNs for document recognition — convolution and pooling as the vision stack."
+      - source: d2l
+        purpose: TOOL_REFERENCE
+        relevance: 0.85
+        excerpt: "CNN chapters derive shapes and implement conv layers step by step. CC BY-SA 4.0."
+
+  - slug: pooling-and-receptive-fields
+    title: Pooling and Receptive Fields
+    kind: knowledge_unit
+    parent: convnets
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [deep-learning, cnn, pooling, receptive-field]
+    objectives:
+      - Explain max and average pooling as local downsampling.
+      - Define receptive field and how depth and pooling grow it.
+      - Say what pooling buys (some translation tolerance, cheaper deep stacks) and what it costs (spatial precision).
+    description: >-
+      Pooling shrinks feature maps and grows the effective region of the input that influences a
+      unit. Receptive fields are how you track what "deep" actually sees.
+    blocks:
+      - type: why
+        markdown: |
+          A $3\times3$ convolution alone never sees a whole object. Depth, stride, and pooling
+          expand each unit's view of the input. If you cannot track receptive fields, "just add
+          layers" is a slogan rather than a design.
+
+      - type: eli5
+        markdown: |
+          After marking where your stencils matched, take each small neighbourhood of marks and keep
+          only the strongest (max pool) or the average. The sketch gets smaller and blurrier, but a
+          mark that shifted by a pixel often still survives.
+
+          Deeper in the stack, each leftover mark "means" a larger patch of the original photo —
+          that patch is its receptive field.
+
+      - type: beginner
+        markdown: |
+          **Pooling** aggregates a window (often $2\times2$) into one value:
+
+          - **Max pool** — strongest activation; keeps presence of a feature.
+          - **Average pool** — mean activation; smoother, used in some heads as global average pool.
+
+          Typical stride equals the window, so $H$ and $W$ roughly halve. Fewer spatial positions
+          make the next convolution cheaper and effectively larger in input coordinates.
+
+          **Receptive field (RF).** The region of the *input image* that affects a given activation.
+          A unit in layer 1 with a $3\times3$ kernel has RF $3\times3$. After pooling and more
+          convolutions, RF grows. Designers track RF so that the last layer's units cover enough
+          context for the task (object vs texture vs pixel label).
+
+      - type: intermediate
+        markdown: |
+          **Growth rule of thumb.** Each conv adds roughly $(k-1)$ to the RF along each axis when
+          stride is 1, measured in *that layer's* coordinates; strides and pooling multiply how those
+          increments map back to input pixels. Downsampling is why deep VGG-style stacks see the
+          whole image without absurd kernels.
+
+          **Translation tolerance vs localisation.** Pooling (and striding) throw away precise
+          position. Classification can afford that; dense prediction (segmentation, detection) needs
+          skip connections, dilated convolutions, or lighter pooling to keep spatial detail — a
+          lesson later architectures encode.
+
+          **Global average pooling** replaces flattening huge maps into dense layers: average each
+          channel's map to one number, then classify. Fewer parameters, harder to overfit the head,
+          and a clear link from class scores back to channels.
+
+          Residual networks later eased training of very deep stacks; the RF story still applies —
+          shortcuts do not shrink receptive fields; they ease optimisation.
+
+      - type: example
+        markdown: |
+          Start RF $=1$ (a pixel). After a $3\times3$ conv (stride 1): RF $=3$. After $2\times2$
+          pool (stride 2): RF $=4$ in input pixels for each pooled cell (adjacent $3\times3$ views
+          merge under the downsample — exact bookkeeping depends on alignment; the qualitative jump
+          is what matters in a first pass).
+
+          A second $3\times3$ on the pooled map expands RF further by $2\times(3-1)$ input-pixel
+          steps when the pool halved resolution — deeper layers see double-digit regions quickly.
+
+          **Task check.** ImageNet classification with final RF covering most of the image is
+          intentional. A model for 1-pixel edges that pools aggressively will blur them away —
+          wrong objective, not "bad luck."
+
+      - type: misconception
+        payload:
+          code: cnn.pooling_is_just_regularisation
+          claim: "Pooling exists mainly as regularisation, like dropout."
+          markdown: |
+            **The claim:** we pool to reduce overfitting.
+
+            **Why it feels right:** pooling discards information, and discarded information can
+            reduce memorisation of exact positions.
+
+            **What actually happens:** the primary jobs are downsampling (compute and memory) and
+            growing receptive fields with small kernels. Any regularisation effect is secondary.
+            You can regularise without pooling; you cannot grow RF efficiently with only $3\times3$
+            stride-1 stacks on full-resolution maps forever.
+
+            **How to catch yourself:** ask what spatial size and RF you need at the end. If the
+            answer drives pooling, it was an architecture choice, not a dropout substitute.
+
+      - type: common_mistake
+        markdown: |
+          **Counting RF only as product of kernel sizes.** Strides matter; ignoring them
+          underestimates how fast RF grows.
+
+          **Max-pooling away signal for dense prediction** then wondering why boundaries are mushy.
+
+          **Assuming every architecture must pool.** Fully convolutional designs with dilation or
+          strides inside convs are alternatives with different precision trade-offs.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Halve a $64\times64$ map with $2\times2$ stride-2 max pool. What size results?
+            2. In words, what is the receptive field of an activation?
+            3. Why might segmentation prefer less aggressive pooling than classification?
+            4. Is pooling the same mechanism as dropout? Why or why not?
+            5. Give one benefit and one cost of max pooling.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does 2×2 stride-2 max pool do to spatial size?"
+              answer: "Roughly halves height and width, keeping the max in each window."
+            - question: "What is a receptive field?"
+              answer: "The region of the input that influences a given activation."
+            - question: "Name two reasons CNNs pool or stride down."
+              answer: "Reduce compute/memory and grow receptive fields with small kernels."
+            - question: "What does pooling cost for localisation tasks?"
+              answer: "Spatial precision — exact position of features becomes coarser."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Trace, at least qualitatively, how RF grows through conv and pool layers.
+            - Choose pooling aggressiveness with the task (classify vs localise) in mind.
+            - Reject "pooling = dropout" as an explanation.
+            - Connect classic CNN stacks (LeCun / d2l) to this downsampling story.
+    resources:
+      - source: lecun-cnn-1998
+        purpose: PRIMARY_SOURCE
+        relevance: 0.75
+        excerpt: "Pooling (subsampling) layers as part of the classic CNN pattern."
+      - source: d2l
+        purpose: TOOL_REFERENCE
+        relevance: 0.8
+        excerpt: "Pooling and receptive-field discussion in the CNN chapters."
+      - source: resnet-2015
+        purpose: DEEPER_REFERENCE
+        relevance: 0.5
+        excerpt: "Deep residual stacks still rely on the same spatial downsampling ideas at stages."
+
+  - slug: sequence-models
+    title: Sequence Models
+    kind: chapter
+    parent: recurrent-neural-networks
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 90
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [deep-learning, sequences, rnn]
+    objectives:
+      - Explain recurrence as sharing a cell across time with a hidden state.
+      - Motivate gating (LSTM) as a fix for vanishing gradients through time.
+    description: >-
+      Modelling sequences with shared weights across time: plain RNNs, the vanishing-gradient
+      problem, and LSTM gates as controllable memory.
+    blocks:
+      - type: why
+        markdown: |
+          Before transformers, almost every sequence model carried a hidden state through time.
+          Attention largely replaced recurrence for large-scale language modelling, but the RNN/LSTM
+          story is still the right way to understand state, vanishing gradients through time, and
+          why gating appeared — and it still ships in speech and some streaming settings.
+
+  - slug: rnn-sequence-modeling
+    title: RNNs as Shared Cells Across Time
+    kind: knowledge_unit
+    parent: sequence-models
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [deep-learning, rnn, sequences]
+    objectives:
+      - Write the basic RNN recurrence $h_t = f(W_h h_{t-1} + W_x x_t)$.
+      - Explain weight sharing across time and how backpropagation through time works at a high level.
+      - State the vanishing-gradient problem for long dependencies.
+      - Contrast sequential state with attention's all-pairs mixing.
+    description: >-
+      One cell, applied at every timestep, threading a hidden state through the sequence. Elegant,
+      parallel-hostile, and fragile over long spans without gating.
+    blocks:
+      - type: why
+        markdown: |
+          Language, audio, and sensor streams are ordered. A model that reads one step at a time
+          with a memory of the past matches that structure. The simple recurrent net is the
+          clearest statement of that idea — and the clearest demonstration of why naive depth
+          through time fails.
+
+      - type: eli5
+        markdown: |
+          Read a story one word at a time. After each word, update a sticky note that says "what I
+          believe so far." The next word is understood in light of the sticky note, then you rewrite
+          the note.
+
+          Same rewriting rule every time — that is weight sharing across time. If the story is long
+          and the note keeps getting smudged, early plot points vanish — that is the vanishing
+          problem.
+
+      - type: beginner
+        markdown: |
+          At timestep $t$ with input $x_t$ and previous hidden state $h_{t-1}$:
+
+          $$
+          h_t = \tanh(W_h h_{t-1} + W_x x_t + b)
+          $$
+
+          (Activation may vary; $\tanh$ is the textbook default.) Output layers read from $h_t$ for
+          next-token prediction, tagging, etc.
+
+          **Sharing.** The same $W_h, W_x$ apply at every $t$. Sequence length does not add new
+          parameters — comparable to convolution's sharing over space.
+
+          **BPTT.** Training unrolls the recurrence into a deep chain of copies of the cell and
+          backpropagates through that chain (backpropagation through time). Memory and compute scale
+          with sequence length; steps are not parallel across $t$ the way transformer attention is.
+
+      - type: intermediate
+        markdown: |
+          **Vanishing and exploding gradients.** The gradient of the loss at time $T$ w.r.t. early
+          states multiplies many Jacobians $\partial h_t / \partial h_{t-1}$. If those maps shrink
+          singular values below 1, signals from the distant past die; if they explode, training
+          diverges. Plain tanh RNNs often vanish on dependencies longer than tens of steps.
+
+          **What recurrence gives that attention also gives differently.** Both mix information
+          across positions. Recurrence mixes **sequentially** with $O(L)$ state updates and a
+          compressed state bottleneck; attention mixes with $O(L^2)$ pairwise scores and keeps all
+          positions explicit. Transformers largely won at scale on parallelism and path length;
+          RNNs still matter pedagogically and in some latency-streaming regimes.
+
+          **Bidirectional RNNs** run a second state backward for offline tagging; they are illegal
+          for true left-to-right generation.
+
+      - type: example
+        markdown: |
+          Sentiment on a five-token sentence. Hidden size 2 for illustration — ignore learned
+          realism.
+
+          $h_0 = (0,0)$. After token 1, $h_1$ encodes that token; after token 5, $h_5$ must still
+          carry negation from token 2 ("not") to flip the polarity of "good" at token 5. In a plain
+          RNN, that bit has been squashed through three tanh Jacobians — often gone.
+
+          Empirically, copying a bit across 50 steps fails for vanilla RNNs and succeeds much more
+          often for LSTMs — motivation for the next unit, and the empirical pattern Hochreiter &
+          Schmidhuber designed for.
+
+      - type: misconception
+        payload:
+          code: rnn.state_is_lossless_memory
+          claim: "The hidden state stores the entire past sequence losslessly."
+          markdown: |
+            **The claim:** $h_t$ is a perfect summary of $x_1,\ldots,x_t$.
+
+            **Why it feels right:** we call it memory; diagrams show an arrow carrying the past.
+
+            **What actually happens:** $h_t$ is a fixed-size bottleneck. Information is compressed
+            and overwritten. Long-range bits survive only if the dynamics preserve them — which
+            plain RNNs often do not. Attention keeps past tokens as explicit vectors to re-read;
+            recurrence must squeeze them into $h$.
+
+            **How to catch yourself:** ask what happens to capacity as $t$ grows with $\|h\|$ fixed.
+            Lossless storage of unbounded history is impossible; the architecture never claimed it.
+
+      - type: common_mistake
+        markdown: |
+          **Unrolling truncated BPTT without noticing.** Long dependencies outside the truncation
+          window cannot be learned — silent failure.
+
+          **Comparing RNN wall-clock to transformers on short sequences only.** The parallelism gap
+          shows up at scale and length.
+
+          **Using bidirectional context in a streaming product.** Future frames are not available.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write the update for $h_t$ and circle which matrices are shared across time.
+            2. Why does BPTT memory scale with sequence length?
+            3. Give an intuitive reason gradients vanish through many tanh steps.
+            4. Name one advantage of recurrence and one of attention for sequence mixing.
+            5. Correct: "the hidden state stores the entire past losslessly."
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is shared across timesteps in an RNN?"
+              answer: "The cell parameters (e.g. W_h, W_x), not a separate network per time index."
+            - question: "What is BPTT?"
+              answer: "Backpropagation through the unrolled recurrent chain across timesteps."
+            - question: "Why do plain RNNs struggle with long-range dependencies?"
+              answer: >-
+                Gradients through many multiplied Jacobians vanish (or explode), so early tokens
+                stop influencing learning.
+            - question: "Is h_t a lossless recording of the past?"
+              answer: "No — it is a fixed-size compression that can overwrite earlier information."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Write the RNN recurrence and explain sharing versus unrolling.
+            - Connect vanishing gradients through time to failed long dependencies.
+            - Compare sequential state to attention without declaring either useless.
+            - Point to d2l's RNN chapter and the historical LSTM motivation paper.
+    resources:
+      - source: hochreiter-lstm-1997
+        purpose: PRIMARY_SOURCE
+        relevance: 0.7
+        excerpt: "Motivates gated memory from the failure of plain recurrent gradient flow."
+      - source: d2l
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: "RNN chapters implement the recurrence and discuss BPTT. CC BY-SA 4.0."
+
+  - slug: lstm-gates-intuition
+    title: LSTM Gates as Controllable Memory
+    kind: knowledge_unit
+    parent: sequence-models
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [deep-learning, lstm, rnn, sequences]
+    objectives:
+      - Name the forget, input, and output gates and what each modulates.
+      - Explain the cell state as an additive highway that eases gradient flow.
+      - Say why gating helps long-range dependencies relative to a plain tanh RNN.
+    description: >-
+      LSTMs add an explicit cell state updated by gates so information can pass across many
+      timesteps without being squashed at every step.
+    blocks:
+      - type: why
+        markdown: |
+          Gating is the idea that fixed the practical RNN: let the network decide what to erase,
+          what to write, and what to expose — and keep a cell state that adds updates instead of
+          overwriting through a squash every time. Transformers later bypassed recurrence; they did
+          not make the vanishing problem imaginary.
+
+      - type: eli5
+        markdown: |
+          Upgrade the sticky note to a notebook with three switches:
+
+          - **Forget:** erase some old notes?
+          - **Input:** write this new word into the notebook?
+          - **Output:** how much of the notebook do I show when speaking my next thought?
+
+          The notebook itself can carry a sentence for a long time if the forget switch stays off —
+          that is the long-term cell state.
+
+      - type: beginner
+        markdown: |
+          An LSTM keeps a **cell state** $c_t$ and a **hidden state** $h_t$. Gates are sigmoids with
+          values in $(0,1)$, applied elementwise:
+
+          - **Forget gate $f_t$** — how much of $c_{t-1}$ to keep.
+          - **Input gate $i_t$** — how much of a new candidate $\tilde{c}_t$ to write.
+          - **Output gate $o_t$** — how much of the cell to expose as $h_t$.
+
+          Core update (schematic):
+
+          $$
+          c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t
+          $$
+
+          $$
+          h_t = o_t \odot \tanh(c_t)
+          $$
+
+          The **additive** path $f_t \odot c_{t-1}$ is the highway: if $f_t \approx 1$ and $i_t
+          \approx 0$, the cell copies forward almost unchanged — gradients can flow across many
+          steps along that path. That is the design Hochreiter & Schmidhuber introduced.
+
+      - type: intermediate
+        markdown: |
+          **Why addition beats repeated tanh.** In a plain RNN, $h_t = \tanh(W_h h_{t-1}+\cdots)$
+          forces every timestep through a nonlinearity whose derivative is $\le 1$. In an LSTM,
+          the cell can mostly *add* small writes. Derivatives along a near-copy path stay near 1,
+          so credit assignment to early events remains possible.
+
+          **Gates are data-dependent.** They are functions of $x_t$ and $h_{t-1}$ (and sometimes
+          $c_{t-1}$). The model learns *when* to reset memory (sentence boundaries, topic changes)
+          rather than using a fixed decay.
+
+          **GRU.** A popular simplification merges gates and drops a separate cell; same spirit —
+          learned control of what persists — fewer parameters. If you understand LSTM gates, GRU is
+          a short step.
+
+          **Limits.** Even LSTMs struggle with very long contexts compared with attention's direct
+          paths; state is still a bottleneck. They remain useful when you need causal streaming with
+          modest state and sequential hardware constraints.
+
+      - type: example
+        markdown: |
+          Copy-a-bit task: at $t=1$, input a bit $b$; at $t=50$, output $b$. A successful LSTM
+          learns $f_t \approx 1$ for $t=2..49$ on the dimension storing $b$, and $i_t \approx 0$ so
+          noise does not overwrite it; at $t=50$, $o_t$ opens so $h_t$ reveals the bit.
+
+          A plain tanh RNN tends to overwrite or squash that dimension long before step 50 — not
+          because it "lacks neurons," but because its dynamics lack a near-identity path through
+          time.
+
+      - type: misconception
+        payload:
+          code: lstm.gates_are_symbolic_rules
+          claim: "LSTM gates are hand-written if/then rules like a program counter."
+          markdown: |
+            **The claim:** forget/input/output are discrete logic the designer sets.
+
+            **Why it feels right:** names sound like imperative code; diagrams look like flowcharts.
+
+            **What actually happens:** gates are smooth, learned functions (sigmoids) trained by
+            gradient descent. They *behave* like soft switches after training, but nothing inserts
+            symbolic rules. You cannot read a deployed LSTM as reliable source code.
+
+            **How to catch yourself:** ask who set the gate thresholds. If the answer is "SGD on
+            data," they are not a program you authored.
+
+      - type: common_mistake
+        markdown: |
+          **Treating LSTM as guaranteeing long memory.** Capacity and training still limit what
+          persists; gating makes long credit assignment *possible*, not automatic.
+
+          **Ignoring gradient clipping.** Exploding gradients can still occur; clipping remains
+          common practice.
+
+          **Stacking deep LSTMs without residual/norm tricks** and blaming "LSTMs don't work" when
+          optimisation is the issue.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Match forget / input / output gates to erase, write, and expose.
+            2. Why does $c_t = f_t \odot c_{t-1} + \cdots$ help gradients versus $h_t=\tanh(W h_{t-1})$?
+            3. If $f_t=\mathbf{1}$ and $i_t=\mathbf{0}$ for many steps, what happens to $c_t$?
+            4. Are gates discrete? Justify in one sentence.
+            5. Name one limitation LSTMs still share with plain RNNs relative to attention.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does the forget gate scale?"
+              answer: "How much of the previous cell state c_{t-1} is kept."
+            - question: "Why is an additive cell update important?"
+              answer: >-
+                It creates a near-identity path through time so gradients do not vanish as quickly
+                as through repeated tanh Jacobians.
+            - question: "Are LSTM gates hard-coded logic?"
+              answer: "No — they are learned smooth sigmoids, not author-written if/then rules."
+            - question: "What problem did LSTMs primarily target?"
+              answer: "Learning long-range dependencies despite vanishing gradients in plain RNNs."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Sketch the cell update and name what each gate modulates.
+            - Explain the additive highway in gradient terms, not metaphors only.
+            - Separate "gating enables long memory" from "gating guarantees it."
+            - Cite Hochreiter & Schmidhuber as the primary source for the LSTM design.
+    resources:
+      - source: hochreiter-lstm-1997
+        purpose: PRIMARY_SOURCE
+        relevance: 0.95
+        excerpt: "Introduces constant-error carousels / gated memory to mitigate vanishing gradients."
+      - source: d2l
+        purpose: TOOL_REFERENCE
+        relevance: 0.85
+        excerpt: "LSTM section walks through gates with implementations. CC BY-SA 4.0."

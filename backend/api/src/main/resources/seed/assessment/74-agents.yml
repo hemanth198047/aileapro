@@ -1,0 +1,262 @@
+# Items for the agent units. No item names a framework, because the frameworks will change and
+# the loop will not.
+
+items:
+  - slug: agent-who-executes
+    unit: tool-calling-loop
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Who executes a tool call in an agent loop?"
+    choices:
+      - id: a
+        text: "Your code, after validating the model's structured request."
+        correct: true
+      - id: b
+        text: "The model, which has been given access to the tools."
+        misconception: agent.model_executes_tools
+      - id: c
+        text: "The model provider's infrastructure."
+      - id: d
+        text: "Whichever component holds the credentials."
+    explanation: |
+      The model emits text that your code parses as a call. Every gate — authorisation, argument
+      validation, confirmation for irreversible actions, spend limits, audit logging — is ordinary
+      software you control.
+
+      That distinction is not pedantry. It is the difference between a guarantee and a hope, and
+      it decides where injection defences belong.
+
+  - slug: agent-tool-description
+    unit: tool-calling-loop
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What makes a tool description good?"
+    choices:
+      - id: a
+        text: "It states what the tool returns and when *not* to use it, not just what it does."
+        correct: true
+      - id: b
+        text: "It is as long and detailed as possible."
+      - id: c
+        text: "It matches the function's docstring exactly."
+      - id: d
+        text: "It lists every error the tool can raise."
+    explanation: |
+      The description is the prompt the model uses to decide whether this tool applies. Two tools
+      whose descriptions could both plausibly apply will be confused, and that is a prompting bug
+      in a place people forget to look.
+
+      Keep the list of tools short, keep the parameters flat, and say when the tool does not apply.
+
+  - slug: agent-error-message
+    unit: tool-calling-loop
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      A tool rejects a malformed argument. Which response is more useful to the loop?
+    choices:
+      - id: a
+        text: "`{\"error\": \"order_id must match A0000; you sent 'A44'\"}`"
+        correct: true
+      - id: b
+        text: "`500 Internal Server Error`"
+      - id: c
+        text: "An empty result, so the model tries something else."
+      - id: d
+        text: "A retry after a delay, with no message."
+    explanation: |
+      Error messages in an agent loop are read by the model, so they should be written as
+      instructions. A specific message lets it correct the next call; an opaque status code gives
+      it nothing to act on and it will usually retry identically.
+
+      (c) is how most loops start: an empty result with no explanation leaves rephrasing as the
+      only available move, and the agent burns its step budget on synonyms.
+
+  - slug: agent-bounds
+    unit: tool-calling-loop
+    type: mcq
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "Which set of bounds does every deployed agent loop need?"
+    choices:
+      - id: a
+        text: "Maximum steps, a cost or token budget, a wall-clock timeout, and detection of repeated identical calls."
+        correct: true
+      - id: b
+        text: "A maximum output length and a temperature setting."
+      - id: c
+        text: "A retry limit on the model provider's API."
+      - id: d
+        text: "A rate limit on the user, which bounds everything downstream."
+    explanation: |
+      The loop can run indefinitely, and a model making no progress will keep calling until
+      something stops it. The absence of any one of these bounds is a production incident waiting
+      for the right input.
+
+      (c) and (d) bound different things: provider retries are about transient failures, and user
+      rate limits do nothing about a single request that loops two hundred times.
+
+  - slug: agent-compounding
+    unit: agent-failure-modes
+    type: short_text
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      Each step of an agent task succeeds with probability 0.95. What is the probability that a
+      20-step task completes correctly? Answer as a decimal to two places.
+    answer: 0.36
+    tolerance: 0.02
+    explanation: |
+      $0.95^{20} \approx 0.358$. Success requires every step to be right, so probabilities
+      multiply.
+
+      This is the most important number in the domain. A 95% reliable step is good, and it gives a
+      20-step task roughly a one-in-three chance. The two ways out are fewer steps — a fixed
+      workflow beats an open-ended loop whenever the sequence is known — and verification with
+      retry, which raises the effective per-step reliability.
+
+  - slug: agent-injection-defence
+    unit: agent-failure-modes
+    type: mcq
+    bloom: evaluate
+    difficulty: 5
+    estimateSeconds: 160
+    stem: |
+      A retrieved document could contain text instructing the agent to email customer data
+      outside the company. What is the primary defence?
+    choices:
+      - id: a
+        text: "An allow-list of destination domains enforced in the tool handler, so no text can authorise the call."
+        correct: true
+      - id: b
+        text: "A firmly worded system prompt telling the model to ignore instructions in documents."
+        misconception: agent.better_prompt_stops_injection
+      - id: c
+        text: "A filter that removes suspicious phrases from retrieved text."
+      - id: d
+        text: "Using a larger model, which is harder to manipulate."
+    explanation: |
+      The system prompt and the injected text are the same kind of thing in the same channel —
+      tokens weighted by relevance, with no architectural notion of privilege. Prompt hardening is
+      a useful second layer and never the first.
+
+      (c) helps against known patterns and loses to paraphrase. The test to apply per tool: what
+      could a maximally adversarial tool result achieve? If any answer is unacceptable, the
+      mitigation belongs in the handler.
+
+  - slug: agent-loop-cause
+    unit: agent-failure-modes
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      An agent calls `search_files` five times with slightly reworded queries, each returning
+      `[]`. Where does the fix belong?
+    choices:
+      - id: a
+        text: "In the tool's output — return a hint about what is available — plus a repeated-call detector."
+        correct: true
+      - id: b
+        text: "In the system prompt, instructing the model not to repeat itself."
+      - id: c
+        text: "In the model choice; a stronger model would not loop."
+      - id: d
+        text: "In the step limit alone, which will eventually stop it."
+    explanation: |
+      An empty result with no explanation leaves rephrasing as the only available move. Returning
+      `{"results": [], "hint": "No matches. Available folders: Finance/2025, Finance/2026."}` gives
+      the model something to act on.
+
+      (d) contains the cost but does not complete the task, and (b) is an instruction competing
+      with the model's own reasonable inference that a different phrasing might work.
+
+  - slug: agent-vs-workflow
+    unit: agent-failure-modes
+    type: true_false
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 110
+    stem: |
+      When the sequence of steps is known in advance, a fixed workflow with a few model calls is
+      usually more reliable than an open-ended agent loop.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True, and it follows directly from the compounding arithmetic: each model decision multiplies
+      another reliability factor into the product.
+
+      Most production "agents" are mostly deterministic pipelines with model calls at specific
+      points. That is a good design rather than a failure of ambition, and adding steps to fix a
+      failure is more often wrong than right.
+
+assessments:
+  - slug: tool-calling-loop-practice
+    title: "Practice: the tool-calling loop"
+    kind: practice
+    unit: tool-calling-loop
+    items:
+      - agent-who-executes
+      - agent-tool-description
+      - agent-bounds
+
+  - slug: tool-calling-loop-quiz
+    title: "Quiz: the tool-calling loop"
+    kind: quiz
+    unit: tool-calling-loop
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - agent-who-executes
+      - agent-tool-description
+      - agent-error-message
+      - agent-bounds
+
+  - slug: agent-failure-modes-practice
+    title: "Practice: agent failure modes"
+    kind: practice
+    unit: agent-failure-modes
+    items:
+      - agent-compounding
+      - agent-loop-cause
+      - agent-vs-workflow
+
+  - slug: agent-failure-modes-quiz
+    title: "Quiz: how agents fail"
+    kind: quiz
+    unit: agent-failure-modes
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - agent-compounding
+      - agent-injection-defence
+      - agent-loop-cause
+      - agent-vs-workflow
+
+cards:
+  - slug: card-agent-boundary
+    unit: tool-calling-loop
+    front: "Where is the trust boundary in an agent loop?"
+    back: |
+      Between the model's proposed call and your handler. The model only ever emits a request; your
+      code validates, authorises, and executes — which is why controls belong there and not in the
+      prompt.
+
+  - slug: card-agent-compounding
+    unit: agent-failure-modes
+    front: "95% per-step reliability over 20 steps gives what?"
+    back: |
+      About 36%. Steps multiply, so the fixes are fewer steps and verification with retry — not a
+      longer chain.

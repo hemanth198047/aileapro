@@ -1,0 +1,166 @@
+# Items for tokenization-and-vocab.
+
+items:
+  - slug: tok-what-produced
+    unit: tokenization-and-vocab
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "What does a tokenizer primarily produce for a language model?"
+    choices:
+      - id: a
+        text: "A sequence of integer IDs from a fixed vocabulary."
+        correct: true
+      - id: b
+        text: "A parse tree of grammatical constituents."
+      - id: c
+        text: "A probability that the sentence is true."
+      - id: d
+        text: "One floating-point vector per character."
+    explanation: |
+      Models consume token IDs (then embeddings). Characters appear only when the vocabulary
+      happens to include them as pieces — not because the model reads Unicode directly.
+
+  - slug: tok-bpe-step
+    unit: tokenization-and-vocab
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "In byte-pair encoding, what happens repeatedly during training?"
+    choices:
+      - id: a
+        text: "The most frequent adjacent symbol pair is merged into a new vocabulary entry."
+        correct: true
+      - id: b
+        text: "Every word is split into exactly two halves."
+      - id: c
+        text: "Rare words are deleted from the corpus."
+      - id: d
+        text: "Tokens are sorted alphabetically into the embedding table."
+    explanation: |
+      BPE grows a vocabulary by merging frequent pairs until a size budget is reached. Common
+      endings and words become single tokens; rare strings stay fragmented.
+
+  - slug: tok-not-words
+    unit: tokenization-and-vocab
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      A teammate budgets context as "500 words ≈ 500 tokens." What is the strongest objection?
+    choices:
+      - id: a
+        text: "Tokens are subword pieces — rare words, code, and many languages use more tokens per word."
+        correct: true
+      - id: b
+        text: "Models ignore tokens beyond the first 256."
+      - id: c
+        text: "Words are always split into individual letters."
+        misconception: tok.tokens_are_words
+      - id: d
+        text: "Token counts only apply to training, not inference."
+    explanation: |
+      Equating tokens with words underestimates cost and context use for code and non-English
+      text especially. Measure with the model's own tokenizer on real traffic.
+
+  - slug: tok-vocab-tradeoff
+    unit: tokenization-and-vocab
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What is one cost of choosing a much smaller vocabulary?"
+    choices:
+      - id: a
+        text: "The same text tends to become more tokens, consuming context and budget faster."
+        correct: true
+      - id: b
+        text: "Softmax becomes impossible to compute."
+      - id: c
+        text: "The model can no longer handle English."
+      - id: d
+        text: "Embeddings become integers instead of floats."
+    explanation: |
+      Smaller vocabularies fragment text more. Larger vocabularies compress better but grow
+      embedding/output layers and can leave rare IDs undertrained — a trade-off, not a free win.
+
+  - slug: tok-model-specific
+    unit: tokenization-and-vocab
+    type: true_false
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      You should encode prompts with the tokenizer that belongs to the model you will call.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Token IDs index that model's embedding table. Another tokenizer's IDs refer to
+      different pieces and produce garbage conditioning.
+
+  - slug: tok-letter-counting
+    unit: tokenization-and-vocab
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: "Why can letter-counting tasks be hard for strong LLMs?"
+    choices:
+      - id: a
+        text: "The model often receives multi-character tokens, so letters inside a token are not first-class inputs."
+        correct: true
+      - id: b
+        text: "Tokenizers delete repeated letters by design."
+      - id: c
+        text: "Letter counting requires a separate vision module."
+      - id: d
+        text: "Vocabulary size is always smaller than the alphabet."
+    explanation: |
+      Subword tokenisation hides character structure inside IDs. The failure looks like reasoning;
+      the cause is the input representation.
+
+assessments:
+  - slug: tokenization-and-vocab-practice
+    title: "Practice: tokenisation and vocabulary"
+    kind: practice
+    unit: tokenization-and-vocab
+    items:
+      - tok-what-produced
+      - tok-bpe-step
+      - tok-vocab-tradeoff
+      - tok-model-specific
+
+  - slug: tokenization-and-vocab-quiz
+    title: "Quiz: tokenisation and vocabulary"
+    kind: quiz
+    unit: tokenization-and-vocab
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - tok-what-produced
+      - tok-not-words
+      - tok-vocab-tradeoff
+      - tok-letter-counting
+      - tok-model-specific
+
+cards:
+  - slug: card-tok-bpe
+    unit: tokenization-and-vocab
+    front: "What does BPE repeatedly merge?"
+    back: |
+      The most frequent adjacent symbol pair in the training data, until the vocabulary size
+      budget is reached.
+
+  - slug: card-tok-not-words
+    unit: tokenization-and-vocab
+    front: "Are tokens the same as words?"
+    back: |
+      No. Tokens are subword pieces (plus punctuation/specials). Word count is a weak proxy for
+      token count — measure with the model's tokenizer.

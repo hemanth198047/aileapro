@@ -1,0 +1,458 @@
+# Wave 2, part 1: the calculus that training actually uses.
+#
+# Scope is deliberately narrow. A learner heading for machine learning needs the derivative as
+# a rate, the gradient as a direction, and the chain rule as the thing backpropagation is.
+# Limits, integration, and series are not on this page because nothing downstream in the seed
+# depends on them yet, and pretending otherwise would be padding.
+
+units:
+  - slug: calculus-for-ml
+    title: Calculus for Machine Learning
+    kind: chapter
+    parent: calculus
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 65
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    tags: [mathematics, calculus, gradients]
+    objectives:
+      - Read a derivative as a rate of change rather than as a formula to memorise.
+      - Apply the chain rule to a composed function and say what each factor contributes.
+      - Connect both to the gradient step that trains every model in this curriculum.
+    description: >-
+      Two ideas, taught for use: the derivative as a rate, and the chain rule as the rule that
+      makes backpropagation possible. Everything else about calculus is left where it belongs.
+    blocks:
+      - type: why
+        markdown: |
+          Training a model is a loop of "measure the error, then move the parameters the way that
+          reduces it". The second half of that sentence is a derivative. Without it there is no
+          direction to move in, and the only alternative is guessing.
+
+          These two pages are the minimum needed to read a gradient in a paper, debug a training
+          run, and understand why the chain rule is the reason deep networks are trainable at all.
+
+  - slug: derivatives-as-rates
+    title: Derivatives as Rates of Change
+    kind: knowledge_unit
+    parent: calculus-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 30
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    tags: [mathematics, calculus, gradients, optimization]
+    objectives:
+      - State what a derivative measures and what its sign and magnitude each tell you.
+      - Compute a derivative from the difference quotient on a simple function.
+      - Explain why the gradient points uphill and what follows for gradient descent.
+      - Name a point where a derivative does not exist and say what that means for training.
+    description: >-
+      A derivative answers one question: if I nudge the input, how much does the output move, and
+      in which direction? That is the only question gradient descent ever asks.
+    blocks:
+      - type: why
+        markdown: |
+          Every training loop you will ever write contains the line `w -= lr * grad`. The whole
+          justification for that line is a derivative: it says which way the loss goes when the
+          weight moves, so stepping the other way lowers the loss.
+
+          Read the derivative as a *rate* rather than as a table of rules and this becomes obvious
+          instead of magical — and the two most common training failures, a dead gradient and an
+          exploding one, become things you can name instead of things that just happen.
+
+      - type: eli5
+        markdown: |
+          You are driving and you look at the speedometer. It does not tell you where you are; it
+          tells you how fast your position is changing right now.
+
+          A derivative is a speedometer for any quantity. How fast does the error change when I
+          turn this dial a tiny bit? If the answer is "it goes up fast", turn the dial the other
+          way. If the answer is "it barely moves", this dial is not the problem.
+
+      - type: beginner
+        markdown: |
+          For a function $f$, the derivative at a point $x$ is the limit of the average rate of
+          change over a shrinking interval:
+
+          $$
+          f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h}
+          $$
+
+          Two things to read off it, and both matter more than the arithmetic:
+
+          - **Sign.** $f'(x) > 0$ means the output rises as the input rises. $f'(x) < 0$ means it
+            falls. $f'(x) = 0$ means you are at a flat point — a minimum, a maximum, or a saddle.
+          - **Magnitude.** A large $|f'(x)|$ means a small nudge to the input causes a large move
+            in the output. Sensitivity, in one number.
+
+          The rules you will actually use, all of which follow from the limit above:
+
+          $$
+          \frac{d}{dx}x^n = nx^{n-1}, \qquad
+          \frac{d}{dx}e^{x} = e^{x}, \qquad
+          \frac{d}{dx}\ln x = \frac{1}{x}
+          $$
+
+          For a function of several variables, the **partial derivative**
+          $\partial f / \partial x_i$ is the same thing with every other input held fixed, and the
+          **gradient** $\nabla f$ is the vector of all of them.
+
+      - type: intermediate
+        markdown: |
+          The gradient is not just a bag of partial derivatives — it has a geometric meaning that
+          is the entire reason gradient descent works. Near a point, $f$ is well approximated by
+          its linearisation:
+
+          $$
+          f(\mathbf{x} + \mathbf{d}) \approx f(\mathbf{x}) + \nabla f(\mathbf{x}) \cdot \mathbf{d}
+          $$
+
+          That dot product is largest when $\mathbf{d}$ points the same way as $\nabla f$, so the
+          gradient is the direction of **steepest increase**. Minimising means stepping along
+          $-\nabla f$, which is exactly the update rule from the neuron unit.
+
+          The word *approximately* is doing real work. The linearisation is only trustworthy in a
+          small neighbourhood, which is what the learning rate controls. Too large a step leaves
+          the region where the approximation held, and the loss can rise even though you moved
+          "downhill" — the oscillating loss curve in every badly tuned training run.
+
+          A derivative can also fail to exist. $|x|$ has no derivative at $0$: the rate from the
+          left is $-1$ and from the right is $+1$. Practical code picks one (subgradient $0$ is
+          the usual convention) and moves on, but that choice is a decision, not a fact.
+
+      - type: example
+        markdown: |
+          Take $f(x) = x^2$ and find the rate at $x = 3$ from the definition, not the rule.
+
+          $$
+          \frac{f(3+h) - f(3)}{h} = \frac{(3+h)^2 - 9}{h} = \frac{9 + 6h + h^2 - 9}{h} = 6 + h
+          $$
+
+          As $h \to 0$ this is $6$, matching $f'(x) = 2x$ at $x = 3$.
+
+          Now read it as a rate. At $x = 3$ the function climbs six units of output per unit of
+          input. So to *decrease* $f$, move $x$ down. One gradient descent step with
+          $\eta = 0.1$:
+
+          $$
+          x \leftarrow 3 - 0.1 \cdot 6 = 2.4, \qquad f(2.4) = 5.76 < 9
+          $$
+
+          The loss fell, as promised. Try the same step with $\eta = 1.0$: $x \leftarrow 3 - 6 =
+          -3$ and $f(-3) = 9$ — no progress at all, because the step left the neighbourhood where
+          the linear approximation was any good. With $\eta = 1.5$ it gets worse each step.
+
+      - type: misconception
+        payload:
+          code: calc.gradient_points_downhill
+          claim: "The gradient points toward the minimum, so you follow it."
+          markdown: |
+            **The claim:** the gradient shows the way down to the answer, so training follows it.
+
+            **Why it feels right:** gradient descent does go downhill, and the gradient is the only
+            direction anyone mentions. The minus sign in the update rule is easy to read as
+            decoration.
+
+            **What actually happens:** the gradient points in the direction of steepest *increase*.
+            That is why the update subtracts it. Someone who has this backwards writes
+            `w += lr * grad`, watches the loss climb steadily, and concludes the model cannot
+            learn the task.
+
+            Worse, even $-\nabla f$ does not point at the minimum. It points at the steepest local
+            descent, which in a long narrow valley is mostly *across* the valley rather than along
+            it. This is why plain gradient descent zigzags and why momentum exists.
+
+            **How to catch yourself:** check the sign on a function you can do in your head. At
+            $x = 3$ on $f(x) = x^2$, the gradient is $+6$ and the minimum is at $0$, which is in
+            the negative direction. The gradient and the answer are on opposite sides.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Compute $f'(2)$ for $f(x) = x^2$ from the difference quotient. Show the algebra.
+            2. For $f(x) = 3x^2 - 12x + 7$, find where $f'(x) = 0$ and say whether it is a minimum
+               or a maximum, justifying the answer from the sign of $f'$ on either side.
+            3. $f(x, y) = x^2 + 3y$. Write $\nabla f$ and evaluate it at $(1, 2)$. Which input is
+               the output more sensitive to there?
+            4. Starting from $x = 4$ on $f(x) = x^2$, take three gradient descent steps with
+               $\eta = 0.1$, then three with $\eta = 1.1$. Report both sequences of $f(x)$.
+            5. $f(x) = \max(0, x)$ is the ReLU. State $f'$ for $x < 0$ and $x > 0$, and say what a
+               network does with the gradient of a unit sitting at $x = -5$.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What do the sign and the magnitude of a derivative each tell you?"
+              answer: >-
+                The sign says whether the output rises or falls as the input rises; the magnitude
+                says how sensitive the output is to a small change in the input.
+            - question: "Why does the parameter update subtract the gradient?"
+              answer: >-
+                Because the gradient points in the direction of steepest increase, and training is
+                trying to decrease the loss.
+            - question: "What breaks when the learning rate is too large, in terms of this page?"
+              answer: >-
+                The step leaves the neighbourhood where the linear approximation to the function is
+                accurate, so the predicted decrease no longer holds and the loss can rise.
+            - question: "What does a gradient of zero on a weight mean for that weight's training?"
+              answer: >-
+                It receives no update from that example. The loss is locally flat in that direction,
+                which is why saturated activations stall learning.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Compute a derivative from the difference quotient on a quadratic and get the same
+              answer as the power rule.
+            - Say, without hesitating, which way the gradient points and why the update subtracts it.
+            - Predict from the gradient and the learning rate whether one step will lower the loss.
+            - Explain what a zero gradient means for a parameter, and name one situation that
+              produces one.
+    resources:
+      - source: 3b1b-calculus
+        purpose: VISUAL_INTUITION
+        relevance: 0.9
+        excerpt: >-
+          Chapters 1-3 build the derivative as a rate of change geometrically, which is the reading
+          used throughout this page. Linked, not reproduced.
+      - source: mml-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.8
+        excerpt: "Chapter 5 sets out derivatives, partial derivatives, and gradients in the notation used by ML papers."
+
+  - slug: chain-rule-for-gradients
+    title: The Chain Rule, and Why Backpropagation Is Just Bookkeeping
+    kind: knowledge_unit
+    parent: calculus-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    tags: [mathematics, calculus, chain-rule, backpropagation]
+    objectives:
+      - Apply the chain rule to a composition of two or three functions.
+      - Trace a gradient backwards through a small computation graph.
+      - Explain why backpropagation costs about the same as a forward pass.
+      - Predict what a chain of small local derivatives does to a gradient.
+    description: >-
+      A network is a composition of functions, so its gradient is a product of local derivatives.
+      That single fact is what backpropagation implements, and what vanishing gradients are.
+    blocks:
+      - type: why
+        markdown: |
+          A neural network is not a mysterious object: it is $f_3(f_2(f_1(x)))$ with learned
+          parameters in each layer. Differentiating a composition is exactly what the chain rule
+          does, so the gradient of a hundred-layer network needs no new mathematics.
+
+          It also explains a failure you will meet. A product of numbers each smaller than one
+          shrinks toward zero, and a product of numbers each larger than one explodes. Both are
+          just the chain rule, applied many times.
+
+      - type: eli5
+        markdown: |
+          A machine has three gears in a row. Turning the first gear turns the second twice as
+          fast; the second turns the third three times as fast.
+
+          How fast does the third gear turn when you turn the first? Six times as fast. You
+          multiply the ratios along the chain.
+
+          The chain rule is that, for any chain of any length. And if every gear halved the speed
+          instead of doubling it, then after twenty gears almost nothing is moving — which is a
+          real problem in deep networks with a real name.
+
+      - type: beginner
+        markdown: |
+          If $y = f(u)$ and $u = g(x)$, then
+
+          $$
+          \frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}
+          $$
+
+          Read it as rates multiplying: $u$ changes so fast per unit of $x$, and $y$ changes so
+          fast per unit of $u$, so $y$ changes at the product of those rates per unit of $x$.
+
+          For a longer chain the pattern continues:
+
+          $$
+          \frac{dy}{dx} = \frac{dy}{du_3} \cdot \frac{du_3}{du_2} \cdot \frac{du_2}{du_1}
+          \cdot \frac{du_1}{dx}
+          $$
+
+          With several variables, the derivatives are matrices (Jacobians) and the products are
+          matrix products, but the structure is unchanged. That is why the linear algebra unit
+          comes first.
+
+      - type: intermediate
+        markdown: |
+          **Backpropagation is the chain rule with memoisation.** In a network, one intermediate
+          value feeds many downstream computations. Recomputing its derivative for each path would
+          be exponential in depth; storing it once and reusing it is linear.
+
+          The algorithm therefore has two halves:
+
+          - **Forward pass.** Compute and *cache* each intermediate value.
+          - **Backward pass.** Start with $\partial L / \partial L = 1$ at the output and walk
+            backwards, at each node multiplying the incoming gradient by that node's local
+            derivative, then passing the result to its inputs.
+
+          Because each node does a constant amount of work per edge in both directions, the
+          backward pass costs roughly what the forward pass costs — typically within a factor of
+          two or three. That is the entire reason deep learning is affordable.
+
+          Now read the product structurally. The gradient reaching layer 1 in an $L$-layer network
+          is a product of $L$ local factors. If a typical factor is $0.5$, then after 20 layers the
+          gradient carries a factor of about $10^{-6}$: the early layers stop learning. If a typical
+          factor is $1.5$, the same product is about $3300$ and training diverges. Sigmoid
+          activations have a maximum derivative of $0.25$, which is why deep sigmoid stacks were
+          effectively untrainable and why ReLU and residual connections were such a large change.
+
+      - type: example
+        markdown: |
+          A three-node graph, differentiated by hand. Let
+
+          $$
+          u = 2x, \qquad v = u^2, \qquad L = v + 1
+          $$
+
+          with $x = 3$.
+
+          **Forward.** $u = 6$, $v = 36$, $L = 37$. Keep all three; the backward pass needs them.
+
+          **Local derivatives.**
+
+          $$
+          \frac{\partial L}{\partial v} = 1, \qquad
+          \frac{\partial v}{\partial u} = 2u = 12, \qquad
+          \frac{\partial u}{\partial x} = 2
+          $$
+
+          **Backward.** Multiply along the chain, carrying the running gradient:
+
+          $$
+          \frac{\partial L}{\partial u} = 1 \cdot 12 = 12, \qquad
+          \frac{\partial L}{\partial x} = 12 \cdot 2 = 24
+          $$
+
+          **Check it directly.** $L = (2x)^2 + 1 = 4x^2 + 1$, so $dL/dx = 8x = 24$ at $x = 3$.
+          Same answer.
+
+          Notice that $\partial v / \partial u = 2u$ needed the *cached* value $u = 6$ from the
+          forward pass. That is why training uses memory proportional to the number of activations,
+          and why a batch size that fits in memory for inference may not fit for training.
+
+      - type: misconception
+        payload:
+          code: calc.backprop_is_new_math
+          claim: "Backpropagation is a separate algorithm you have to learn on top of calculus."
+          markdown: |
+            **The claim:** backpropagation is its own technique, distinct from differentiation, with
+            its own rules to memorise.
+
+            **Why it feels right:** it has a name, a paper, and a reputation for being the hard part
+            of neural networks. Framework documentation describes it as a feature.
+
+            **What actually happens:** backpropagation is the chain rule evaluated in a particular
+            order — output-to-input — with intermediate results cached instead of recomputed. There
+            is no additional mathematical content. The contribution is computational: it makes the
+            gradient cost about the same as the prediction, rather than growing with the number of
+            parameters.
+
+            Believing it is separate magic has a cost. People who hold this view cannot reason about
+            vanishing gradients, cannot say why an activation with a small derivative hurts depth,
+            and cannot explain why training needs more memory than inference. All three follow
+            immediately from "it is a product of cached local derivatives".
+
+            **How to catch yourself:** differentiate a three-node chain by hand and then by
+            substitution, as in the example above. If both give the same number, there was never a
+            second algorithm.
+
+      - type: common_mistake
+        markdown: |
+          **Forgetting a factor in a longer chain.** The usual symptom is a gradient that is off by
+          a constant, which looks like a badly tuned learning rate. Write the chain out with every
+          factor before simplifying.
+
+          **Assuming a deep network just needs more layers.** Depth multiplies more factors into
+          the gradient product. Beyond a point, adding layers makes the early ones learn *less*
+          unless something — normalisation, residual connections, a better activation — keeps the
+          typical factor near one.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. $y = (3x + 1)^2$. Find $dy/dx$ with the chain rule, then expand and differentiate
+               directly. Confirm they agree.
+            2. $L = \sigma(wx + b)$ with $\sigma$ the logistic function, whose derivative is
+               $\sigma(z)(1 - \sigma(z))$. Write $\partial L / \partial w$.
+            3. Using the fact that $\sigma'(z) \le 0.25$, give an upper bound on the gradient
+               magnitude reaching the first layer of a 10-layer sigmoid network with unit weights.
+            4. In the worked example, change $u = 2x$ to $u = 5x$ and recompute
+               $\partial L / \partial x$ both ways.
+            5. Explain in two sentences why the backward pass needs the forward pass's cached
+               values, and what that implies for memory during training.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "State the chain rule for $y = f(g(x))$ and read it aloud as rates."
+              answer: >-
+                $dy/dx = f'(g(x)) \cdot g'(x)$. The rate of $y$ per unit of $x$ is the rate of $y$
+                per unit of $g$, times the rate of $g$ per unit of $x$.
+            - question: "Why is backpropagation not more expensive than the forward pass?"
+              answer: >-
+                Each node's local derivative is computed once from cached forward values and reused
+                for every path through it, so the work is proportional to the number of edges in
+                both directions.
+            - question: "What happens to the gradient at layer one when every local factor is 0.5 in a 20-layer network?"
+              answer: >-
+                It is multiplied by about $10^{-6}$, so the early layers receive almost no update.
+                That is the vanishing gradient problem.
+            - question: "Why does training need more memory than inference?"
+              answer: >-
+                The backward pass needs the intermediate activations from the forward pass, so they
+                must be kept rather than discarded as soon as they are used.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Differentiate a three-function composition by hand and verify it by substitution.
+            - Draw a small computation graph and push a gradient backwards through it, naming the
+              local derivative at each node.
+            - Explain backpropagation to someone else without using the word "magic", in terms of
+              cached local derivatives.
+            - Predict, from the typical size of a local factor, whether a deep stack will vanish,
+              explode, or train.
+    resources:
+      - source: nielsen-nndl
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: >-
+          Chapter 2 derives the four backpropagation equations from the chain rule, in the same
+          order used here. Free to read, CC BY-NC.
+      - source: mml-book
+        purpose: MATHEMATICAL_BACKGROUND
+        relevance: 0.8
+        excerpt: "Section 5.2 covers the chain rule for multivariate functions and automatic differentiation."
+      - source: backprop-1986
+        purpose: HISTORICAL_PRIMARY
+        relevance: 0.6
+        excerpt: >-
+          The paper that introduced the method to the field. Cited for provenance only; publisher
+          paywall applies and no text is reproduced.

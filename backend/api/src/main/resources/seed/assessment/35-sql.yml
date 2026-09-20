@@ -1,0 +1,167 @@
+# Items for sql-select-join-aggregate.
+
+items:
+  - slug: sql-where-vs-having
+    unit: sql-select-join-aggregate
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      When should you use HAVING instead of WHERE?
+    choices:
+      - id: a
+        text: "To filter groups after aggregation (e.g. COUNT(*) >= 50)."
+        correct: true
+      - id: b
+        text: "To filter rows before they are read from disk only."
+      - id: c
+        text: "HAVING replaces JOIN."
+      - id: d
+        text: "WHERE is deprecated."
+    explanation: |
+      WHERE filters rows pre-aggregate; HAVING filters groups post-GROUP BY.
+
+  - slug: sql-inner-vs-left
+    unit: sql-select-join-aggregate
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      You need all users, including those with no label row yet. Which join to labels?
+    choices:
+      - id: a
+        text: "LEFT JOIN from users to labels"
+        correct: true
+      - id: b
+        text: "INNER JOIN only"
+      - id: c
+        text: "GROUP BY without JOIN"
+      - id: d
+        text: "ORDER BY label DESC"
+    explanation: |
+      LEFT keeps every user and NULLs missing labels. INNER drops unlabelled users — a selection
+      effect.
+
+  - slug: sql-fanout
+    unit: sql-select-join-aggregate
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      users has 1 row per user; purchases has many rows per user. You INNER JOIN them and
+      SELECT *. What often happens to row count?
+    choices:
+      - id: a
+        text: "It grows — each user repeats once per purchase (fan-out)."
+        correct: true
+      - id: b
+        text: "It always stays equal to the number of users."
+        misconception: sql.join_never_duplicates
+      - id: c
+        text: "SQL rejects joins that are not 1:1."
+      - id: d
+        text: "Row count shrinks to zero."
+    explanation: |
+      Multiple matches multiply rows. Aggregate purchases first if you need one row per user.
+
+  - slug: sql-fanout-tf
+    unit: sql-select-join-aggregate
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 50
+    stem: |
+      Joining on a key never duplicates rows because keys are unique on both sides by definition.
+    choices:
+      - id: "true"
+        text: "True"
+        misconception: sql.join_never_duplicates
+      - id: "false"
+        text: "False"
+        correct: true
+    explanation: |
+      False. Keys need not be unique on both sides; many-to-one and many-to-many joins fan out.
+
+  - slug: sql-grain-check
+    unit: sql-select-join-aggregate
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      You intended one training row per user after joins. Which check is most useful?
+    choices:
+      - id: a
+        text: "Compare COUNT(*) of the result to COUNT(*) FROM users (or inspect per-user duplicates)."
+        correct: true
+      - id: b
+        text: "Only check that the query parses."
+      - id: c
+        text: "Prefer SELECT * so columns prove grain."
+      - id: d
+        text: "Disable WHERE clauses."
+    explanation: |
+      Count (and duplicate checks by user_id) catch fan-out before you export a corrupted frame.
+
+  - slug: sql-select-filter
+    unit: sql-select-join-aggregate
+    type: mcq
+    bloom: remember
+    difficulty: 1
+    estimateSeconds: 50
+    stem: |
+      Which clause filters rows before aggregation?
+    choices:
+      - id: a
+        text: "WHERE"
+        correct: true
+      - id: b
+        text: "HAVING"
+      - id: c
+        text: "LIMIT only"
+      - id: d
+        text: "ORDER BY"
+    explanation: |
+      WHERE applies to rows; HAVING applies to groups after GROUP BY.
+
+assessments:
+  - slug: sql-select-join-aggregate-practice
+    title: "Practice: SQL select/join/aggregate"
+    kind: practice
+    unit: sql-select-join-aggregate
+    items:
+      - sql-where-vs-having
+      - sql-inner-vs-left
+      - sql-fanout
+
+  - slug: sql-select-join-aggregate-quiz
+    title: "Quiz: SELECT, JOIN, aggregate"
+    kind: quiz
+    unit: sql-select-join-aggregate
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - sql-where-vs-having
+      - sql-inner-vs-left
+      - sql-fanout
+      - sql-fanout-tf
+      - sql-grain-check
+      - sql-select-filter
+
+cards:
+  - slug: card-sql-fanout
+    unit: sql-select-join-aggregate
+    front: "What is join fan-out?"
+    back: |
+      Multiple matches on a key multiply rows — duplicating entities unless that grain is
+      intentional.
+
+  - slug: card-sql-left
+    unit: sql-select-join-aggregate
+    front: "INNER vs LEFT for optional labels?"
+    back: |
+      INNER drops unmatched left rows. LEFT keeps them with NULLs — often needed to avoid
+      selection bias.

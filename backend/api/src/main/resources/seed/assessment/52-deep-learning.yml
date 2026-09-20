@@ -1,0 +1,372 @@
+# Items for the deep learning units: MLP, activations, and unstable gradients.
+
+items:
+  - slug: mlp-parameter-count
+    unit: multilayer-perceptron
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      An MLP has $d = 784$ inputs, one hidden layer of 128 units, and $k = 10$ outputs, each
+      layer with a bias. How many parameters does it have in total?
+    answer: 101770
+    tolerance: 1
+    explanation: |
+      $(128 \times 784 + 128) + (10 \times 128 + 10) = 100{,}352 + 128 + 1{,}280 + 10 = 101{,}770$.
+
+      Worth being able to do in your head, because it is the first sanity check on any
+      architecture: if your framework reports a different number, one of your shapes is not what
+      you think it is.
+
+  - slug: mlp-hidden-layer-purpose
+    unit: multilayer-perceptron
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "What is a hidden layer for?"
+    choices:
+      - id: a
+        text: "It builds a representation, chosen by training, in which the output is easier to predict."
+        correct: true
+      - id: b
+        text: "It stores the training examples for later lookup."
+      - id: c
+        text: "It regularises the network by adding parameters."
+      - id: d
+        text: "It converts the input into probabilities."
+    explanation: |
+      The model invents its own features. In the XOR example, one hidden unit computes "at least
+      one input is on" and the other computes "both are on" — coordinates in which XOR becomes
+      linearly separable.
+
+      Nobody specifies what a hidden unit means, and usually no clean meaning exists. That is
+      representation learning, and it is the whole reason depth is interesting.
+
+  - slug: mlp-xor-trace
+    unit: multilayer-perceptron
+    type: short_text
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 160
+    stem: |
+      With $W_1 = [[1, 1], [1, 1]]$, $\mathbf{b}_1 = [0, -1]$, ReLU, $W_2 = [1, -2]$, $b_2 = 0$,
+      what does the network output for the input $(1, 1)$?
+    answer: 0
+    tolerance: 0.001
+    explanation: |
+      $W_1\mathbf{x} + \mathbf{b}_1 = (2, 1)$; ReLU leaves it unchanged; output
+      $= 1(2) + (-2)(1) = 0$. Correct for XOR.
+
+      Check $(1, 0)$ the same way: hidden $(1, 0)$, output $1$. A single neuron provably cannot do
+      this, because its decision boundary is one straight line and XOR's classes are not linearly
+      separable.
+
+  - slug: mlp-universal-approximation
+    unit: multilayer-perceptron
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      The universal approximation theorem says one hidden layer suffices. Why is that not an
+      argument against depth?
+    choices:
+      - id: a
+        text: "It guarantees existence, not trainability, and the required width can be exponential."
+        correct: true
+      - id: b
+        text: "The theorem only applies to classification, not regression."
+      - id: c
+        text: "It is only true for sigmoid activations, which are no longer used."
+      - id: d
+        text: "Depth is always better, so the theorem is simply wrong."
+    explanation: |
+      The theorem says such a network exists. It says nothing about gradient descent finding it,
+      nothing about how wide it would need to be, and nothing about generalisation.
+
+      (d) is the opposite error and is also wrong: depth only pays when something keeps the
+      gradient healthy — residual connections, normalisation, a non-saturating activation.
+      Without those, a plain deep network can be worse than a shallower one on *training* error,
+      which rules out overfitting as the explanation.
+
+  - slug: act-linear-collapse
+    unit: activations-and-nonlinearity
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 80
+    stem: |
+      Three stacked linear layers with no activation between them are exactly equivalent to a
+      single linear layer.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True, and it follows from associativity: $W_3(W_2(W_1x)) = (W_3W_2W_1)x$, which is one
+      matrix. The biases collapse to a single vector in the same way.
+
+      This is the entire justification for activation functions, and it is why depth without a
+      nonlinearity adds parameters and no expressive power.
+
+  - slug: act-sigmoid-max-derivative
+    unit: activations-and-nonlinearity
+    type: short_text
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      What is the maximum value of the derivative of the logistic sigmoid
+      $\sigma'(z) = \sigma(z)(1 - \sigma(z))$?
+    answer: 0.25
+    tolerance: 0.001
+    explanation: |
+      At $z = 0$, where $\sigma(0) = 0.5$, giving $0.5 \times 0.5 = 0.25$.
+
+      So the *best case* for a sigmoid layer is to quarter the gradient passing through it. Ten
+      such layers give at most $0.25^{10} \approx 10^{-6}$, which is the arithmetic that made deep
+      sigmoid networks untrainable.
+
+  - slug: act-dead-relu
+    unit: activations-and-nonlinearity
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Why can a ReLU unit become permanently untrainable?"
+    choices:
+      - id: a
+        text: "If its pre-activation is negative for every input, its derivative is zero, so it receives no gradient to move it back."
+        correct: true
+      - id: b
+        text: "Because ReLU saturates at large positive values."
+      - id: c
+        text: "Because its output is unbounded above."
+      - id: d
+        text: "Because the weights are clipped to zero by the optimiser."
+    explanation: |
+      The gradient that would move the unit's weights is itself zero, so there is no mechanism for
+      recovery. A single large learning rate step can kill a substantial fraction of a layer.
+
+      (b) is the sigmoid's problem, not ReLU's — ReLU has derivative exactly 1 on the positive
+      side and does not saturate there. Leaky ReLU and GELU address the dead-unit case by keeping
+      a small gradient everywhere.
+
+  - slug: act-fancier-is-better
+    unit: activations-and-nonlinearity
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      A model is underperforming and someone proposes swapping ReLU for a newer activation.
+      What is the most useful response?
+    choices:
+      - id: a
+        text: "Ask what change is predicted; activation choice decides trainability, and beyond that typically moves accuracy by a fraction of a percent."
+        correct: true
+      - id: b
+        text: "Agree — the activation is where a network's power comes from."
+        misconception: dl.activation_adds_capacity
+      - id: c
+        text: "Refuse — the activation function never matters."
+      - id: d
+        text: "Suggest removing the activation entirely to simplify the model."
+    explanation: |
+      The activation is a gate, not an engine: any nonlinearity unlocks the capacity that the
+      weights provide. Sigmoid versus ReLU was never a capacity argument — it was the difference
+      between a gradient that reaches layer one and one that does not.
+
+      (c) overcorrects: the choice matters a great deal for trainability. (d) would make the whole
+      stack collapse to one linear map.
+
+  - slug: vg-depth-factor
+    unit: vanishing-gradients-intuition
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      In a 50-layer network each layer contributes a local factor of about 1.1. What happens?
+    choices:
+      - id: a
+        text: "The gradient at the early layers is roughly 117 times too large, and training diverges."
+        correct: true
+      - id: b
+        text: "Nothing — 1.1 is close enough to 1 to be harmless."
+      - id: c
+        text: "The gradient vanishes, because factors above 1 damp the signal."
+      - id: d
+        text: "The effect cancels out over an even number of layers."
+    explanation: |
+      $1.1^{50} \approx 117$. Depth is exponential in its effect, so a per-layer factor that looks
+      almost neutral is not.
+
+      This is why the knife-edge at 1.0 gets so much attention: initialisation, normalisation, and
+      residual connections all exist to keep each layer's contribution close to neutral.
+
+  - slug: vg-symptoms
+    unit: vanishing-gradients-intuition
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      Training loss falls for 200 steps then flattens well above where it should. Last-layer
+      gradient norms are around $10^{-2}$; first-layer norms are around $10^{-8}$. Diagnosis?
+    choices:
+      - id: a
+        text: "Vanishing gradients — the early layers are effectively frozen and the structure needs to change."
+        correct: true
+      - id: b
+        text: "The learning rate is too low; raise it until the early layers move."
+        misconception: dl.vanishing_is_a_learning_rate_problem
+      - id: c
+        text: "Overfitting — the model has memorised the training set."
+      - id: d
+        text: "Exploding gradients, which will produce NaN shortly."
+    explanation: |
+      A six-order-of-magnitude ratio between layers is the signature. No single learning rate can
+      fix a ratio: raise it enough to move layer 1 and the last layers get updates a million times
+      too large.
+
+      The remedies are structural — a non-saturating activation, normalisation, residual
+      connections, better initialisation. (c) is ruled out because the *training* loss is the one
+      that plateaued.
+
+  - slug: vg-residual-derivative
+    unit: vanishing-gradients-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Why does a residual connection $\\mathbf{y} = \\mathbf{x} + F(\\mathbf{x})$ help gradients?"
+    choices:
+      - id: a
+        text: "Its derivative is $I + \\partial F / \\partial \\mathbf{x}$, so there is always an undiminished identity path back."
+        correct: true
+      - id: b
+        text: "It halves the number of layers the gradient must pass through."
+      - id: c
+        text: "It normalises the activations at each layer."
+      - id: d
+        text: "It prevents the weights from becoming negative."
+    explanation: |
+      The local factor becomes $1 + \text{something}$ rather than *something*. Even if the block
+      contributes almost nothing, the gradient passes through undiminished.
+
+      This is one term in a derivative, not a story about a better optimiser, and it is why depth
+      limits moved from tens of layers to hundreds — and why transformers can be stacked as deep
+      as they are.
+
+  - slug: vg-more-layers
+    unit: vanishing-gradients-intuition
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      A model underperforms and both training and validation error are poor. A colleague suggests
+      adding layers. What is the best argument against?
+    choices:
+      - id: a
+        text: "Poor training error points at optimisation, not capacity, and depth multiplies more factors into the gradient product."
+        correct: true
+      - id: b
+        text: "Deeper models are always more powerful, so this will work."
+        misconception: dl.more_layers_always_better
+      - id: c
+        text: "More layers will overfit, which is why training error is poor."
+      - id: d
+        text: "Depth only matters for images, not for other data."
+    explanation: |
+      If training error is also poor, the model is failing to fit data it has already seen, which
+      capacity would not explain. Adding layers makes the gradient product longer and the early
+      layers harder to train.
+
+      (c) has the logic backwards: overfitting cannot make *training* error worse. A plain
+      56-layer network having worse training error than a 20-layer one is exactly the observation
+      that motivated residual connections.
+
+assessments:
+  - slug: multilayer-perceptron-practice
+    title: "Practice: the multilayer perceptron"
+    kind: practice
+    unit: multilayer-perceptron
+    items:
+      - mlp-parameter-count
+      - mlp-hidden-layer-purpose
+      - mlp-xor-trace
+
+  - slug: multilayer-perceptron-quiz
+    title: "Quiz: the multilayer perceptron"
+    kind: quiz
+    unit: multilayer-perceptron
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - mlp-parameter-count
+      - mlp-hidden-layer-purpose
+      - mlp-xor-trace
+      - mlp-universal-approximation
+
+  - slug: activations-and-nonlinearity-practice
+    title: "Practice: activations"
+    kind: practice
+    unit: activations-and-nonlinearity
+    items:
+      - act-linear-collapse
+      - act-sigmoid-max-derivative
+      - act-dead-relu
+
+  - slug: activations-and-nonlinearity-quiz
+    title: "Quiz: activations and nonlinearity"
+    kind: quiz
+    unit: activations-and-nonlinearity
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - act-linear-collapse
+      - act-sigmoid-max-derivative
+      - act-dead-relu
+      - act-fancier-is-better
+
+  - slug: vanishing-gradients-practice
+    title: "Practice: unstable gradients"
+    kind: practice
+    unit: vanishing-gradients-intuition
+    items:
+      - vg-depth-factor
+      - vg-residual-derivative
+      - vg-symptoms
+
+  - slug: vanishing-gradients-quiz
+    title: "Quiz: vanishing and exploding gradients"
+    kind: quiz
+    unit: vanishing-gradients-intuition
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - vg-depth-factor
+      - vg-symptoms
+      - vg-residual-derivative
+      - vg-more-layers
+
+cards:
+  - slug: card-dl-linear-collapse
+    unit: activations-and-nonlinearity
+    front: "Why is an activation function mandatory between layers?"
+    back: |
+      Composing linear maps gives a linear map, so any depth collapses to one matrix. The
+      nonlinearity is what makes depth buy anything.
+
+  - slug: card-dl-residual
+    unit: vanishing-gradients-intuition
+    front: "In one line, why do residual connections work?"
+    back: |
+      $\partial(\mathbf{x} + F(\mathbf{x}))/\partial \mathbf{x} = I + \partial F/\partial \mathbf{x}$.
+      The identity term gives the gradient an undiminished path back through every layer.

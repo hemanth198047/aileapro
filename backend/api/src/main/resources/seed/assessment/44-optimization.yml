@@ -1,0 +1,259 @@
+# Items for gradient-descent-basics and learning-rates-and-local-minima.
+
+items:
+  - slug: opt-gd-update
+    unit: gradient-descent-basics
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      In w ← w − η ∇L(w), why is there a minus sign?
+    choices:
+      - id: a
+        text: "∇L points uphill; subtracting moves toward lower loss locally."
+        correct: true
+      - id: b
+        text: "∇L already points at the global minimum."
+      - id: c
+        text: "Minus signs cancel learning-rate units."
+      - id: d
+        text: "Frameworks require negative learning rates."
+    explanation: |
+      The gradient is steepest ascent. Descent subtracts it, scaled by η.
+
+  - slug: opt-autograd-role
+    unit: gradient-descent-basics
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      What does loss.backward() (autograd) do in a typical training step?
+    choices:
+      - id: a
+        text: "Computes gradients; it does not by itself update parameters."
+        correct: true
+      - id: b
+        text: "Updates all weights using a default learning rate."
+        misconception: opt.autograd_is_the_optimizer
+      - id: c
+        text: "Chooses the mini-batch automatically."
+      - id: d
+        text: "Guarantees a global minimum."
+    explanation: |
+      Autograd fills gradients. An optimizer step (or manual w -= η * grad) applies the update.
+
+  - slug: opt-gd-step-calc
+    unit: gradient-descent-basics
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      L(w)=(w−3)², w=0, η=0.1. After one step, what is w?
+    choices:
+      - id: a
+        text: "0.6"
+        correct: true
+      - id: b
+        text: "−0.6"
+      - id: c
+        text: "3.0"
+      - id: d
+        text: "0.0"
+    explanation: |
+      L'(w)=2(w−3), so L'(0)=−6. Then w ← 0 − 0.1(−6) = 0.6.
+
+  - slug: opt-minibatch
+    unit: gradient-descent-basics
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 50
+    stem: |
+      Mini-batch gradient descent computes the gradient on a small subset of examples rather than
+      the full training set each step.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — the usual compromise between full-batch stability and per-example noise/cost.
+
+  - slug: opt-zero-grad
+    unit: gradient-descent-basics
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      You forget to zero gradients between steps and call backward each iteration. What happens?
+    choices:
+      - id: a
+        text: "Gradients accumulate, so updates can become incorrectly large."
+        correct: true
+      - id: b
+        text: "Autograd refuses to run a second time."
+      - id: c
+        text: "Parameters reset to zero."
+      - id: d
+        text: "Nothing — frameworks ignore old grads."
+    explanation: |
+      By default grads accumulate. Without zeroing, each backward adds to the previous .grad.
+
+  - slug: opt-lr-large
+    unit: learning-rates-and-local-minima
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      A training loss violently oscillates and then becomes NaN. What is the most common η issue?
+    choices:
+      - id: a
+        text: "Learning rate too large for the local curvature / scaling."
+        correct: true
+      - id: b
+        text: "Learning rate exactly zero."
+      - id: c
+        text: "You found the unique global minimum."
+      - id: d
+        text: "Batch size must be 1."
+    explanation: |
+      Oversized steps leave the trustworthy linear neighbourhood; divergence and NaNs follow.
+
+  - slug: opt-global-min
+    unit: learning-rates-and-local-minima
+    type: true_false
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 70
+    stem: |
+      Deep network training is only considered successful if gradient descent reaches a certified
+      global minimum of the loss.
+    choices:
+      - id: "true"
+        text: "True"
+        misconception: opt.must_find_global_min
+      - id: "false"
+        text: "False"
+        correct: true
+    explanation: |
+      False. Practice seeks low loss and good generalisation; global optimality is rarely
+      certified and is the wrong slogan for non-convex deep losses.
+
+  - slug: opt-lr-small
+    unit: learning-rates-and-local-minima
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Loss decreases extremely slowly from epoch 1, gradients are tiny but nonzero, and there is
+      no NaN. What should you suspect first about η?
+    choices:
+      - id: a
+        text: "Learning rate may be far too small."
+        correct: true
+      - id: b
+        text: "Learning rate is definitely too large."
+      - id: c
+        text: "You must switch to a larger model immediately."
+      - id: d
+        text: "Confidence intervals are misconfigured."
+    explanation: |
+      Tiny steps crawl. Also check for bugs — but given nonzero grads and no explosion, η too
+      small is the classic optimization read.
+
+  - slug: opt-schedule
+    unit: learning-rates-and-local-minima
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      What is a typical goal of decreasing the learning rate late in training?
+    choices:
+      - id: a
+        text: "Take smaller steps to settle without overshooting."
+        correct: true
+      - id: b
+        text: "Guarantee the global minimum in finite time."
+      - id: c
+        text: "Remove the need for gradients."
+      - id: d
+        text: "Convert classification into clustering."
+    explanation: |
+      Schedules often explore with larger early steps, then refine with smaller ones.
+
+assessments:
+  - slug: gradient-descent-basics-practice
+    title: "Practice: gradient descent"
+    kind: practice
+    unit: gradient-descent-basics
+    items:
+      - opt-gd-update
+      - opt-autograd-role
+      - opt-gd-step-calc
+
+  - slug: gradient-descent-basics-quiz
+    title: "Quiz: gradient descent basics"
+    kind: quiz
+    unit: gradient-descent-basics
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - opt-gd-update
+      - opt-autograd-role
+      - opt-gd-step-calc
+      - opt-minibatch
+      - opt-zero-grad
+
+  - slug: learning-rates-and-local-minima-practice
+    title: "Practice: learning rates"
+    kind: practice
+    unit: learning-rates-and-local-minima
+    items:
+      - opt-lr-large
+      - opt-global-min
+      - opt-lr-small
+
+  - slug: learning-rates-and-local-minima-quiz
+    title: "Quiz: learning rates and minima"
+    kind: quiz
+    unit: learning-rates-and-local-minima
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - opt-lr-large
+      - opt-global-min
+      - opt-lr-small
+      - opt-schedule
+
+cards:
+  - slug: card-opt-update
+    unit: gradient-descent-basics
+    front: "Gradient descent update in one line?"
+    back: |
+      w ← w − η ∇L(w). Minus because the gradient points uphill.
+
+  - slug: card-opt-autograd
+    unit: gradient-descent-basics
+    front: "Does backward() update weights?"
+    back: |
+      No. Autograd computes grads; optimizer.step (or manual update) moves parameters.
+
+  - slug: card-opt-eta
+    unit: learning-rates-and-local-minima
+    front: "Too-large vs too-small η symptoms?"
+    back: |
+      Too large: oscillate / diverge / NaN. Too small: crawl forever with tiny nonzero steps.
+
+  - slug: card-opt-global
+    unit: learning-rates-and-local-minima
+    front: "Must GD find the global minimum?"
+    back: |
+      No. Deep losses are non-convex; practice targets useful low-loss regions and generalisation.

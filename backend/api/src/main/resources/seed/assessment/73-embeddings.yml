@@ -1,0 +1,173 @@
+# Items for what-embeddings-capture.
+
+items:
+  - slug: emb-where-geometry-comes-from
+    unit: what-embeddings-capture
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Where does an embedding space's notion of 'similar' come from?"
+    choices:
+      - id: a
+        text: "The training objective — the pairs the model was taught to place close together."
+        correct: true
+      - id: b
+        text: "A universal semantic structure shared by all embedding models."
+      - id: c
+        text: "The dimensionality of the vectors."
+      - id: d
+        text: "The distance metric chosen at query time."
+    explanation: |
+      A model trained on question-answer pairs places a question near its *answer*. A model trained
+      on paraphrases places it near a *rephrasing of the question*. Different spaces, good at
+      different jobs.
+
+      This is also why (b) fails in a way that matters operationally: vectors from two different
+      models live in unrelated spaces, so mixing them in one index silently produces nonsense.
+
+  - slug: emb-negation
+    unit: what-embeddings-capture
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      The query "which products are not eligible for free shipping?" retrieves the chunk
+      "products eligible for free shipping" above the correct one. Why?
+    choices:
+      - id: a
+        text: "The two sentences share almost every token and the whole topic, and cosine similarity does not treat negation as inverting meaning."
+        correct: true
+      - id: b
+        text: "The index was built with the wrong distance metric."
+      - id: c
+        text: "The chunk size was too large."
+      - id: d
+        text: "The embedding model has too few dimensions."
+    explanation: |
+      Negation is the classic embedding failure, and it is not fixed by a better model — the
+      objective rewarded topical proximity, and these two sentences are maximally topically
+      proximate.
+
+      The workable responses are to retrieve both and let generation read them, or to use a
+      reranker that scores the query-document pair jointly rather than comparing two independently
+      computed vectors.
+
+  - slug: emb-identifier-query
+    unit: what-embeddings-capture
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      Users frequently search for things like "error E4012" and "invoice INV-2024-0031". What
+      should the retrieval design include?
+    choices:
+      - id: a
+        text: "Keyword scoring alongside embeddings, because identifiers carry almost no semantic signal."
+        correct: true
+      - id: b
+        text: "A larger embedding model, which will represent identifiers better."
+      - id: c
+        text: "Smaller chunks, so each identifier gets its own vector."
+      - id: d
+        text: "A higher similarity threshold to filter weak matches."
+    explanation: |
+      Exact identifiers, rare terms, and precise numbers are what dense retrieval handles worst and
+      what keyword scoring handles best. The failure modes are complementary, which is why hybrid
+      search is closer to a default than an optimisation.
+
+      The usual reason a team has not added it is that nobody measured the identifier queries
+      separately — they are a small fraction of traffic and a large fraction of frustration.
+
+  - slug: emb-similarity-vs-relevance
+    unit: what-embeddings-capture
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      A RAG system retrieves a chunk at 0.91 similarity and still answers wrongly. A colleague
+      concludes the generation prompt needs work. What is the better first move?
+    choices:
+      - id: a
+        text: "Read the retrieved chunks for 30 real queries by hand — high similarity does not mean the chunk answers the question."
+        correct: true
+      - id: b
+        text: "Rewrite the prompt, since retrieval clearly succeeded at 0.91."
+        misconception: emb.similarity_is_relevance
+      - id: c
+        text: "Switch to a larger generation model."
+      - id: d
+        text: "Lower the similarity threshold to retrieve more chunks."
+    explanation: |
+      In a RAG system, retrieval quality usually caps end-to-end quality, and most wrong answers
+      are the generator faithfully summarising the wrong passage.
+
+      A chunk can be highly similar and useless — a policy from the wrong region, a superseded
+      version, the same question asked by someone else with no answer attached. Reading the chunks
+      rather than the answers is the fastest diagnostic available and teams are routinely surprised
+      by it.
+
+  - slug: emb-mixing-models
+    unit: what-embeddings-capture
+    type: true_false
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 80
+    stem: |
+      Cosine similarity between a vector from one embedding model and a vector from another is
+      meaningful as long as both have the same dimensionality.
+    choices:
+      - id: "true"
+        text: "True"
+      - id: "false"
+        text: "False"
+        correct: true
+    explanation: |
+      False. Matching dimensionality is a coincidence of shape, not of meaning — the two spaces
+      were trained separately and their axes have nothing to do with each other.
+
+      The practical consequence is that changing embedding model means re-embedding the entire
+      corpus. A partial migration produces an index where some comparisons are meaningless and
+      nothing errors.
+
+assessments:
+  - slug: what-embeddings-capture-practice
+    title: "Practice: what embeddings capture"
+    kind: practice
+    unit: what-embeddings-capture
+    items:
+      - emb-where-geometry-comes-from
+      - emb-mixing-models
+      - emb-identifier-query
+
+  - slug: what-embeddings-capture-quiz
+    title: "Quiz: what embeddings capture"
+    kind: quiz
+    unit: what-embeddings-capture
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - emb-where-geometry-comes-from
+      - emb-negation
+      - emb-identifier-query
+      - emb-similarity-vs-relevance
+
+cards:
+  - slug: card-emb-failure-list
+    unit: what-embeddings-capture
+    front: "Five things embeddings capture unreliably."
+    back: |
+      Negation, sentiment or stance, specific identifiers, numeric and temporal relations, and the
+      direction of a relationship. Each is a real retrieval bug, and each is predictable from the
+      training objective.
+
+  - slug: card-emb-similarity-relevance
+    unit: what-embeddings-capture
+    front: "Similarity and relevance: what is the difference?"
+    back: |
+      Similarity is proximity in a space trained on topical relatedness. Relevance is a property of
+      the question. A chunk can be very similar and useless, or relevant and distant — which is why
+      hybrid search and rerankers exist.

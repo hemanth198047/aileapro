@@ -1,0 +1,388 @@
+# Assessments for classical-ml-toolbox units and feature-leakage-and-scaling (Wave 3).
+
+items:
+  # --- Logistic regression -----------------------------------------------------------------
+  - slug: logreg-sigmoid-model
+    unit: logistic-regression-intuition
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "Logistic regression models p(y=1|x) as which of the following?"
+    choices:
+      - id: a
+        text: "σ(wᵀx + b), with σ the sigmoid."
+        correct: true
+      - id: b
+        text: "A deep stack of ReLU layers ending in softmax."
+      - id: c
+        text: "The majority label in a local neighbourhood of x."
+      - id: d
+        text: "A Gaussian mixture over clusters of x."
+    explanation: |
+      It is a linear score passed through a sigmoid. Neighbourhood majorities are k-NN; deep ReLU
+      stacks are neural nets; GMMs are a different generative story.
+
+  - slug: logreg-boundary-linear
+    unit: logistic-regression-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      "Logistic regression is nonlinear because the sigmoid curves." What is the right correction?
+    choices:
+      - id: a
+        text: "The score is linear in x; {x : p≥0.5} is still a half-space. The sigmoid only squashes z into (0,1)."
+        correct: true
+      - id: b
+        text: "It is correct — any model with a curved plot is nonlinear."
+        misconception: ml.logistic_is_nonlinear
+      - id: c
+        text: "Logistic regression is nonlinear only when regularisation is used."
+      - id: d
+        text: "The decision boundary is a circle in feature space."
+    explanation: |
+      Curved probability-versus-feature plots do not change the geometry of the level set p=0.5.
+      Regularisation shrinks weights; it does not redefine linearity in x.
+
+  - slug: logreg-threshold
+    unit: logistic-regression-intuition
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      False approvals are far costlier than false rejections. Starting from threshold 0.5, what
+      should you typically do?
+    choices:
+      - id: a
+        text: "Raise the approval threshold so fewer borderline positives are approved."
+        correct: true
+      - id: b
+        text: "Lower the threshold to approve more applicants."
+      - id: c
+        text: "Remove the sigmoid so scores stay linear."
+      - id: d
+        text: "Switch the label encoding so 1 means reject."
+    explanation: |
+      Higher t demands more confidence before predicting the positive/approve class, trading recall
+      for precision on that class. The sigmoid stays; you change the decision rule on top.
+
+  - slug: logreg-coef-meaning
+    unit: logistic-regression-intuition
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 80
+    stem: |
+      A coefficient w_j is the change in log-odds for a one-unit increase in feature j, holding
+      other features in the model fixed — not a constant change in probability.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Δp depends on the starting probability; the clean invariant statement is about log-odds.
+
+  - slug: logreg-compute-p
+    unit: logistic-regression-intuition
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      For z = 0, what is σ(z)? Answer as a decimal probability (e.g. 0.5).
+    answer: "0.5"
+    tolerance: 0.01
+    explanation: |
+      σ(0) = 1/(1+e^0) = 1/2. The decision boundary sits where the linear score is zero.
+
+  # --- Trees and ensembles -----------------------------------------------------------------
+  - slug: tree-regions
+    unit: decision-trees-and-ensembles
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "What shape are the decision regions of an axis-aligned decision tree?"
+    choices:
+      - id: a
+        text: "Rectangles formed by threshold splits on single features."
+        correct: true
+      - id: b
+        text: "Arbitrary smooth curves from a kernel."
+      - id: c
+        text: "Voronoi cells around training points."
+      - id: d
+        text: "Half-spaces from a single global hyperplane only."
+    explanation: |
+      Each split is x_j ≤ t, so regions are products of intervals — rectangles in 2D. A single
+      hyperplane is logistic/linear; Voronoi cells are nearest neighbours.
+
+  - slug: tree-scaling
+    unit: decision-trees-and-ensembles
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      A colleague insists you must StandardScaler before a random forest. Best response?
+    choices:
+      - id: a
+        text: "Unnecessary for trees — splits depend on per-feature orderings, not comparable units across features."
+        correct: true
+      - id: b
+        text: "They are right; all ML models require standardised inputs."
+        misconception: ml.trees_need_scaling
+      - id: c
+        text: "Scaling is required only for max_depth greater than 5."
+      - id: d
+        text: "Forests require min-max scaling; boosting requires standardisation."
+    explanation: |
+      Monotonic rescaling of a feature does not change the split structure (thresholds adjust).
+      The universal-scaling myth mixes tree advice with linear/k-NN advice.
+
+  - slug: tree-bagging-vs-boosting
+    unit: decision-trees-and-ensembles
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Which contrast is most accurate?"
+    choices:
+      - id: a
+        text: "Bagging averages parallel noisy trees to cut variance; boosting adds trees sequentially to cut bias where loss remains."
+        correct: true
+      - id: b
+        text: "Bagging requires scaled features; boosting forbids them."
+      - id: c
+        text: "Boosting trains one deep tree; bagging trains one stump."
+      - id: d
+        text: "They are two names for the same algorithm."
+    explanation: |
+      Forests/bagging stabilise high-variance trees; boosting spends new capacity on hard examples
+      or residuals. Both usually use many trees, not one.
+
+  - slug: tree-overfit-depth
+    unit: decision-trees-and-ensembles
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 60
+    stem: "A single very deep tree can drive training error near zero while generalising poorly."
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — that high-variance failure mode is why ensembles and depth limits exist.
+
+  - slug: tree-why-interactions
+    unit: decision-trees-and-ensembles
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Why do trees express feature interactions more easily than linear models on raw features?"
+    choices:
+      - id: a
+        text: "A split on x1 followed by a split on x2 in one branch implements an interaction without hand-built product columns."
+        correct: true
+      - id: b
+        text: "Trees secretly fit neural networks inside each leaf."
+      - id: c
+        text: "Linear models cannot include bias terms."
+      - id: d
+        text: "Tree impurity criteria are nonlinear in the label encoding only."
+    explanation: |
+      Hierarchical splits carve conjunctions. Linear models need explicit interaction features (or
+      kernels) to get the same flexibility.
+
+  # --- Leakage and scaling -----------------------------------------------------------------
+  - slug: leak-timestamp
+    unit: feature-leakage-and-scaling
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      You score loan default risk at application time. Which feature fails the timestamp test?
+    choices:
+      - id: a
+        text: "Months spent in collections during the life of the loan."
+        correct: true
+      - id: b
+        text: "Applicant credit score known at application."
+      - id: c
+        text: "Stated income on the application form."
+      - id: d
+        text: "Number of open credit lines at application."
+    explanation: |
+      Collections during the loan are only knowable after origination — foresight relative to the
+      application-time decision. The others are available at scoring time.
+
+  - slug: leak-scaler-fit
+    unit: feature-leakage-and-scaling
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Where must StandardScaler be fitted in a honest train/test evaluation?"
+    choices:
+      - id: a
+        text: "On the training split only; then apply those statistics to validation/test."
+        correct: true
+      - id: b
+        text: "On train and test together so the scales match."
+      - id: c
+        text: "On the test set, then reused for training."
+      - id: d
+        text: "Nowhere — scalers must always be fit on the full population in production forever."
+    explanation: |
+      Fitting on all rows leaks held-out moments into the transform. Production may refit on
+      growing train data, but evaluation must not peek.
+
+  - slug: leak-scaling-always
+    unit: feature-leakage-and-scaling
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 110
+    stem: '"Every pipeline must standardise all features." Strongest correction?'
+    choices:
+      - id: a
+        text: "Scale when the model uses distances or cross-feature weight penalties; tree ensembles typically do not need it."
+        correct: true
+      - id: b
+        text: "The claim is correct for all estimators."
+        misconception: ml.scaling_always_required
+      - id: c
+        text: "Never scale; it always destroys signal."
+      - id: d
+        text: "Only scale categorical one-hots, never numeric columns."
+    explanation: |
+      Mechanism first: ridge, k-NN, SVMs care; random forests generally do not. Opposite blanket
+      advice (c) is also wrong.
+
+  - slug: leak-auc-alarm
+    unit: feature-leakage-and-scaling
+    type: true_false
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 80
+    stem: "A sudden jump to 0.99 AUC after adding one new column should trigger a leakage audit before celebration."
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — suspiciously perfect metrics are a classic leakage symptom; run the timestamp test.
+
+  - slug: leak-which-need-scale
+    unit: feature-leakage-and-scaling
+    type: multi_select
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 120
+    stem: "Which estimators typically need comparable feature scales? Select all that apply."
+    choices:
+      - id: a
+        text: "L2-regularised logistic regression"
+        correct: true
+      - id: b
+        text: "k-nearest neighbours"
+        correct: true
+      - id: c
+        text: "Random forest classifier"
+      - id: d
+        text: "Gradient boosting decision trees"
+    explanation: |
+      Regularised linear models and distance-based methods care about units. Tree ensembles split
+      per feature and do not require standardisation.
+
+assessments:
+  - slug: logistic-regression-intuition-practice
+    title: "Practice: logistic regression"
+    kind: practice
+    unit: logistic-regression-intuition
+    items:
+      - logreg-sigmoid-model
+      - logreg-compute-p
+      - logreg-threshold
+
+  - slug: logistic-regression-intuition-quiz
+    title: "Quiz: logistic regression"
+    kind: quiz
+    unit: logistic-regression-intuition
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - logreg-sigmoid-model
+      - logreg-boundary-linear
+      - logreg-threshold
+      - logreg-coef-meaning
+
+  - slug: decision-trees-and-ensembles-practice
+    title: "Practice: trees and ensembles"
+    kind: practice
+    unit: decision-trees-and-ensembles
+    items:
+      - tree-regions
+      - tree-bagging-vs-boosting
+      - tree-overfit-depth
+
+  - slug: decision-trees-and-ensembles-quiz
+    title: "Quiz: trees and ensembles"
+    kind: quiz
+    unit: decision-trees-and-ensembles
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - tree-regions
+      - tree-scaling
+      - tree-bagging-vs-boosting
+      - tree-why-interactions
+
+  - slug: feature-leakage-and-scaling-practice
+    title: "Practice: leakage and scaling"
+    kind: practice
+    unit: feature-leakage-and-scaling
+    items:
+      - leak-timestamp
+      - leak-scaler-fit
+      - leak-auc-alarm
+
+  - slug: feature-leakage-and-scaling-quiz
+    title: "Quiz: leakage and scaling"
+    kind: quiz
+    unit: feature-leakage-and-scaling
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - leak-timestamp
+      - leak-scaler-fit
+      - leak-scaling-always
+      - leak-which-need-scale
+
+cards:
+  - slug: card-logreg-model
+    unit: logistic-regression-intuition
+    front: "Logistic regression in one formula?"
+    back: "p = σ(wᵀx + b); threshold separately for hard decisions."
+
+  - slug: card-tree-scale
+    unit: decision-trees-and-ensembles
+    front: "Do random forests need StandardScaler?"
+    back: "No — splits care about orderings within a feature, not shared units across features."
+
+  - slug: card-leak-timestamp
+    unit: feature-leakage-and-scaling
+    front: "Timestamp test for a feature?"
+    back: "At prediction time, is this value already written? If not, it leaks."

@@ -1,0 +1,193 @@
+# Items for training-data-and-harm. Every item is answerable from measurement rather than from
+# opinion, which is the claim the unit makes.
+
+items:
+  - slug: rai-disaggregate
+    unit: training-data-and-harm
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      Overall accuracy is 0.94. Group A (n=8,500) scores 0.96, group B (n=1,200) scores 0.88, and
+      group C (n=300) scores 0.71. What does the headline figure tell you about group C?
+    choices:
+      - id: a
+        text: "Nothing — the aggregate is dominated by the largest group and conceals the smallest."
+        correct: true
+      - id: b
+        text: "That group C is within normal variation of the average."
+      - id: c
+        text: "That group C has too few examples to matter."
+      - id: d
+        text: "That the model is 94% accurate for every group."
+    explanation: |
+      The 0.94 is true and it describes nobody in group C. Disaggregated evaluation — computing
+      your metrics separately per affected group — is the core practice, and it is an afternoon's
+      work.
+
+      Note also that 300 examples give a noisy estimate, which is itself a finding: you do not have
+      enough data about group C to know how badly you are doing.
+
+  - slug: rai-proxies
+    unit: training-data-and-harm
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      A team removes gender, age, and name from a CV screening model. Accuracy barely changes.
+      What does that tell you?
+    choices:
+      - id: a
+        text: "The information was never in those fields — it is carried by proxies like university, postcode, and phrasing."
+        correct: true
+      - id: b
+        text: "The model is now fair, since it cannot see the protected attributes."
+        misconception: rai.blind_means_fair
+      - id: c
+        text: "Those features were noise and removing them was harmless."
+      - id: d
+        text: "The model needs to be retrained from scratch to take effect."
+    explanation: |
+      Unchanged accuracy is the finding, not the reassurance. If the model had been relying on
+      those fields, removing them would have cost something.
+
+      The exclusion also does active harm in one specific way: if you did not record the attribute
+      you cannot compute the disaggregated metrics that would reveal the gap. You removed the
+      measurement rather than the disparity.
+
+  - slug: rai-keep-for-evaluation
+    unit: training-data-and-harm
+    type: true_false
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 100
+    stem: |
+      A protected attribute can reasonably be recorded for evaluation even when policy excludes it
+      from the model's features.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True, and it is usually necessary. You cannot measure a gap you refused to record, and in
+      several jurisdictions collecting an attribute for monitoring is explicitly permitted while
+      using it for decisions is not.
+
+      Separating the two uses — excluded from features, retained for measurement — is the standard
+      way to comply with the rule without going blind.
+
+  - slug: rai-fairness-conflict
+    unit: training-data-and-harm
+    type: mcq
+    bloom: evaluate
+    difficulty: 5
+    estimateSeconds: 160
+    stem: |
+      Someone asks you to make a model "fair". What is the most useful response?
+    choices:
+      - id: a
+        text: "Ask which criterion, since demographic parity, equal opportunity, and calibration cannot generally all hold when base rates differ."
+        correct: true
+      - id: b
+        text: "Equalise the positive rate across groups, which is the definition of fairness."
+      - id: c
+        text: "Report overall accuracy per group and stop there."
+      - id: d
+        text: "Explain that fairness is subjective and cannot be measured."
+    explanation: |
+      There is no neutral choice. Which criterion applies is a decision about what the system does
+      and whom it affects, it should be made explicitly and written down, and it follows from the
+      harm — if the harm is being wrongly excluded, equal recall is the criterion.
+
+      (d) is the wrong kind of humility: each individual criterion is perfectly measurable. What
+      is not automatic is which one to require.
+
+  - slug: rai-historical-label
+    unit: training-data-and-harm
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A screening model is trained on ten years of "was this candidate interviewed" decisions.
+      What has it learned?
+    choices:
+      - id: a
+        text: "To reproduce past interviewing decisions, including whatever influenced them."
+        correct: true
+      - id: b
+        text: "Which candidates are most capable."
+      - id: c
+        text: "Which candidates would accept an offer."
+      - id: d
+        text: "Nothing useful, since past decisions are noisy."
+    explanation: |
+      The label is the past outcome, not the underlying merit. The model is doing its job
+      correctly; the job was specified as imitation, and that specification happened at framing
+      time.
+
+      This is where the harm is usually introduced, which is why the responsible-AI question and
+      the "what is the label" question are the same question asked twice.
+
+  - slug: rai-recall-gap
+    unit: training-data-and-harm
+    type: short_text
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A model has recall 0.79 for group A and 0.54 for group B. What percentage of qualified
+      group B candidates does it miss?
+    answer: 46
+    tolerance: 1
+    explanation: |
+      $1 - 0.54 = 0.46$, so 46% — against 21% for group A.
+
+      In deployment that is qualified people filtered out before any human looks. And because they
+      are filtered out, no feedback ever arrives to reveal the error, which is why this has to be
+      measured deliberately rather than discovered from complaints.
+
+      Note what the number does and does not settle: it establishes the disparity and its size. It
+      does not say whether the cause is the label, the feature set, or the sample size for group B,
+      and it does not decide what to do.
+
+assessments:
+  - slug: training-data-and-harm-practice
+    title: "Practice: training data and harm"
+    kind: practice
+    unit: training-data-and-harm
+    items:
+      - rai-disaggregate
+      - rai-keep-for-evaluation
+      - rai-recall-gap
+
+  - slug: training-data-and-harm-quiz
+    title: "Quiz: training data, disparity, and measurement"
+    kind: quiz
+    unit: training-data-and-harm
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - rai-disaggregate
+      - rai-proxies
+      - rai-historical-label
+      - rai-fairness-conflict
+
+cards:
+  - slug: card-rai-proxy
+    unit: training-data-and-harm
+    front: "Does removing a protected attribute remove its influence?"
+    back: |
+      No. Proxies carry it — postcode, school, purchase history, phrasing. Worse, dropping the
+      attribute removes your ability to measure the disparity you caused.
+
+  - slug: card-rai-disaggregate
+    unit: training-data-and-harm
+    front: "The highest-value responsible-AI practice, in one line."
+    back: |
+      Disaggregated evaluation: compute every metric separately per affected group and report the
+      breakdown rather than the average.

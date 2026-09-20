@@ -1,0 +1,294 @@
+# Items for python-control-flow and python-numpy-essentials.
+
+items:
+  - slug: py-cf-early-return
+    unit: python-control-flow
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      Why prefer early returns (guard clauses) over a deep nest of if/else when validating a row?
+    choices:
+      - id: a
+        text: "Each rejection reason exits immediately and the happy path stays unindented."
+        correct: true
+      - id: b
+        text: "Early returns run faster than if/else in CPython."
+      - id: c
+        text: "Nested ifs are illegal in Python 3."
+      - id: d
+        text: "Guard clauses skip type checking."
+    explanation: |
+      Flat guards document each failure mode as its own return. Performance is not the point;
+      readability and correctness under review are.
+
+  - slug: py-cf-continue-vs-break
+    unit: python-control-flow
+    type: mcq
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 90
+    stem: |
+      In a loop over training rows, you want to skip rows with a missing label but keep processing
+      later rows. Which keyword is correct?
+    choices:
+      - id: a
+        text: "continue"
+        correct: true
+      - id: b
+        text: "break"
+        misconception: python.control_else_always_runs
+      - id: c
+        text: "return"
+      - id: d
+        text: "pass only — nothing else works"
+    explanation: |
+      `continue` advances to the next item. `break` leaves the loop entirely, so later valid rows
+      would never be seen. `return` exits the whole function.
+
+  - slug: py-cf-for-else
+    unit: python-control-flow
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 70
+    stem: |
+      In `for item in items: ... else: ...`, the else block always runs after the loop finishes
+      iterating all items.
+    choices:
+      - id: "true"
+        text: "True"
+        misconception: python.control_else_always_runs
+      - id: "false"
+        text: "False"
+        correct: true
+    explanation: |
+      False. The `else` runs only if the loop did **not** hit `break`. If you break on a successful
+      find, `else` is skipped.
+
+  - slug: py-cf-pipeline-policy
+    unit: python-control-flow
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      A pipeline silently trains on rows whose labels are None because a filter used pass in an
+      except block. What went wrong at the control-flow level?
+    choices:
+      - id: a
+        text: "A failure path was swallowed instead of skipping, counting, or stopping the run."
+        correct: true
+      - id: b
+        text: "None labels are always valid in supervised learning."
+      - id: c
+        text: "except blocks cannot contain control flow."
+      - id: d
+        text: "The for-loop needed a for/else clause."
+    explanation: |
+      Silent `pass` hides policy violations. Control flow should encode keep/skip/stop explicitly;
+      swallowing errors makes corrupt data look like a successful run.
+
+  - slug: py-cf-while-when
+    unit: python-control-flow
+    type: mcq
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      When is while a better fit than for in a data loader?
+    choices:
+      - id: a
+        text: "When the stop condition depends on streaming state, not a fixed collection length."
+        correct: true
+      - id: b
+        text: "Whenever you need to process more than 100 items."
+      - id: c
+        text: "When you want broadcasting."
+      - id: d
+        text: "while is never appropriate in ML code."
+    explanation: |
+      Prefer `for` over known iterables. Use `while` when you stop on EOF, retries, or budgets
+      that are not "length of this list".
+
+  - slug: np-shape-dtype
+    unit: python-numpy-essentials
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      Before combining two arrays with +, which attributes should you check first?
+    choices:
+      - id: a
+        text: "shape and dtype"
+        correct: true
+      - id: b
+        text: "only the total number of elements"
+        misconception: numpy.broadcast_confuses_shape
+      - id: c
+        text: "only the Python type of the variable names"
+      - id: d
+        text: "whether they were created with list()"
+    explanation: |
+      Shape decides broadcasting; dtype decides numeric behaviour. Equal element counts are not
+      enough for broadcasting.
+
+  - slug: np-broadcast-row
+    unit: python-numpy-essentials
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      X has shape (n, d) and mu = X.mean(axis=0) has shape (d,). What is the shape of X - mu?
+    choices:
+      - id: a
+        text: "(n, d) — mu broadcasts across rows"
+        correct: true
+      - id: b
+        text: "(d,) — the matrix collapses"
+      - id: c
+        text: "It always errors because shapes differ"
+        misconception: numpy.broadcast_confuses_shape
+      - id: d
+        text: "(n,) — features are dropped"
+    explanation: |
+      `(d,)` aligns from the right with `(n, d)` as if it were `(1, d)`, then stretches over n
+      rows. That is the standard centering pattern.
+
+  - slug: np-star-vs-matmul
+    unit: python-numpy-essentials
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 50
+    stem: |
+      In NumPy, the * operator performs matrix multiplication for 2-D arrays.
+    choices:
+      - id: "true"
+        text: "True"
+        misconception: numpy.broadcast_confuses_shape
+      - id: "false"
+        text: "False"
+        correct: true
+    explanation: |
+      False. `*` is elementwise. Use `@` or `np.matmul` for matrix products.
+
+  - slug: np-keepdims
+    unit: python-numpy-essentials
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      You compute row sums with s = X.sum(axis=1) then try X / s for a matrix X of shape (n, d).
+      What often goes wrong?
+    choices:
+      - id: a
+        text: "s has shape (n,) and may broadcast along the wrong axis; prefer keepdims=True."
+        correct: true
+      - id: b
+        text: "Division is not defined for float arrays."
+      - id: c
+        text: "axis=1 is illegal for 2-D arrays."
+      - id: d
+        text: "You must use a Python for-loop instead."
+    explanation: |
+      Without `keepdims`, the reduced vector can align from the right against `d` instead of
+      against the row axis. `keepdims=True` yields `(n, 1)` and divides each row correctly.
+
+  - slug: np-broadcast-fail
+    unit: python-numpy-essentials
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      Which pair fails broadcasting?
+    choices:
+      - id: a
+        text: "(4, 3) and (4,)"
+        correct: true
+      - id: b
+        text: "(4, 3) and (3,)"
+      - id: c
+        text: "(4, 1) and (1, 3)"
+      - id: d
+        text: "(5, 1, 3) and (3,)"
+    explanation: |
+      Aligning `(4, 3)` with `(4,)` from the right compares 3 with 4 — incompatible. The others
+      follow the equal-or-1 rule.
+
+assessments:
+  - slug: python-control-flow-practice
+    title: "Practice: control flow"
+    kind: practice
+    unit: python-control-flow
+    items:
+      - py-cf-early-return
+      - py-cf-continue-vs-break
+      - py-cf-for-else
+
+  - slug: python-control-flow-quiz
+    title: "Quiz: control flow for pipelines"
+    kind: quiz
+    unit: python-control-flow
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - py-cf-early-return
+      - py-cf-continue-vs-break
+      - py-cf-for-else
+      - py-cf-pipeline-policy
+      - py-cf-while-when
+
+  - slug: python-numpy-essentials-practice
+    title: "Practice: NumPy essentials"
+    kind: practice
+    unit: python-numpy-essentials
+    items:
+      - np-shape-dtype
+      - np-broadcast-row
+      - np-star-vs-matmul
+
+  - slug: python-numpy-essentials-quiz
+    title: "Quiz: arrays and broadcasting"
+    kind: quiz
+    unit: python-numpy-essentials
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - np-shape-dtype
+      - np-broadcast-row
+      - np-star-vs-matmul
+      - np-keepdims
+      - np-broadcast-fail
+
+cards:
+  - slug: card-py-cf-continue
+    unit: python-control-flow
+    front: "continue vs break in a filtering loop?"
+    back: |
+      continue skips this item and keeps going. break leaves the loop entirely — later items
+      never run.
+
+  - slug: card-py-cf-guards
+    unit: python-control-flow
+    front: "Why early-return guards?"
+    back: |
+      Each rejection exits immediately; the success path stays flat and readable.
+
+  - slug: card-np-broadcast
+    unit: python-numpy-essentials
+    front: "Broadcasting rule in one line?"
+    back: |
+      Compare axes right-to-left: equal sizes or one side is 1. Element count matching is not
+      enough.
+
+  - slug: card-np-star
+    unit: python-numpy-essentials
+    front: "* vs @ in NumPy?"
+    back: |
+      * is elementwise. @ (or np.matmul) is matrix multiplication.

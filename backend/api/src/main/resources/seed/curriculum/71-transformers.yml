@@ -1,0 +1,484 @@
+# Wave 2, part 6: the transformer, from the outside in.
+#
+# The attention unit in 70-attention-draft.yml is still a draft and stays that way — it is the
+# next thing in the authoring queue and it is not finished. These two pages are deliberately
+# written so they do not depend on it: the block-level view and the position question are both
+# teachable while treating attention itself as "the operation that mixes across positions".
+
+units:
+  - slug: transformer-block-overview
+    title: What a Transformer Block Does
+    kind: knowledge_unit
+    parent: transformers
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 38
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [transformers, deep-learning, architecture, attention]
+    objectives:
+      - Name the four components of a transformer block and what each contributes.
+      - Explain the residual stream as the thing every block reads from and writes to.
+      - Say which part mixes information across positions and which does not.
+      - Account for where a transformer's parameters and compute actually go.
+    description: >-
+      A transformer is one block repeated. Attention mixes across positions, an MLP processes each
+      position alone, and residual connections plus normalisation keep the stack trainable.
+    blocks:
+      - type: why
+        markdown: |
+          Every current language model is a stack of nearly identical blocks. Understanding one
+          block is therefore most of understanding the architecture, and it explains the properties
+          you have to engineer around: why cost grows quadratically with sequence length, why
+          context has a hard limit, and why a model can be "wide" or "deep" in different ways.
+
+          It also demystifies the diagram. Once the residual stream is visible, the arrows in every
+          transformer figure stop being decoration and start being a data path.
+
+      - type: eli5
+        markdown: |
+          Imagine a long conveyor belt with one tray per word, running through a series of
+          workstations.
+
+          At each station, two things happen. First, the trays are allowed to look at each other
+          and copy across anything useful — the word "it" finds out which noun it refers to.
+          Second, each tray is worked on privately, with no looking sideways.
+
+          Then everything goes back on the belt and moves to the next station. Nothing is ever
+          thrown away; each station only *adds* to what is on the tray. After enough stations, each
+          tray carries a rich description of its word in context.
+
+      - type: beginner
+        markdown: |
+          A block takes a sequence of vectors, one per token, and returns a sequence of the same
+          shape. Four components:
+
+          1. **Self-attention.** Each position looks at every other position and pulls in a weighted
+             mixture of their information. This is the *only* component that moves information
+             between positions.
+          2. **Feed-forward network (MLP).** A two-layer MLP applied to each position independently
+             and identically. Typically expands to about $4d$ and back.
+          3. **Residual connections.** Each sub-layer's output is *added* to its input rather than
+             replacing it.
+          4. **Layer normalisation.** Rescales each position's vector so activations stay in a
+             workable range.
+
+          A common ordering (pre-norm, which is now standard because it trains more stably):
+
+          $$
+          \mathbf{x} \leftarrow \mathbf{x} + \text{Attention}(\text{LayerNorm}(\mathbf{x}))
+          $$
+
+          $$
+          \mathbf{x} \leftarrow \mathbf{x} + \text{MLP}(\text{LayerNorm}(\mathbf{x}))
+          $$
+
+          Note the shape: input and output are both sequence length × $d$. That is what makes the
+          block stackable — 12 of them, or 80, with no change to the interface.
+
+      - type: intermediate
+        markdown: |
+          **The residual stream.** Because every sub-layer *adds* to $\mathbf{x}$, it is useful to
+          read the whole network as one persistent vector per position — a stream that runs from the
+          embedding to the output. Each block reads from it, computes something, and writes the
+          result back by addition. Nothing overwrites; everything accumulates.
+
+          Three things follow immediately from that reading:
+
+          - The gradient reaches every layer through the identity path, which is why a
+            hundred-layer stack trains at all. The residual argument from the vanishing gradients
+            unit applies directly.
+          - Later blocks can use information written by much earlier ones, because it is still
+            there.
+          - Blocks are, to a first approximation, independently useful. Removing one from a trained
+            model degrades it gracefully rather than breaking it, which is unusual for a deep
+            network and is a direct consequence of the additive structure.
+
+          **Division of labour.** Attention is the only component that moves information across
+          positions; the MLP is the only component with meaningful per-position nonlinear capacity.
+          Neither is optional. Remove attention and every position is processed in isolation; remove
+          the MLP and the block's only nonlinearity is the attention softmax.
+
+          **Where the parameters go.** Per block, with model dimension $d$ and an MLP expansion of
+          $4d$:
+
+          - Attention: four $d \times d$ projections (query, key, value, output) — $4d^2$.
+          - MLP: $d \times 4d$ up and $4d \times d$ down — $8d^2$.
+
+          So roughly **two-thirds of the parameters are in the MLP**, not in attention. This
+          surprises most people, and it matters for anyone reasoning about memory or about which
+          parts to quantise.
+
+          **Where the compute goes** is a different question, and the answer depends on length.
+          Per-position work is $O(Ld^2)$ for $L$ tokens; attention's score matrix is $L \times L$,
+          costing $O(L^2 d)$. The crossover is around $L \approx d$. For short prompts the MLP
+          dominates; for long ones attention does, which is why long-context work is full of
+          attention approximations and almost never touches the MLP.
+
+          **Multi-head** attention splits the $d$ dimensions into $h$ independent heads that attend
+          separately and are concatenated. Same parameter count, but several relationships can be
+          tracked at once instead of one averaged compromise. The mechanics of a single head are
+          the subject of the attention unit, which is still in draft — this page deliberately does
+          not depend on it.
+
+      - type: example
+        markdown: |
+          A small model: $d = 512$, 8 heads, MLP expansion 4, 6 blocks, sequence length 128.
+
+          **Parameters per block:**
+
+          $$
+          \text{attention} = 4 \times 512^2 = 1{,}048{,}576
+          $$
+
+          $$
+          \text{MLP} = 2 \times 512 \times 2048 = 2{,}097{,}152
+          $$
+
+          Just over 3.1M per block, 18.9M across six blocks, and the MLP is two-thirds of it.
+
+          **Shapes through one block**, batch of 32:
+
+          ```
+          input            (32, 128, 512)
+          layernorm        (32, 128, 512)
+          attention out    (32, 128, 512)   <- mixes across the 128 positions
+          + residual       (32, 128, 512)
+          layernorm        (32, 128, 512)
+          mlp 512 -> 2048  (32, 128, 2048)  <- each position alone
+          mlp 2048 -> 512  (32, 128, 512)
+          + residual       (32, 128, 512)
+          ```
+
+          Every intermediate is the same shape except inside the MLP. That invariance is what lets
+          you stack blocks without thinking.
+
+          **Attention cost at this size.** The score matrix is $128 \times 128 = 16{,}384$ entries
+          per head, so $8 \times 16{,}384 \approx 131$k — trivial. At $L = 8{,}192$ it is
+          $8 \times 67$M $\approx 537$M entries per layer per example. The sequence grew 64×; the
+          attention matrix grew 4,096×. That single ratio is why context length is expensive and
+          why it is capped rather than merely discouraged.
+
+      - type: misconception
+        payload:
+          code: tf.attention_is_the_whole_model
+          claim: "A transformer is attention; the rest of the block is plumbing."
+          markdown: |
+            **The claim:** attention is what makes a transformer work, and the normalisation,
+            residuals, and MLP are implementation details around it.
+
+            **Why it feels right:** the paper is called *Attention Is All You Need*, every
+            explainer is about attention, and attention is genuinely the novel part.
+
+            **What actually happens:** about two-thirds of the parameters are in the MLP, and
+            interpretability work consistently finds factual knowledge stored there rather than in
+            attention. Attention decides *what to read*; the MLP does most of the *processing*.
+            Remove it and the block has almost no per-position nonlinear capacity.
+
+            The residual connections are not plumbing either. Without them a deep stack does not
+            train, for the reason set out in the vanishing gradients unit. The title of the paper
+            was making a point about recurrence and convolution being unnecessary, not a claim that
+            the other components could be deleted.
+
+            **How to catch yourself:** count the parameters. If a component holds two-thirds of the
+            model, it is not plumbing.
+
+      - type: common_mistake
+        markdown: |
+          **Assuming attention cost dominates at every length.** Below roughly $L = d$, the MLP
+          dominates. Optimising attention on short sequences is effort in the wrong place.
+
+          **Confusing heads with layers.** Eight heads in one block attend in parallel over the same
+          input; six blocks apply in sequence. Doubling heads and doubling depth do very different
+          things.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Compute the parameters per block for $d = 768$ with an MLP expansion of 4, split
+               between attention and MLP. Then for 12 blocks.
+            2. Which components move information between positions? Which operate on each position
+               independently?
+            3. At $d = 512$, find the sequence length at which the attention score computation
+               matches the per-position work. Show the comparison.
+            4. Explain in three sentences why removing one block from a trained transformer degrades
+               it gracefully.
+            5. A model is too slow on 16k-token inputs. Say which component to attack and justify it
+               with the scaling.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Name the four components of a transformer block."
+              answer: "Self-attention, a position-wise MLP, residual connections, and layer normalisation."
+            - question: "Which component mixes information across positions?"
+              answer: >-
+                Only self-attention. The MLP and layer normalisation act on each position
+                independently.
+            - question: "Where do most of a block's parameters live?"
+              answer: >-
+                In the MLP, roughly two-thirds of them, because it expands to about four times the
+                model dimension and back.
+            - question: "What is the residual stream?"
+              answer: >-
+                The per-position vector that runs the length of the network, which every sub-layer
+                reads from and adds back into rather than overwriting.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Draw a block from memory and label what each part contributes.
+            - Compute parameters per block from $d$ and the expansion factor.
+            - Say, for a given sequence length, whether attention or the MLP dominates the cost.
+            - Explain the residual stream well enough to predict what removing a block would do.
+    resources:
+      - source: attention-2017
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: "Section 3 defines the block, including the position-wise feed-forward network and the residual structure."
+      - source: transformer-circuits-framework
+        purpose: DEEPER_REFERENCE
+        relevance: 0.8
+        excerpt: >-
+          The residual-stream reading used on this page, developed carefully. Openly published;
+          linked, not reproduced.
+      - source: layernorm-2016
+        purpose: PRIMARY_SOURCE
+        relevance: 0.6
+        excerpt: "Defines the normalisation used in every block, and why it suits sequence models better than batch norm."
+      - source: d2l
+        purpose: TOOL_REFERENCE
+        relevance: 0.7
+        excerpt: "Chapter 11 implements a full block with the shapes traced at each step. CC BY-SA 4.0."
+
+  - slug: positional-encoding-intuition
+    title: Why Transformers Need Position Told to Them
+    kind: knowledge_unit
+    parent: transformers
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 32
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [transformers, positional-encoding, attention]
+    objectives:
+      - Explain why attention is permutation-equivariant and what that costs.
+      - Describe how position information is injected, and the main families of approach.
+      - Distinguish absolute from relative position encoding and say why relative generalises.
+      - Connect positional encoding to the limits on context length extrapolation.
+    description: >-
+      Attention is a weighted sum, and a sum does not care about order. Position has to be added
+      explicitly, and how it is added determines how far a model can extrapolate.
+    blocks:
+      - type: why
+        markdown: |
+          "Dog bites man" and "man bites dog" contain identical tokens. A model that could not tell
+          them apart would be useless, and attention on its own genuinely cannot.
+
+          This is not a footnote. Positional encoding is an active area precisely because it
+          controls whether a model trained on 4k tokens behaves sensibly at 32k, which is the
+          difference between a context-length claim that holds and one that is marketing.
+
+      - type: eli5
+        markdown: |
+          Put every word of a sentence into a bag and shake it. Now try to read the sentence. You
+          have all the words and none of the order.
+
+          Attention sees a bag. To fix it, you write a small number on each word before dropping it
+          in — "I was 1st, I was 2nd" — so order can be recovered from inside the bag.
+
+          Writing the number as "I was 5th" works until you meet a sentence longer than any you
+          trained on. Writing "I am three words after that one" keeps working, because it never
+          mentions a position you have not seen.
+
+      - type: beginner
+        markdown: |
+          **The problem.** Attention computes a weighted sum over positions. Permute the inputs and
+          you permute the outputs identically — the operation is *permutation-equivariant*. The
+          MLP, acting per position, does not help: it sees each token alone. So a transformer with
+          no positional information treats a sentence as a multiset.
+
+          **The fix.** Inject position into the vectors. The original transformer adds a fixed
+          sinusoidal vector to each token embedding:
+
+          $$
+          PE_{(pos, 2i)} = \sin\!\left(\frac{pos}{10000^{2i/d}}\right), \qquad
+          PE_{(pos, 2i+1)} = \cos\!\left(\frac{pos}{10000^{2i/d}}\right)
+          $$
+
+          Different dimensions oscillate at different frequencies, so the combination is unique per
+          position and smoothly varying — nearby positions get similar vectors.
+
+          **The families, in the order they appeared:**
+
+          - **Fixed sinusoidal.** No parameters, defined for any position.
+          - **Learned absolute.** An embedding per position, trained. Simple, and hard-capped at the
+            maximum trained length.
+          - **Relative.** Encode the *distance* between positions rather than their indices.
+          - **Rotary (RoPE).** Rotate query and key vectors by an angle proportional to position, so
+            their dot product depends only on relative position. Now the common choice.
+
+      - type: intermediate
+        markdown: |
+          **Why relative beats absolute.** Most linguistic structure is relative: an adjective
+          modifies a nearby noun, a closing bracket matches an opening one some distance back.
+          Nothing about it depends on being at index 4,271. An absolute scheme has to learn the same
+          relationship separately at every position, and has nothing to say about position 5,000 if
+          it only ever saw 4,096.
+
+          Rotary embeddings get relative behaviour without a separate bias term. Rotating $q$ at
+          position $m$ and $k$ at position $n$ by angles proportional to their indices makes
+          $q_m \cdot k_n$ depend on $m - n$ only — relative position falls out of the geometry
+          rather than being added on top. That is why it composes cleanly with efficient attention
+          implementations, which is a large part of why it won.
+
+          **Extrapolation is the practical question.** A model trained to 4k tokens and run at 32k
+          does not fail gracefully:
+
+          - Learned absolute: there is no embedding for position 8,000. It cannot run at all without
+            a workaround.
+          - Sinusoidal: defined everywhere, but the attention patterns were never trained on those
+            relative distances and degrade badly.
+          - RoPE: also defined everywhere, and the standard extensions (interpolating or rescaling
+            the rotation frequencies, usually with a short fine-tune) work well enough to be the
+            standard way long-context models are produced.
+
+          **Read context-length claims with this in mind.** "Supports 128k tokens" states that the
+          implementation accepts the input, not that quality holds across it. Measured retrieval
+          accuracy over long contexts is strongly position-dependent — best near the start and the
+          end, worst in the middle — which is a property of what the model was trained on, not a
+          bug in the encoding. That evidence is worth citing when someone proposes replacing
+          retrieval with a very long prompt.
+
+          **A note on volatility.** This page is MEDIUM volatility on purpose. The underlying
+          problem — attention is order-blind, so position must be injected — is settled and will not
+          change. Which scheme is standard has changed twice in the last five years and may change
+          again. The first half of this page should age well; the specific recommendations should be
+          re-checked at review.
+
+      - type: example
+        markdown: |
+          Two sequences over the same tokens:
+
+          - A: `the cat sat on the mat`
+          - B: `the mat sat on the cat`
+
+          **Without positional information.** Attention computes, for each position, a weighted sum
+          over all token vectors. The set of vectors is identical in A and B, so for the position
+          holding `sat`, the attention scores against `cat` and `mat` are identical in both. The
+          representation of `sat` is the same in a sentence about a cat and a sentence about a mat.
+
+          **With sinusoidal encoding**, at $d = 4$ and rounding, position vectors begin:
+
+          | Position | $PE$ (first four dimensions) |
+          |----------|------------------------------|
+          | 0        | (0.00, 1.00, 0.00, 1.00)     |
+          | 1        | (0.84, 0.54, 0.01, 1.00)     |
+          | 2        | (0.91, -0.42, 0.02, 1.00)    |
+
+          Dimension 0 and 1 vary quickly and distinguish adjacent positions; dimensions 2 and 3
+          vary slowly and distinguish distant ones. Adding these to the token embeddings makes
+          `cat` at position 1 a different vector from `cat` at position 5, so `sat` can attend to
+          "the noun immediately before me" rather than to "the noun".
+
+          **What breaks at length.** Suppose training only ever showed sequences up to 512 tokens.
+          The relative distance 700 has never appeared, so whatever the model learned about how
+          attention should behave at that distance is an extrapolation from nothing. Sinusoidal
+          encoding will happily produce a vector for position 3,000; the attention pattern that uses
+          it was never fitted. The encoding being *defined* everywhere is not the same as the model
+          being *trained* everywhere, and the gap between those two is where long-context
+          disappointment comes from.
+
+      - type: misconception
+        payload:
+          code: tf.attention_knows_order
+          claim: "Attention learns word order from the data, like an RNN does."
+          markdown: |
+            **The claim:** a large model trained on ordered text will learn order from that text, so
+            positional encoding is a convenience rather than a necessity.
+
+            **Why it feels right:** the model clearly *does* understand word order, and it is easy
+            to assume that came from training rather than from architecture.
+
+            **What actually happens:** permutation equivariance is a mathematical property of the
+            operation, not a tendency that training can overcome. A weighted sum over a set produces
+            the same result for any ordering of that set. With the positional term removed, no
+            amount of data teaches order, because the information is destroyed before any parameter
+            sees it.
+
+            This is a genuine difference from recurrent networks, which consume tokens one at a time
+            and therefore get order from the architecture for free. Transformers gave that up in
+            exchange for parallelism across positions — the trade that made them scale — and pay for
+            it by injecting position explicitly.
+
+            **How to catch yourself:** remember that the positional term is *added to the input
+            embeddings*, before the first block. If order were learnable downstream, there would be
+            nothing to add it to.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Explain permutation equivariance in two sentences without using the word "position".
+            2. Compute the first four sinusoidal dimensions for position 3 at $d = 4$, and compare
+               with position 2. Which dimensions changed most?
+            3. Give one relationship in English that is genuinely absolute and one that is relative.
+               Which encoding suits each?
+            4. A model with learned absolute encodings is trained to 2,048 tokens. State exactly what
+               happens at 4,096 and why it is different from the sinusoidal case.
+            5. A vendor claims 200k-token context. List three things you would measure before
+               believing that quality holds across it.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why does attention need position supplied explicitly?"
+              answer: >-
+                It computes a weighted sum over a set, which is permutation-equivariant. Reordering
+                the inputs reorders the outputs identically, so order carries no information.
+            - question: "What is the main advantage of relative over absolute encoding?"
+              answer: >-
+                Linguistic structure depends on distance rather than index, so a relative scheme
+                reuses one learned relationship at every position and extends past the trained length.
+            - question: "How does RoPE make attention depend on relative position?"
+              answer: >-
+                It rotates query and key vectors by angles proportional to their indices, so their
+                dot product depends only on the difference between the indices.
+            - question: "Does a defined positional encoding at position 10,000 mean the model works there?"
+              answer: >-
+                No. The encoding being defined is not the same as the attention patterns having been
+                trained at those distances. Quality typically degrades well before the stated limit.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Explain permutation equivariance and why it makes position injection mandatory.
+            - Name the four encoding families and one property that distinguishes each.
+            - Predict what happens to each family beyond its trained length.
+            - Push back on a context-length claim with a specific measurement you would want.
+    resources:
+      - source: attention-2017
+        purpose: PRIMARY_SOURCE
+        relevance: 0.8
+        excerpt: "Section 3.5 gives the sinusoidal encoding and the argument for it."
+      - source: rope-2021
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: "Introduces rotary embeddings and shows the dot product depends only on relative position."
+      - source: lost-in-the-middle-2023
+        purpose: DEEPER_REFERENCE
+        relevance: 0.7
+        excerpt: >-
+          Measures how retrieval accuracy varies with position in a long context, which is the
+          evidence behind the caution about context-length claims.

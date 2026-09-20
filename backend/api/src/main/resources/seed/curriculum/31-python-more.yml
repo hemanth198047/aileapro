@@ -1,0 +1,461 @@
+# Wave 3: control flow and NumPy essentials for ML pipelines.
+#
+# These sit under the python domain (not under python-essentials) because they are the next
+# layer every notebook assumes: deciding what runs, and operating on arrays without Python loops.
+
+units:
+  - slug: python-control-flow
+    title: Control Flow for Data Pipelines
+    kind: knowledge_unit
+    parent: python
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 32
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [python, control-flow, pipelines]
+    objectives:
+      - Choose if/else, early return, or a loop for a clear filtering or routing decision.
+      - Write a for-loop and a while-loop that terminate for the cases you care about.
+      - Explain why control flow in a data pipeline is a correctness question, not decoration.
+      - Prefer early returns and guard clauses over deeply nested conditionals.
+    description: >-
+      If, else, loops, and early return — the decisions that decide which rows get processed,
+      which examples get skipped, and whether a pipeline ever finishes.
+    blocks:
+      - type: why
+        markdown: |
+          A training script is mostly control flow wrapped around numerical work. Skip corrupt
+          rows or you train on garbage. Break out of a loop too late or you burn the night on an
+          empty generator. Nest three `if`s and the next person cannot tell which path ran.
+
+          Control flow is how you encode *policy*: what is valid, what is skipped, when to stop.
+          Get the policy wrong and the model never sees the failure — the pipeline silently did
+          the wrong thing.
+
+      - type: eli5
+        markdown: |
+          Imagine a conveyor belt of apples. Some are rotten. You need a rule: keep, throw away,
+          or stop the belt.
+
+          `if` is the keep-or-throw decision. A loop is "do this for every apple". Early return is
+          "this box is empty — leave the room now, do not keep checking shelves".
+
+          Without those rules the belt either jams, or you end up baking a pie with rotten fruit
+          and wondering why it tastes wrong.
+
+      - type: beginner
+        markdown: |
+          **Branching.** An `if` / `elif` / `else` chain picks one path:
+
+          ```python
+          def label_score(score: float) -> str:
+              if score >= 0.8:
+                  return "pass"
+              elif score >= 0.5:
+                  return "review"
+              else:
+                  return "fail"
+          ```
+
+          Conditions are any expression that is truthy or falsy. Empty containers, `0`, `0.0`,
+          `None`, and `False` are falsy; almost everything else is truthy. Prefer explicit checks
+          (`if row is None`) when the distinction matters.
+
+          **Early return** exits as soon as the answer is known:
+
+          ```python
+          def clean_text(text: str | None) -> str | None:
+              if text is None:
+                  return None
+              text = text.strip()
+              if not text:
+                  return None
+              return text.lower()
+          ```
+
+          Flat guard clauses beat nested pyramids. Each return documents a rejection reason.
+
+          **Loops.** `for item in iterable` walks a known collection. `while condition` repeats
+          until a stop condition holds — use it when you do not know the length in advance
+          (streaming, retry until success, read until EOF).
+
+          ```python
+          kept = []
+          for row in rows:
+              if row.get("label") is None:
+                  continue          # skip this row, keep going
+              kept.append(row)
+          ```
+
+          `continue` skips the rest of the current iteration. `break` leaves the loop entirely.
+          Prefer `for` when you can; `while True` with a buried `break` is harder to reason about.
+
+      - type: intermediate
+        markdown: |
+          **Control flow is the skeleton of a pipeline.** Typical stages:
+
+          1. Guard invalid inputs (early return / raise).
+          2. Filter or transform each record (loop + `continue`).
+          3. Aggregate or stop early when a budget is hit (`break`).
+          4. Branch on schema or modality (`if` / `elif`).
+
+          In ML code the same pattern appears as: drop NaN labels, skip empty documents, stop
+          reading after `max_examples`, route image vs text batches to different loaders.
+
+          **Comprehensions** are loops with a return value:
+
+          ```python
+          ids = [r["id"] for r in rows if r.get("split") == "train"]
+          ```
+
+          Use them when the body is a single expression. When the body needs logging, multiple
+          statements, or early exit, keep an explicit loop — readability wins.
+
+          **Else on loops** exists in Python (`for ... else`) and runs only if the loop did *not*
+          `break`. It is useful for "search failed" paths, but many readers misread it. Prefer a
+          flag or an early return if your teammates do not know the idiom.
+
+          **Infinite loops** almost always mean a missing update to the loop variable or a stop
+          condition that can never become true. When reading a `while`, ask: what changes each
+          iteration, and can that change make the condition false?
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            ```python
+            def filter_training_rows(rows: list[dict], max_n: int) -> list[dict]:
+                """Keep labelled rows; stop once we have max_n examples."""
+                out: list[dict] = []
+                for row in rows:
+                    label = row.get("label")
+                    if label is None:
+                        continue
+                    if not isinstance(label, (int, float, str)):
+                        continue
+                    out.append(row)
+                    if len(out) >= max_n:
+                        break
+                return out
+
+
+            def route_example(example: dict) -> str:
+                modality = example.get("modality")
+                if modality == "text":
+                    return "text_encoder"
+                if modality == "image":
+                    return "vision_encoder"
+                raise ValueError(f"unknown modality: {modality!r}")
+            ```
+
+            The first function encodes three policies: skip missing labels, skip bad types, and
+            stop early when the budget is met. The second encodes routing. Both are control flow;
+            neither is optional decoration.
+
+      - type: misconception
+        payload:
+          code: python.control_else_always_runs
+          claim: "The else after a for-loop always runs when the loop finishes."
+          markdown: |
+            **The claim:** `for x in xs: ... else: ...` means "after the loop, always do this".
+
+            **Why it feels right:** `if/else` pairs an alternative with a condition, so `for/else`
+            looks like "loop, then otherwise".
+
+            **What actually happens:** the `else` runs only when the loop completed *without*
+            hitting `break`. If you `break` on a successful find, the `else` is skipped — that is
+            the point of the construct.
+
+            **How to catch yourself:** rewrite with an explicit `found = False` flag. If that
+            clearer version and the `for/else` disagree in your head, you had the misconception.
+
+      - type: common_mistake
+        markdown: |
+          **Nested if-pyramids.** Three levels deep means three mental stacks. Flatten with early
+          returns and `continue`.
+
+          **`while True` without a clear exit.** Always name the stop condition or document the
+          only `break` path.
+
+          **Silent `pass` in except.** Catching errors and doing nothing hides pipeline failures
+          that should stop the run or at least be counted.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Rewrite a three-level nested `if` that validates a row into guard-clause early
+               returns. Keep the same behaviour.
+            2. Write a loop that yields at most 100 non-empty strings from a list, skipping blanks
+               with `continue` and stopping with `break`.
+            3. Explain when you would choose `while` over `for` in a data loader.
+            4. Given `for item in items: if item == target: break else: ...`, say when the `else`
+               body runs.
+            5. Design the control-flow skeleton (no real I/O) for: read CSV rows, drop null labels,
+               cap at 10_000 examples, raise if zero examples remain.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does an early return buy you in a validation function?"
+              answer: >-
+                You exit as soon as a rejection reason is known, keep the happy path unindented,
+                and make each failure mode visible as its own return.
+            - question: "When should you prefer for over while?"
+              answer: >-
+                When you are iterating a known collection or iterator with a natural end. Use
+                while when the stop condition depends on state that is not a fixed sequence.
+            - question: "What does continue do inside a filtering loop?"
+              answer: >-
+                It skips the rest of the current iteration and moves to the next item, without
+                leaving the loop.
+            - question: "Why is control flow central to ML pipelines?"
+              answer: >-
+                It encodes which examples are kept, skipped, or routed — silent wrong decisions
+                corrupt training without raising an obvious error.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Write a filter loop with `continue` and an early-stop `break` without nesting.
+            - Replace a nested validation pyramid with guard-clause returns.
+            - Explain `for`/`else` correctly, or choose not to use it and say why.
+            - Sketch the control-flow skeleton of a small ingest pipeline before writing I/O.
+    resources:
+      - source: python-tutorial
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: >-
+          Official tutorial sections on if statements and for/while loops — the language rules
+          this unit applies to pipelines.
+      - source: pep8
+        purpose: TOOL_REFERENCE
+        relevance: 0.5
+        excerpt: "Style guidance that keeps control-flow readable (indentation, blank lines, naming)."
+
+  - slug: python-numpy-essentials
+    title: NumPy Essentials for Machine Learning
+    kind: knowledge_unit
+    parent: python
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [python, numpy, arrays, broadcasting]
+    objectives:
+      - Create and reshape NumPy arrays and read their shape and dtype.
+      - Apply broadcasting rules to predict the shape of an elementwise operation.
+      - Replace a Python loop over rows with a vectorized expression when it is clearer.
+      - Explain why vectorized ops matter for ML feature and batch code.
+    description: >-
+      Arrays, broadcasting, and vectorized operations — the default way ML code manipulates
+      batches of numbers without writing Python loops.
+    blocks:
+      - type: why
+        markdown: |
+          Almost every ML library speaks NumPy's dialect: shape tuples, `float32` batches, and
+          operations that run over whole arrays at once. If you think in Python `for` loops over
+          rows, you will write code that is slow, hard to batch, and easy to get wrong on the
+          batch axis.
+
+          Broadcasting is the rule that lets a vector of biases add to every row of a matrix
+          without an explicit loop. Misread the rule and you silently expand the wrong axis —
+          a bug that often still "runs".
+
+      - type: eli5
+        markdown: |
+          A NumPy array is a grid of numbers with a shape sticker on the box: "3 rows by 4
+          columns".
+
+          Vectorized code means: tell the box "add 1 to every cell" once, instead of visiting
+          each cell yourself with a shopping list.
+
+          Broadcasting is the rule for when two boxes have different shapes but can still line
+          up — like adding one seasoning mix to every tray in an oven because the mix is meant
+          to stretch across trays.
+
+      - type: beginner
+        markdown: |
+          Create arrays from lists, or with helpers:
+
+          ```python
+          import numpy as np
+
+          x = np.array([[1.0, 2.0], [3.0, 4.0]])  # shape (2, 2)
+          z = np.zeros((3, 4))                    # shape (3, 4)
+          r = np.arange(6).reshape(2, 3)          # shape (2, 3)
+          ```
+
+          Always know **`shape`** (sizes of each axis) and **`dtype`** (element type). ML code
+          usually wants `float32` or `float64`; integers appear for indices and labels.
+
+          **Elementwise** ops (`+`, `*`, `np.exp`, comparisons) apply per cell when shapes match.
+          **Reductions** (`sum`, `mean`, `max`) collapse axes:
+
+          ```python
+          batch = np.random.randn(8, 16)   # 8 examples, 16 features
+          batch.mean(axis=0)               # mean feature vector, shape (16,)
+          batch.mean(axis=1)               # per-example mean, shape (8,)
+          ```
+
+          The batch axis is almost always axis `0` in this curriculum's examples.
+
+      - type: intermediate
+        markdown: |
+          **Broadcasting** compares shapes right-to-left. Two dimensions are compatible if they
+          are equal, or one of them is `1`. Missing leading dimensions behave like `1`.
+
+          Example: `(4, 3)` with `(3,)` → the vector acts as `(1, 3)` and stretches over 4 rows.
+          Example: `(4, 1)` with `(1, 3)` → result `(4, 3)`.
+          Failure: `(4, 3)` with `(4,)` — after aligning from the right, `3` vs `4` conflict.
+
+          This is how you subtract a per-feature mean from every row:
+
+          ```python
+          X = ...                      # (n, d)
+          mu = X.mean(axis=0)          # (d,)
+          X_centered = X - mu          # broadcasts (d,) across n rows
+          ```
+
+          **Vectorization** replaces:
+
+          ```python
+          out = []
+          for row in X:
+              out.append(row @ w)
+          ```
+
+          with `X @ w` when `w` has shape `(d,)`. Prefer clarity: a short loop that is obviously
+          correct beats an opaque broadcast — but for batch math, the vectorized form is usually
+          both clearer and faster.
+
+          Watch **views vs copies**. `reshape` and slicing often return views; in-place edits can
+          surprise you. When in doubt, `.copy()`.
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            ```python
+            import numpy as np
+
+            # Batch of 4 examples, 3 features; add a bias per feature via broadcast.
+            X = np.array([
+                [1.0, 2.0, 3.0],
+                [0.5, 0.5, 0.5],
+                [2.0, 0.0, 1.0],
+                [1.0, 1.0, 1.0],
+            ])                                 # (4, 3)
+            bias = np.array([0.1, -0.2, 0.0]) # (3,)
+            X_biased = X + bias               # (4, 3)
+
+            # Standardize features (zero mean, unit variance) without a Python loop.
+            mu = X.mean(axis=0)
+            sigma = X.std(axis=0) + 1e-8
+            X_std = (X - mu) / sigma
+
+            # Softmax over classes for one batch (axis=1 = class axis).
+            logits = np.array([[2.0, 0.5, 0.1],
+                               [0.0, 0.0, 1.0]])  # (2, 3)
+            shifted = logits - logits.max(axis=1, keepdims=True)
+            exp = np.exp(shifted)
+            probs = exp / exp.sum(axis=1, keepdims=True)
+            ```
+
+            `keepdims=True` preserves a size-1 axis so the division broadcasts correctly. Dropping
+            it is a classic shape bug.
+
+      - type: misconception
+        payload:
+          code: numpy.broadcast_confuses_shape
+          claim: "If two arrays have the same number of elements, they broadcast."
+          markdown: |
+            **The claim:** matching element counts (or "same rank") is enough for broadcasting.
+
+            **Why it feels right:** reshape can turn any flat buffer into any shape with the same
+            size, so people assume NumPy will "figure it out".
+
+            **What actually happens:** broadcasting is a *per-axis* rule from the right, not a
+            free reshape. `(4, 3)` and `(4,)` do not broadcast even though both involve a 4.
+            `(4, 3)` and `(3,)` do.
+
+            **How to catch yourself:** write both shapes, pad the shorter on the left with 1s,
+            and check each pair. If any pair is unequal and neither is 1, it will fail — or, if
+            you forced a reshape earlier, it may "succeed" with the wrong alignment.
+
+      - type: common_mistake
+        markdown: |
+          **Forgetting `keepdims` on reductions** used in later broadcasts — shapes become
+          `(n,)` instead of `(n, 1)` and align on the wrong axis.
+
+          **Assuming `*` is matmul.** In NumPy, `*` is elementwise; use `@` or `np.matmul` for
+          matrix products.
+
+          **Silent dtype demotion.** Mixing ints and floats can produce ints; cast explicitly
+          when you need floats for gradients or probabilities.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Predict the result shape of `(8, 1, 5)` + `(3, 5)`, or explain why it errors.
+            2. Center a matrix `X` with shape `(n, d)` by subtracting the per-column mean using
+               broadcasting only (no Python loop).
+            3. Rewrite a loop that computes `y[i] = x[i] * w + b` for 1-D `x` as a vectorized
+               expression.
+            4. Show why `(4, 3) + (4,)` fails and how to fix it to add a per-row scalar.
+            5. Implement row-wise L2 normalization of `X` with shape `(n, d)` using reductions and
+               broadcasting.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What two attributes of an array should you check before combining arrays?"
+              answer: "shape and dtype — sizes of each axis and the element type."
+            - question: "State the broadcasting compatibility rule for one pair of dimensions."
+              answer: >-
+                They are compatible if equal or if one of them is 1 (missing leading dims act
+                like 1).
+            - question: "Why does keepdims matter after a reduction used in a later divide?"
+              answer: >-
+                It preserves a length-1 axis so the reduced array broadcasts against the original
+                axes instead of aligning from the right incorrectly.
+            - question: "What is the difference between * and @ in NumPy?"
+              answer: "* is elementwise multiplication; @ is matrix multiplication."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Read and predict shapes for elementwise ops and simple broadcasts.
+            - Center or scale a feature matrix with broadcasting and no Python row loop.
+            - Spot a `keepdims` mistake before it ships.
+            - Choose `@` vs `*` deliberately in batch code.
+    resources:
+      - source: numpy-absolute-basics
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.95
+        excerpt: >-
+          Absolute basics of the ndarray: creation, shape, dtype, and indexing — the foundation
+          this unit assumes and extends.
+      - source: numpy-broadcasting
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.95
+        excerpt: "Official broadcasting rules and examples; cite this when predicting shapes."
+      - source: mml-book
+        purpose: MATHEMATICAL_BACKGROUND
+        relevance: 0.4
+        excerpt: "Linear algebra notation that maps cleanly onto array shapes used in ML."

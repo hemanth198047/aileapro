@@ -1,0 +1,451 @@
+# Wave 3: when to adapt weights versus when to keep adapting the prompt.
+#
+# HIGH volatility on tooling; the decision criteria (behaviour vs facts, data cost,
+# evaluation) are written to outlast any particular fine-tuning API.
+
+units:
+  - slug: adaptation
+    title: Adapting Pretrained Models
+    kind: chapter
+    parent: fine-tuning
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 75
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    tags: [fine-tuning, llm, adaptation, prompting]
+    objectives:
+      - Separate behaviour change from knowledge update when choosing an adaptation method.
+      - Compare prompting, full fine-tuning, and parameter-efficient methods on cost and risk.
+      - State what evaluation must look like before and after any weight update.
+    description: >-
+      Pretrained models are starting points. This chapter is about choosing how to adapt them —
+      with prompts, with weight updates, or with low-rank adapters — for a real product task.
+    blocks:
+      - type: why
+        markdown: |
+          Fine-tuning is often proposed as the default upgrade path: "the model almost does what
+          we want; train it a bit more." That sentence conflates three different problems —
+          missing facts, wrong format, and unreliable instruction following — that need different
+          tools.
+
+          Getting the choice wrong burns GPU budget and, worse, silently damages behaviour that
+          used to work.
+
+  - slug: fine-tuning-vs-prompting
+    title: Fine-Tuning Versus Prompting
+    kind: knowledge_unit
+    parent: adaptation
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [fine-tuning, prompting, llm, instructgpt]
+    objectives:
+      - Contrast in-context specification with gradient updates to model weights.
+      - Decide which tool fits behaviour change versus corpus grounding.
+      - List the data, evaluation, and regression risks of fine-tuning.
+      - Explain what instruction-tuning changed relative to raw next-token models.
+    description: >-
+      Prompting steers a frozen model inside one call. Fine-tuning changes the distribution the
+      model brings to every call. They solve different jobs; pick by the job, not by fashion.
+    blocks:
+      - type: why
+        markdown: |
+          GPT-3 showed that large models can follow tasks from examples in the prompt, with no
+          gradient step at inference time. InstructGPT and its descendants showed that further
+          training on instructions and preferences makes that behaviour the default rather than
+          something you elicit with careful few-shot scaffolding.
+
+          Both facts matter. Prompting is powerful. Weight updates are powerful. Treating them as
+          interchangeable "make it better" knobs is how teams overfit a demo set and break
+          everything else.
+
+      - type: eli5
+        markdown: |
+          Two ways to get a skilled assistant to write like your company:
+
+          - **Prompting:** hand them a style guide and three examples every time you ask. They
+            stay the same person; you re-explain the job each time.
+          - **Fine-tuning:** send them on a training course until the style is their habit. Next
+            time you can ask briefly — but if the course was skewed, their habits change
+            everywhere, including places you did not intend.
+
+          Prefer the style guide when the job changes weekly or the evidence lives in documents.
+          Prefer the course when the same behaviour must hold cheaply across thousands of calls.
+
+      - type: beginner
+        markdown: |
+          **Prompting / in-context learning.** The weights stay fixed. You put instructions,
+          examples, schemas, and retrieved evidence in the context window. GPT-3 demonstrated
+          that sufficiently large models can perform new tasks from this conditioning alone.
+
+          **Fine-tuning.** You run gradient updates on labelled examples so the model's
+          parameters move. Afterward, the new behaviour is present even with short prompts —
+          and so are any side effects of the training mix.
+
+          **Instruction tuning and preference tuning** (InstructGPT lineage) sit between "raw
+          pretrained LM" and "assistant": supervised fine-tuning on (instruction, response)
+          pairs, then often preference optimisation so preferred answers rank higher. The system
+          is still next-token prediction; the distribution has been shifted toward helpful,
+          instruction-following continuations.
+
+          A practical split:
+
+          | Need                         | Lean toward        |
+          |------------------------------|--------------------|
+          | Facts that change often      | RAG / tools        |
+          | Format, tone, task shape     | Prompt, then FT    |
+          | Reliable short prompts at scale | Fine-tune / PEFT |
+          | One-off or rapidly changing task | Prompting       |
+
+      - type: intermediate
+        markdown: |
+          **Prompting wins when** the specification is short enough to fit, you need citations
+          from a live corpus, or you must iterate daily without a training pipeline. Cost is
+          paid per token of prompt; regression risk is low if you version prompts.
+
+          **Fine-tuning wins when** you need the same behaviour on every call without shipping
+          a large prompt, when latency or cost forbids long contexts, or when few-shot examples
+          still leave too much variance. Cost is paid upfront in data curation and training;
+          regression risk is high if you do not hold out a broad evaluation suite.
+
+          **Do not fine-tune for facts that belong in documents.** Weights are a terrible CMS.
+          Updating a policy PDF and re-indexing is an insert; baking the policy into weights is
+          a training run and a forgetting hazard.
+
+          **Catastrophic forgetting and narrow data.** Fine-tuning on one task distribution can
+          degrade unrelated skills (general chat quality, refusal behaviour, coding). Mitigations:
+          mixture data, lower learning rates, PEFT instead of full updates, and eval suites that
+          include capabilities you did not intend to change.
+
+          **Evaluation before and after.** Define task metrics, safety checks, and a fixed
+          regression set *before* training. Compare prompt-only baseline against the fine-tuned
+          checkpoint on the same suite. If you cannot measure the win, you cannot claim one.
+
+          **Volatility note.** APIs, prices, and preferred algorithms move quickly. The decision
+          criteria above — behaviour vs knowledge, data cost, regression surface — are the durable
+          part.
+
+      - type: example
+        markdown: |
+          Three product asks, three different answers:
+
+          1. **Support bot over a weekly-updated handbook.** Prompt + RAG. Fine-tuning the
+             handbook into weights guarantees staleness.
+          2. **Always emit a fixed JSON schema for invoice fields.** Start with a strict prompt
+             and constrained decoding if available. Fine-tune (or PEFT) if short prompts still
+             fail schema compliance at the volume you need.
+          3. **Company voice for marketing drafts.** Few-shot style examples in the prompt may
+             suffice. Fine-tune only if editors still rewrite every draft and you have a clean
+             preference or demonstration set — and keep a regression set of "do not invent claims"
+             cases.
+
+          In each case the wrong tool still "works" in a demo. The right tool is the one whose
+          failure mode you can afford in production.
+
+      - type: misconception
+        payload:
+          code: ft.always_beats_prompting
+          claim: "Fine-tuning always beats prompting."
+          markdown: |
+            **The claim:** once you fine-tune, the model is strictly better than a prompted base
+            model for your product.
+
+            **Why it feels right:** demos show higher scores on the training-like eval set, and
+            marketing language equates "custom model" with "better model".
+
+            **What actually happens:** fine-tuning fits the training distribution. It can lose to
+            a well-specified prompt on tasks outside that distribution, on freshness, and on
+            safety behaviours you did not retrain. Prompting can also win on iteration speed:
+            fixing a bad instruction is a deploy; fixing a bad fine-tune is another run.
+
+            **How to catch yourself:** keep the prompt-only baseline in the comparison. If the
+            fine-tuned model only wins on the narrow set you trained on, you overfit a demo.
+
+      - type: common_mistake
+        markdown: |
+          **Fine-tuning to "add knowledge" that should be retrieved.** You will fight staleness
+          forever and still hallucinate gaps.
+
+          **Skipping a regression suite.** Task accuracy went up; refusal quality and unrelated
+          skills quietly went down. You shipped a different product than you measured.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. For each need — changing facts, fixed JSON shape, weekly-changing task — choose
+               prompting, RAG, or fine-tuning and justify in one sentence.
+            2. Explain what InstructGPT-style training changes relative to a raw next-token model,
+               without claiming it installs a truth database.
+            3. List three items you would put in a regression suite for a customer-support fine-tune.
+            4. Why can few-shot prompting fail at scale even when it works in a notebook?
+            5. Describe a scenario where fine-tuning is the wrong fix for "the model doesn't know
+               our product names."
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What stays fixed during pure prompting?"
+              answer: "The model weights; only the context conditioning changes."
+            - question: "When is RAG preferable to fine-tuning for product knowledge?"
+              answer: >-
+                When facts change or must be cited from a corpus — knowledge belongs in an index,
+                not in weights.
+            - question: "What is a major risk of fine-tuning on a narrow dataset?"
+              answer: >-
+                Regression: unrelated capabilities and safety behaviours can degrade while the
+                narrow metric improves.
+            - question: "What did GPT-3 demonstrate about tasks and gradients at inference?"
+              answer: >-
+                Large models can perform new tasks from instructions and examples in context
+                without a gradient update at inference time.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Choose prompting, RAG, or fine-tuning from the job description, not from habit.
+            - Explain instruction tuning as a distribution shift, not as a knowledge install.
+            - Design a before/after eval that would catch regressions outside the training task.
+            - Refuse a fine-tune request that is actually a retrieval problem.
+    resources:
+      - source: instructgpt-2022
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          Shows aligning models to follow instructions with human feedback — the bridge from
+          next-token LMs to assistant-like behaviour.
+      - source: gpt3-2020
+        purpose: PRIMARY_SOURCE
+        relevance: 0.85
+        excerpt: >-
+          Establishes few-shot in-context learning as a real alternative to task-specific
+          fine-tuning for many NLP tasks.
+
+  - slug: peft-lora-intuition
+    title: PEFT and LoRA Intuition
+    kind: knowledge_unit
+    parent: peft-and-lora
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 35
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [peft, lora, fine-tuning, llm, adapters]
+    objectives:
+      - Explain why full fine-tuning is often unnecessary for adaptation.
+      - Describe LoRA as low-rank updates on frozen weights.
+      - State what you store and serve when many task adapters share one base model.
+      - Identify failure modes PEFT does not automatically solve.
+    description: >-
+      Parameter-efficient fine-tuning updates a small set of parameters — often low-rank
+      matrices beside attention projections — while the base model stays frozen and shareable.
+    blocks:
+      - type: why
+        markdown: |
+          Full fine-tuning of a large language model duplicates billions of parameters per
+          variant, needs heavy optimiser state, and makes "one base model, many products"
+          operationally painful.
+
+          LoRA and related PEFT methods exist so adaptation is cheap enough to try, cheap enough
+          to keep many variants, and reversible enough to roll back.
+
+      - type: eli5
+        markdown: |
+          The big model is a huge notebook written in permanent ink. Full fine-tuning rewrites
+          pages. LoRA sticks a thin transparent overlay on a few pages and writes only on the
+          overlay.
+
+          You keep one notebook (the base weights) and a stack of cheap overlays (adapters). Swap
+          the overlay to switch tasks. If an overlay goes badly, throw it away — the notebook is
+          unchanged.
+
+      - type: beginner
+        markdown: |
+          **PEFT (parameter-efficient fine-tuning)** means adapting a pretrained model by training
+          only a small fraction of parameters (or a small attached module), not every weight.
+
+          **LoRA (Low-Rank Adaptation)** freezes the pretrained weight matrix $W$ and learns a
+          low-rank update:
+
+          $$
+          W' = W + \frac{\alpha}{r} B A
+          $$
+
+          where $A \in \mathbb{R}^{r \times k}$, $B \in \mathbb{R}^{d \times r}$, and rank
+          $r \ll \min(d, k)$. Only $A$ and $B$ (plus maybe biases/norms, depending on setup) are
+          trained. At inference you can merge $BA$ into $W$ for zero extra latency, or keep
+          adapters separate to hot-swap tasks.
+
+          Typical injection points are attention projection matrices (query/value, sometimes key
+          and output). The intuition: task adaptation often lies in a low-dimensional subspace of
+          the full weight update.
+
+      - type: intermediate
+        markdown: |
+          **Why low rank is plausible.** Fine-tuning updates for a new task are often highly
+          constrained relative to the full parameter space. Representing $\Delta W$ as $BA$ with
+          small $r$ is an inductive bias that regularises adaptation and cuts trainable parameter
+          count by orders of magnitude versus full FT.
+
+          **What you gain operationally.**
+
+          - Smaller optimiser state and lower GPU memory during training.
+          - One shared base checkpoint; many small adapter files per customer or task.
+          - Easier rollback: disable or replace the adapter without reverting a full model copy.
+          - Optional merge for single-tenant serving where latency matters more than hot-swap.
+
+          **What you still must get right.** Data quality, learning rate, rank $r$, which layers
+          to adapt, and evaluation. LoRA does not invent missing supervision. Too-high rank or
+          aggressive training can still overfit and still damage behaviours if your data is narrow.
+
+          **Related PEFT family (names only, same idea).** Adapters (small bottleneck modules),
+          prefix/prompt tuning (learned virtual tokens), QLoRA-style stacks that combine
+          quantisation with LoRA for further memory savings. Libraries and recipes churn; the
+          shared pattern is "freeze most of $W$, train something small."
+
+          **Serving many variants.** Prefer adapter hot-swap when tenants share a base model and
+          need isolation of behaviour. Prefer merged weights when you have one dominant adapter
+          and want maximum throughput. Measure — merging is not free if you must keep dozens of
+          merged copies anyway.
+
+      - type: example
+        markdown: |
+          Rough parameter arithmetic for intuition (illustrative dimensions):
+
+          - Full update of a $4096 \times 4096$ matrix: $\sim 16$M parameters.
+          - LoRA with $r = 8$: $A$ is $8 \times 4096$, $B$ is $4096 \times 8$ → $\sim 65$k
+            parameters for that matrix — about $250\times$ fewer.
+
+          Apply across several attention projections and the trainable count is still tiny versus
+          the base model. That is why teams can keep dozens of task adapters on disk without
+          dozens of full model replicas.
+
+          **Product sketch.** One open base model serves three internal tools: support tone,
+          SQL-generation style, and internal summarisation. Three LoRA adapters, one eval suite
+          each, shared embedding/tokenizer stack. Shipping a fix to support tone is an adapter
+          replace, not a re-bake of the other two.
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            Pseudocode for a LoRA-wrapped linear layer — structure, not a training framework.
+
+            ```python
+            import torch
+            import torch.nn as nn
+
+            class LoRALinear(nn.Module):
+                def __init__(self, base: nn.Linear, rank: int = 8, alpha: float = 16.0):
+                    super().__init__()
+                    self.base = base
+                    for p in self.base.parameters():
+                        p.requires_grad = False
+                    d_out, d_in = base.weight.shape
+                    self.A = nn.Parameter(torch.randn(rank, d_in) * 0.01)
+                    self.B = nn.Parameter(torch.zeros(d_out, rank))
+                    self.scale = alpha / rank
+
+                def forward(self, x):
+                    return self.base(x) + self.scale * (x @ self.A.T @ self.B.T)
+
+                def merged_weight(self):
+                    return self.base.weight + self.scale * (self.B @ self.A)
+            ```
+
+            Training updates `A` and `B` only. For single-adapter serving, fold `merged_weight()`
+            back into a plain `nn.Linear` and drop the LoRA path.
+
+      - type: misconception
+        payload:
+          code: lora.as_good_as_full_ft
+          claim: "LoRA always matches full fine-tuning quality."
+          markdown: |
+            **The claim:** because LoRA is popular, it is a free lunch — same quality, lower cost.
+
+            **Why it feels right:** many public benchmarks show LoRA close to full FT for common
+            instruction and domain-adaptation setups, and memory savings are dramatic.
+
+            **What actually happens:** LoRA approximates $\Delta W$ in a low-rank subspace. For
+            some tasks that subspace is enough; for others (large distribution shifts, heavy
+            new capabilities) full FT or higher rank / more adapted modules can still win. Rank,
+            target modules, and data matter. "We used LoRA" is not a quality guarantee.
+
+            **How to catch yourself:** ablate rank and compare against a strong prompt baseline
+            and, when affordable, against a fuller update on a subset. Optimise for the metric
+            you ship, not for the method name.
+
+      - type: common_mistake
+        markdown: |
+          **Treating adapter swap as tenant isolation for secrets.** Adapters change behaviour;
+          they do not sandbox data. Retrieval filters and auth still belong in your application.
+
+          **Tuning rank without measuring.** $r=64$ "because bigger is safer" can overfit and
+          erase the memory advantage that justified PEFT.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write $W' = W + BA$ in words a teammate can understand, including why $r$ is small.
+            2. Give two operational reasons to prefer LoRA over full fine-tuning for multi-tenant
+               behaviour variants.
+            3. When would you merge an adapter into the base weights, and when would you keep it
+               separate?
+            4. Does LoRA remove the need for a regression eval suite? Why or why not?
+            5. Estimate trainable parameters for one $d \times d$ matrix with LoRA rank $r$, and
+               compare to $d^2$.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What stays frozen in standard LoRA?"
+              answer: "The pretrained base weights $W$; only the low-rank factors (and similar small sets) train."
+            - question: "What does rank $r$ control?"
+              answer: >-
+                The capacity of the update $\Delta W = BA$ — higher $r$ means a richer update and
+                more trainable parameters.
+            - question: "Why can many adapters share one base model?"
+              answer: >-
+                Each adapter is a small file of factors; the large frozen weights are loaded once
+                and reused.
+            - question: "Name one problem LoRA does not automatically fix."
+              answer: >-
+                Bad or narrow training data, missing evaluation, or using fine-tuning where
+                retrieval was the right tool.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Sketch LoRA's update equation and say what is stored on disk per task.
+            - Argue for PEFT vs full FT from memory, serving, and rollback — not from hype.
+            - Choose merge vs hot-swap for a described serving setup.
+            - State clearly what PEFT does not excuse you from measuring.
+    resources:
+      - source: lora-2021
+        purpose: PRIMARY_SOURCE
+        relevance: 0.95
+        excerpt: >-
+          Introduces low-rank adaptation: freeze pretrained weights, train rank-decomposed
+          updates injected into attention projections.
+      - source: instructgpt-2022
+        purpose: DEEPER_REFERENCE
+        relevance: 0.5
+        excerpt: "The broader adaptation goal — instruction following — that PEFT methods often target."

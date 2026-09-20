@@ -1,22 +1,167 @@
-# The one seeded path. Abridged on purpose: it contains exactly the units that are authored
-# and published, in the order they should be studied. It does not promise a curriculum that
-# does not exist yet.
+# The seeded paths. Both contain exactly the units that are authored and published, in the order
+# they should be studied, and neither promises a curriculum that does not exist yet.
 #
-# The last waypoint points at a draft unit. A learner will not see it — the query service
-# drops waypoints whose unit is not published — and it stays here so the authoring queue and
-# the learner view are driven by the same file.
+# ai-engineer-core is the full authored route after Wave 3 (~60 published knowledge units).
+# ai-engineer-abridged stays at ten published waypoints — pinned by CatalogApiTest.
+#
+# mixture-of-experts-draft is the authoring-queue waypoint: dropped for learners until published.
 
 paths:
+  - slug: ai-engineer-core
+    title: AI Engineer (core)
+    roleTarget: AI Engineer
+    status: published
+    version: 2.0.0
+    description: >-
+      The full authored route through the seed: programs and Python, linear algebra and calculus,
+      probability and statistics, optimisation, SQL for features, classical ML and evaluation,
+      neural nets through CNNs and RNNs, attention and transformers, language models, embeddings
+      and RAG quality, fine-tuning and LoRA, multimodal embeddings, agents and memory, then
+      evaluation, security, MLOps/LLMOps, and system-design choices. Authored pages only — empty
+      domains on the map still say they are empty.
+    waypoints:
+      - unit: instructions-and-state
+        requiredMasteryState: PRACTICED
+      - unit: how-source-becomes-execution
+        requiredMasteryState: PRACTICED
+      - unit: python-values-and-types
+        requiredMasteryState: PRACTICED
+      - unit: python-functions
+        requiredMasteryState: PRACTICED
+      - unit: python-collections
+        requiredMasteryState: PRACTICED
+      - unit: python-control-flow
+        requiredMasteryState: PRACTICED
+      - unit: python-numpy-essentials
+        requiredMasteryState: PRACTICED
+      - unit: sql-select-join-aggregate
+        requiredMasteryState: PRACTICED
+
+      - unit: vectors
+        requiredMasteryState: MASTERED
+      - unit: matrices
+        requiredMasteryState: MASTERED
+      - unit: matrix-multiplication
+        requiredMasteryState: MASTERED
+      - unit: derivatives-as-rates
+        requiredMasteryState: MASTERED
+      - unit: chain-rule-for-gradients
+        requiredMasteryState: MASTERED
+      - unit: gradient-descent-basics
+        requiredMasteryState: MASTERED
+      - unit: learning-rates-and-local-minima
+        requiredMasteryState: PRACTICED
+      - unit: random-variables-and-expectation
+        requiredMasteryState: PRACTICED
+      - unit: conditioning-and-bayes
+        requiredMasteryState: MASTERED
+      - unit: sampling-bias-and-selection
+        requiredMasteryState: PRACTICED
+      - unit: confidence-intervals-intuition
+        requiredMasteryState: PRACTICED
+
+      - unit: supervised-learning-framing
+        requiredMasteryState: PRACTICED
+      - unit: linear-regression-intuition
+        requiredMasteryState: PRACTICED
+      - unit: logistic-regression-intuition
+        requiredMasteryState: PRACTICED
+      - unit: train-validation-test
+        requiredMasteryState: MASTERED
+      - unit: overfitting-and-regularization
+        requiredMasteryState: MASTERED
+      - unit: feature-leakage-and-scaling
+        requiredMasteryState: MASTERED
+      - unit: decision-trees-and-ensembles
+        requiredMasteryState: PRACTICED
+      - unit: precision-recall-and-f1
+        requiredMasteryState: MASTERED
+      - unit: holdout-vs-cross-validation
+        requiredMasteryState: PRACTICED
+
+      - unit: how-a-neuron-learns
+        requiredMasteryState: MASTERED
+      - unit: activations-and-nonlinearity
+        requiredMasteryState: PRACTICED
+      - unit: multilayer-perceptron
+        requiredMasteryState: PRACTICED
+      - unit: vanishing-gradients-intuition
+        requiredMasteryState: PRACTICED
+      - unit: convolution-intuition
+        requiredMasteryState: PRACTICED
+      - unit: pooling-and-receptive-fields
+        requiredMasteryState: PRACTICED
+      - unit: rnn-sequence-modeling
+        requiredMasteryState: PRACTICED
+      - unit: lstm-gates-intuition
+        requiredMasteryState: PRACTICED
+
+      - unit: scaled-dot-product-attention
+        requiredMasteryState: MASTERED
+      - unit: transformer-block-overview
+        requiredMasteryState: PRACTICED
+      - unit: positional-encoding-intuition
+        requiredMasteryState: PRACTICED
+      - unit: tokenization-and-vocab
+        requiredMasteryState: PRACTICED
+      - unit: next-token-prediction
+        requiredMasteryState: MASTERED
+      - unit: context-window-limits
+        requiredMasteryState: PRACTICED
+      - unit: prompting-as-specification
+        requiredMasteryState: PRACTICED
+      - unit: fine-tuning-vs-prompting
+        requiredMasteryState: PRACTICED
+      - unit: peft-lora-intuition
+        requiredMasteryState: PRACTICED
+
+      - unit: what-embeddings-capture
+        requiredMasteryState: PRACTICED
+      - unit: approximate-nearest-neighbors
+        requiredMasteryState: PRACTICED
+      - unit: rag-pipeline-basics
+        requiredMasteryState: PRACTICED
+      - unit: chunking-and-retrieval-quality
+        requiredMasteryState: PRACTICED
+      - unit: clip-joint-embeddings
+        requiredMasteryState: PRACTICED
+
+      - unit: tool-calling-loop
+        requiredMasteryState: PRACTICED
+      - unit: agent-failure-modes
+        requiredMasteryState: PRACTICED
+      - unit: agent-memory-patterns
+        requiredMasteryState: PRACTICED
+
+      - unit: training-data-and-harm
+        requiredMasteryState: PRACTICED
+      - unit: llm-eval-harness-basics
+        requiredMasteryState: PRACTICED
+      - unit: prompt-injection-and-trust
+        requiredMasteryState: PRACTICED
+      - unit: data-exfiltration-via-tools
+        requiredMasteryState: PRACTICED
+      - unit: training-serving-skew
+        requiredMasteryState: PRACTICED
+      - unit: cost-latency-quality-tradeoffs
+        requiredMasteryState: PRACTICED
+      - unit: observability-for-llm-apps
+        requiredMasteryState: PRACTICED
+      - unit: llm-app-architecture-patterns
+        requiredMasteryState: PRACTICED
+
+      - unit: mixture-of-experts-draft
+        requiredMasteryState: PRACTICED
+
   - slug: ai-engineer-abridged
     title: AI Engineer (abridged)
     roleTarget: AI Engineer
     status: published
-    version: 1.0.0
+    version: 1.1.0
     description: >-
-      The authored slice of the AI Engineer path: how a program runs, enough Python to work,
-      the linear algebra every model is written in, one neural network from first principles,
-      and one grounded-generation unit. Ten units, roughly five hours of reading, all of it
-      real. The full path is authored domain by domain in later phases.
+      The short sampler: how a program runs, enough Python to work, the linear algebra every model
+      is written in, one neural network from first principles, and one grounded-generation unit.
+      Ten units, roughly five hours of reading. For the full route take ai-engineer-core.
     waypoints:
       - unit: instructions-and-state
         requiredMasteryState: PRACTICED
@@ -38,5 +183,5 @@ paths:
         requiredMasteryState: PRACTICED
       - unit: rag-pipeline-basics
         requiredMasteryState: PRACTICED
-      - unit: scaled-dot-product-attention
+      - unit: mixture-of-experts-draft
         requiredMasteryState: PRACTICED

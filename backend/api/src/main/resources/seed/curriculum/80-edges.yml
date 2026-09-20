@@ -8,9 +8,13 @@
 # prerequisites are unmet, so a link belongs here only if the target is genuinely unreadable
 # without the source. Softer "this would help" claims are DEPENDS_ON.
 #
-# The chain the spec asks for is linear algebra -> neural networks -> attention -> RAG. It stops
-# where the authored units stop: there is no transformers or agents unit yet, so there is no edge
-# pretending otherwise.
+# The chain the spec asks for is linear algebra -> neural networks -> attention -> RAG. Wave 2
+# extended it through calculus, probability, classical ML, evaluation, transformers, LLMs, and
+# agents; those edges are grouped at the bottom of this file.
+#
+# It still stops where the authored units stop. There is no edge to a unit that does not exist,
+# and the one edge into a draft (scaled-dot-product-attention) is kept because the relationship
+# is known even though the page is not written.
 
 edges:
   # --- Computer fundamentals --------------------------------------------------------------
@@ -128,10 +132,7 @@ edges:
       indexes exist at all.
     sources: [faiss, pgvector]
 
-  # --- Into the unwritten part of the chain ------------------------------------------------
-  # The attention unit is deliberately still a draft. The edge is authored anyway, which is the
-  # honest state of affairs: the relationship is known, the content is not written. A learner
-  # never sees either, because the graph drops edges that touch unpublished units.
+  # --- Attention (now published) -----------------------------------------------------------
   - from: matrix-multiplication
     to: scaled-dot-product-attention
     type: PREREQUISITE_OF
@@ -143,3 +144,600 @@ edges:
     type: DEPENDS_ON
     weight: 0.7
     note: Knowing what a learned weight is makes Q, K, and V read as projections rather than magic.
+
+  # =========================================================================================
+  # Wave 2 (2026-09-19). The chain the seed now actually covers:
+  #
+  #   maths -> classical ML -> evaluation -> neural networks -> transformers -> LLMs -> agents
+  #   vectors -> embeddings -> RAG
+  #
+  # Every PREREQUISITE_OF below points forward in that order, which is what keeps the gating
+  # graph acyclic. Where the claim is "this helps" rather than "this is required", the edge is
+  # DEPENDS_ON with a weight, and pairs with no ordering between them are RELATED_TO.
+  # =========================================================================================
+
+  # --- Calculus ----------------------------------------------------------------------------
+  - from: derivatives-as-rates
+    to: chain-rule-for-gradients
+    type: PREREQUISITE_OF
+    note: The chain rule multiplies rates, so a derivative has to already read as a rate.
+    sources: [mml-book]
+
+  - from: derivatives-as-rates
+    to: how-a-neuron-learns
+    type: DEPENDS_ON
+    weight: 0.9
+    note: >-
+      The update rule steps against the gradient. That page derives the one derivative it needs
+      from scratch, so this is not a gate, but reading it first turns the step from a ritual
+      into an argument.
+    sources: [3b1b-calculus]
+
+  - from: chain-rule-for-gradients
+    to: vanishing-gradients-intuition
+    type: PREREQUISITE_OF
+    note: Vanishing gradients are a product of local derivatives, which is the chain rule and nothing else.
+    sources: [nielsen-nndl]
+
+  - from: chain-rule-for-gradients
+    to: how-a-neuron-learns
+    type: RELATED_TO
+    weight: 0.8
+    note: >-
+      The neuron unit derives one gradient by hand; this one gives the general rule. Either
+      order works, and reading both is better than reading one twice.
+
+  - from: chain-rule-for-gradients
+    to: deep-learning
+    type: APPLIED_IN
+    note: Backpropagation is this rule with cached intermediates, which is all that training is.
+
+  # --- Probability -------------------------------------------------------------------------
+  - from: random-variables-and-expectation
+    to: conditioning-and-bayes
+    type: PREREQUISITE_OF
+    note: Conditioning restricts a distribution, so the distribution has to come first.
+    sources: [mml-book]
+
+  - from: random-variables-and-expectation
+    to: overfitting-and-regularization
+    type: PREREQUISITE_OF
+    note: >-
+      The bias-variance decomposition is an expectation over resamples. Without expectation it is
+      three words rather than a statement.
+
+  - from: conditioning-and-bayes
+    to: precision-recall-and-f1
+    type: PREREQUISITE_OF
+    note: >-
+      Precision is a posterior and recall is a likelihood. The base-rate argument is the same one,
+      under different names.
+    sources: [sklearn-model-evaluation]
+
+  - from: conditioning-and-bayes
+    to: model-evaluation
+    type: APPLIED_IN
+    note: Every threshold decision in the domain is this conditional probability.
+
+  # --- Classical machine learning ----------------------------------------------------------
+  - from: supervised-learning-framing
+    to: linear-regression-intuition
+    type: PREREQUISITE_OF
+    note: A model fits features to a label, so the features and the label must already be defined.
+
+  - from: supervised-learning-framing
+    to: train-validation-test
+    type: PREREQUISITE_OF
+    note: >-
+      Splitting correctly depends on knowing the unit of prediction and the prediction moment,
+      which is the framing page.
+
+  - from: supervised-learning-framing
+    to: precision-recall-and-f1
+    type: PREREQUISITE_OF
+    note: The metric follows from the decision the prediction supports, which framing defines.
+
+  - from: vectors
+    to: linear-regression-intuition
+    type: PREREQUISITE_OF
+    note: The model is a dot product plus a bias. Without the dot product it is a list of symbols.
+    sources: [mml-book]
+
+  - from: derivatives-as-rates
+    to: linear-regression-intuition
+    type: DEPENDS_ON
+    weight: 0.6
+    note: >-
+      Gradient descent on squared error is one route to the fit. The closed form needs no calculus
+      at all, so this is advisory.
+
+  - from: linear-regression-intuition
+    to: overfitting-and-regularization
+    type: PREREQUISITE_OF
+    note: Ridge and lasso are penalties on the coefficients of exactly this model.
+    sources: [sklearn-linear-model]
+
+  - from: train-validation-test
+    to: overfitting-and-regularization
+    type: PREREQUISITE_OF
+    note: >-
+      Overfitting is defined by the gap between two splits, so the splits have to mean something
+      first.
+
+  - from: train-validation-test
+    to: holdout-vs-cross-validation
+    type: PREREQUISITE_OF
+    note: Cross-validation is the same discipline repeated k times; the discipline comes first.
+    sources: [sklearn-cross-validation]
+
+  - from: precision-recall-and-f1
+    to: holdout-vs-cross-validation
+    type: RELATED_TO
+    weight: 0.7
+    note: >-
+      One decides what to measure, the other decides what to measure it on. Neither is a
+      prerequisite for the other and both are needed before a number can be quoted.
+
+  # --- Neural networks ---------------------------------------------------------------------
+  - from: how-a-neuron-learns
+    to: multilayer-perceptron
+    type: PREREQUISITE_OF
+    note: A layer is a row of the neurons from that page, computed at once.
+    sources: [nielsen-nndl]
+
+  - from: matrix-multiplication
+    to: multilayer-perceptron
+    type: PREREQUISITE_OF
+    note: The forward pass is a chain of matrix products, and every bug in it is a shape error.
+    sources: [numpy-matmul]
+
+  - from: how-a-neuron-learns
+    to: activations-and-nonlinearity
+    type: PREREQUISITE_OF
+    note: >-
+      The neuron page states that an activation is needed. This one gives the argument and the
+      cost of each choice.
+
+  - from: multilayer-perceptron
+    to: activations-and-nonlinearity
+    type: RELATED_TO
+    weight: 0.8
+    note: The collapse argument is about stacked layers, so the two pages explain each other.
+
+  - from: activations-and-nonlinearity
+    to: vanishing-gradients-intuition
+    type: PREREQUISITE_OF
+    note: The maximum derivative of the activation is the local factor that vanishes.
+    sources: [he-init-2015]
+
+  - from: multilayer-perceptron
+    to: vanishing-gradients-intuition
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Depth is what makes the product long, and depth is what the MLP page introduces.
+
+  - from: overfitting-and-regularization
+    to: multilayer-perceptron
+    type: DEPENDS_ON
+    weight: 0.6
+    note: >-
+      Weight decay, early stopping, and dropout are the same idea carried into networks. Useful
+      before, not required.
+    sources: [dropout-2012]
+
+  # --- Transformers ------------------------------------------------------------------------
+  - from: multilayer-perceptron
+    to: transformer-block-overview
+    type: PREREQUISITE_OF
+    note: Two-thirds of a block's parameters are an MLP, so the block cannot be read without it.
+    sources: [attention-2017]
+
+  - from: vanishing-gradients-intuition
+    to: transformer-block-overview
+    type: PREREQUISITE_OF
+    note: >-
+      The residual stream is the answer to the gradient problem. Without that, the additions in
+      the block diagram are unexplained arrows.
+    sources: [resnet-2015]
+
+  - from: transformer-block-overview
+    to: positional-encoding-intuition
+    type: PREREQUISITE_OF
+    note: Position is injected into the residual stream before the first block, so the block comes first.
+    sources: [rope-2021]
+
+  - from: transformer-block-overview
+    to: scaled-dot-product-attention
+    type: RELATED_TO
+    weight: 0.8
+    note: >-
+      The block-level view deliberately treats attention as one component. The attention unit is
+      still a draft and fills in what this page leaves as a box.
+
+  # --- Large language models ---------------------------------------------------------------
+  - from: transformer-block-overview
+    to: next-token-prediction
+    type: PREREQUISITE_OF
+    note: The objective is trained through this architecture; the cost properties come from it.
+    sources: [gpt3-2020]
+
+  - from: random-variables-and-expectation
+    to: next-token-prediction
+    type: DEPENDS_ON
+    weight: 0.6
+    note: >-
+      The output is a distribution and the loss is a cross-entropy. Both read better with
+      expectation in hand.
+
+  - from: next-token-prediction
+    to: context-window-limits
+    type: PREREQUISITE_OF
+    note: The window is the conditioning of that distribution, and the cost follows from it.
+
+  - from: next-token-prediction
+    to: prompting-as-specification
+    type: PREREQUISITE_OF
+    note: >-
+      Prompting only makes sense once the prompt is understood as the conditioning of a next-token
+      distribution.
+    sources: [gpt3-2020]
+
+  - from: positional-encoding-intuition
+    to: context-window-limits
+    type: DEPENDS_ON
+    weight: 0.8
+    note: >-
+      Why a stated context length is not a usable one is largely a positional encoding argument.
+    sources: [lost-in-the-middle-2023]
+
+  # --- Embeddings and retrieval ------------------------------------------------------------
+  - from: vectors
+    to: what-embeddings-capture
+    type: PREREQUISITE_OF
+    note: Cosine similarity is the dot product normalised, which is where the geometry comes from.
+    sources: [sbert-2019]
+
+  - from: what-embeddings-capture
+    to: rag-pipeline-basics
+    type: PREREQUISITE_OF
+    note: >-
+      Retrieval ranks by embedding similarity, and most RAG failures are the similarity-is-not-
+      relevance gap this page names.
+    sources: [sentence-transformers]
+
+  - from: context-window-limits
+    to: rag-pipeline-basics
+    type: DEPENDS_ON
+    weight: 0.8
+    note: Retrieval exists because the corpus does not fit in the window. That is the whole argument.
+
+  - from: what-embeddings-capture
+    to: vector-databases
+    type: APPLIED_IN
+    note: An index stores these vectors, and its recall trade-offs are trade-offs about this geometry.
+    sources: [faiss, pgvector]
+
+  # --- Agents ------------------------------------------------------------------------------
+  - from: next-token-prediction
+    to: tool-calling-loop
+    type: PREREQUISITE_OF
+    note: A tool call is generated text. Knowing that is what makes the trust boundary obvious.
+    sources: [react-2022]
+
+  - from: context-window-limits
+    to: tool-calling-loop
+    type: PREREQUISITE_OF
+    note: Every tool result stays in the context, so the loop's cost is the window's cost compounded.
+
+  - from: prompting-as-specification
+    to: tool-calling-loop
+    type: DEPENDS_ON
+    weight: 0.7
+    note: A tool description is a prompt, and vague descriptions are a prompting bug in disguise.
+
+  - from: tool-calling-loop
+    to: agent-failure-modes
+    type: PREREQUISITE_OF
+    note: The failures are failures of that loop, so the loop has to be understood first.
+    sources: [agent-survey-2023]
+
+  - from: random-variables-and-expectation
+    to: agent-failure-modes
+    type: DEPENDS_ON
+    weight: 0.5
+    note: The compounding-reliability argument is a product of probabilities and nothing more.
+
+  - from: rag-pipeline-basics
+    to: agent-failure-modes
+    type: RELATED_TO
+    weight: 0.6
+    note: >-
+      Retrieved text arriving in the context is both how RAG works and how injection gets in.
+      The two pages are about the same channel.
+
+  - from: tool-calling-loop
+    to: tool-calling
+    type: APPLIED_IN
+    note: The domain's schema, validation, and idempotency material is this loop, in detail.
+
+  # --- Responsible AI ----------------------------------------------------------------------
+  - from: precision-recall-and-f1
+    to: training-data-and-harm
+    type: PREREQUISITE_OF
+    note: >-
+      Disaggregated evaluation is the same confusion matrix computed per group. Without the
+      metrics, "measure the disparity" has no content.
+    sources: [model-cards-2018]
+
+  - from: supervised-learning-framing
+    to: training-data-and-harm
+    type: DEPENDS_ON
+    weight: 0.7
+    note: >-
+      Whether a label encodes past decisions is a framing question, which is where the harm is
+      usually introduced.
+
+  - from: training-data-and-harm
+    to: next-token-prediction
+    type: RELATED_TO
+    weight: 0.5
+    note: >-
+      A generative model reproduces its training distribution, so the data argument and the
+      objective argument are the same argument from two directions.
+    sources: [datasheets-2018]
+
+  # =========================================================================================
+  # Wave 3 (2026-09-19). Stats, optim, SQL, classical toolbox, CNN/RNN, tokenization,
+  # fine-tune/PEFT, vector stores, multimodal, agent memory, MLOps/LLMOps, eval, security,
+  # system design. MoE stays draft for catalog/graph tests.
+  # =========================================================================================
+
+  - from: python-collections
+    to: python-control-flow
+    type: PREREQUISITE_OF
+    note: Filtering and looping over collections is the first place control flow bites.
+
+  - from: python-control-flow
+    to: python-numpy-essentials
+    type: DEPENDS_ON
+    weight: 0.6
+    note: Vectorized code still needs an outer loop for epochs and batches.
+
+  - from: python-collections
+    to: python-numpy-essentials
+    type: PREREQUISITE_OF
+    note: Arrays replace nested lists; indexing habits transfer.
+    sources: [numpy-absolute-basics]
+
+  - from: python-numpy-essentials
+    to: vectors
+    type: DEPENDS_ON
+    weight: 0.7
+    note: NumPy makes the linear-algebra labs runnable.
+    sources: [numpy-broadcasting]
+
+  - from: random-variables-and-expectation
+    to: sampling-bias-and-selection
+    type: PREREQUISITE_OF
+    note: Bias is a claim about how samples relate to a population distribution.
+    sources: [seeing-theory]
+
+  - from: sampling-bias-and-selection
+    to: confidence-intervals-intuition
+    type: PREREQUISITE_OF
+    note: Interval width is meaningless if the sample was already selected wrongly.
+
+  - from: chain-rule-for-gradients
+    to: gradient-descent-basics
+    type: PREREQUISITE_OF
+    note: Descent follows the gradient the chain rule computes.
+    sources: [pytorch-autograd]
+
+  - from: gradient-descent-basics
+    to: learning-rates-and-local-minima
+    type: PREREQUISITE_OF
+    note: Step size and landscape shape are the next questions after the update rule.
+
+  - from: gradient-descent-basics
+    to: how-a-neuron-learns
+    type: DEPENDS_ON
+    weight: 0.8
+    note: The neuron unit assumes gradient steps exist.
+
+  - from: python-collections
+    to: sql-select-join-aggregate
+    type: DEPENDS_ON
+    weight: 0.4
+    note: Aggregation ideas transfer; SQL is the relational form.
+    sources: [sql-tutorial-w3]
+
+  - from: supervised-learning-framing
+    to: logistic-regression-intuition
+    type: PREREQUISITE_OF
+    note: Logistic regression is supervised classification with a probabilistic score.
+    sources: [sklearn-linear-model]
+
+  - from: linear-regression-intuition
+    to: logistic-regression-intuition
+    type: DEPENDS_ON
+    weight: 0.7
+    note: The linear score is the shared skeleton; the link function is what changes.
+
+  - from: train-validation-test
+    to: decision-trees-and-ensembles
+    type: DEPENDS_ON
+    weight: 0.6
+    note: Ensembles overfit differently; split discipline still applies.
+    sources: [sklearn-ensemble]
+
+  - from: overfitting-and-regularization
+    to: decision-trees-and-ensembles
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Depth and leaf size are the tree's regularisers.
+
+  - from: train-validation-test
+    to: feature-leakage-and-scaling
+    type: PREREQUISITE_OF
+    note: Leakage is usually a split-time mistake.
+
+  - from: supervised-learning-framing
+    to: feature-leakage-and-scaling
+    type: DEPENDS_ON
+    weight: 0.6
+    note: Knowing what the label is makes target leakage recognisable.
+
+  - from: multilayer-perceptron
+    to: convolution-intuition
+    type: PREREQUISITE_OF
+    note: Convolution is a sparse, shared-weight layer; MLP is the dense baseline.
+    sources: [lecun-cnn-1998, d2l]
+
+  - from: convolution-intuition
+    to: pooling-and-receptive-fields
+    type: PREREQUISITE_OF
+    note: Pooling only makes sense once local filters exist.
+
+  - from: vanishing-gradients-intuition
+    to: rnn-sequence-modeling
+    type: DEPENDS_ON
+    weight: 0.8
+    note: Long dependencies fail for the same gradient reason RNNs made famous.
+    sources: [hochreiter-lstm-1997]
+
+  - from: multilayer-perceptron
+    to: rnn-sequence-modeling
+    type: PREREQUISITE_OF
+    note: Recurrence is a shared MLP unrolled over time.
+
+  - from: rnn-sequence-modeling
+    to: lstm-gates-intuition
+    type: PREREQUISITE_OF
+    note: Gates are the fix for the naive RNN's memory problem.
+
+  - from: scaled-dot-product-attention
+    to: transformer-block-overview
+    type: PREREQUISITE_OF
+    note: The block's only cross-position mixer is this attention op.
+    sources: [attention-2017]
+
+  - from: transformer-block-overview
+    to: mixture-of-experts-draft
+    type: DEPENDS_ON
+    weight: 0.5
+    note: MoE replaces the dense MLP inside the same block skeleton. Draft content.
+
+  - from: next-token-prediction
+    to: tokenization-and-vocab
+    type: DEPENDS_ON
+    weight: 0.8
+    note: Tokens are the alphabet next-token models predict over.
+    sources: [huggingface-tokenizers]
+
+  - from: prompting-as-specification
+    to: fine-tuning-vs-prompting
+    type: PREREQUISITE_OF
+    note: You cannot choose adaptation until prompting's limits are clear.
+    sources: [instructgpt-2022]
+
+  - from: fine-tuning-vs-prompting
+    to: peft-lora-intuition
+    type: PREREQUISITE_OF
+    note: LoRA is how you fine-tune when full updates are too expensive.
+    sources: [lora-2021]
+
+  - from: what-embeddings-capture
+    to: approximate-nearest-neighbors
+    type: PREREQUISITE_OF
+    note: ANN indexes approximate the same similarity geometry.
+    sources: [faiss]
+
+  - from: rag-pipeline-basics
+    to: chunking-and-retrieval-quality
+    type: PREREQUISITE_OF
+    note: Chunking is the main lever once the pipeline shape is known.
+    sources: [rag-2020]
+
+  - from: approximate-nearest-neighbors
+    to: chunking-and-retrieval-quality
+    type: DEPENDS_ON
+    weight: 0.6
+    note: Bad chunks look like low recall even when the index is fine.
+
+  - from: what-embeddings-capture
+    to: clip-joint-embeddings
+    type: PREREQUISITE_OF
+    note: CLIP is contrastive alignment of two embedding spaces.
+    sources: [clip-2021]
+
+  - from: tool-calling-loop
+    to: agent-memory-patterns
+    type: PREREQUISITE_OF
+    note: Memory is what you write back into the loop's context.
+    sources: [agent-survey-2023]
+
+  - from: train-validation-test
+    to: training-serving-skew
+    type: PREREQUISITE_OF
+    note: Skew is the train/serve cousin of a bad split.
+    sources: [mlflow-docs]
+
+  - from: context-window-limits
+    to: cost-latency-quality-tradeoffs
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Token count is the dominant cost driver.
+
+  - from: cost-latency-quality-tradeoffs
+    to: observability-for-llm-apps
+    type: DEPENDS_ON
+    weight: 0.6
+    note: You cannot manage cost or quality you do not log.
+
+  - from: precision-recall-and-f1
+    to: llm-eval-harness-basics
+    type: DEPENDS_ON
+    weight: 0.5
+    note: Eval harnesses still need a scored criterion, even if it is LLM-as-judge.
+    sources: [openai-evals]
+
+  - from: prompting-as-specification
+    to: llm-eval-harness-basics
+    type: DEPENDS_ON
+    weight: 0.6
+    note: Prompt changes are the usual treatment in an A/B eval.
+
+  - from: agent-failure-modes
+    to: prompt-injection-and-trust
+    type: PREREQUISITE_OF
+    note: Injection is the security reading of untrusted context in the loop.
+    sources: [owasp-llm-top10]
+
+  - from: tool-calling-loop
+    to: data-exfiltration-via-tools
+    type: PREREQUISITE_OF
+    note: Exfiltration rides the same tool channel as legitimate actions.
+
+  - from: prompt-injection-and-trust
+    to: data-exfiltration-via-tools
+    type: DEPENDS_ON
+    weight: 0.8
+    note: Injection is often the means; exfiltration is the goal.
+
+  - from: rag-pipeline-basics
+    to: llm-app-architecture-patterns
+    type: PREREQUISITE_OF
+    note: RAG is one branch of the architecture decision tree.
+    sources: [rag-2020]
+
+  - from: fine-tuning-vs-prompting
+    to: llm-app-architecture-patterns
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Fine-tune vs prompt is the other branch.
+
+  - from: tool-calling-loop
+    to: llm-app-architecture-patterns
+    type: DEPENDS_ON
+    weight: 0.7
+    note: Agents are the third branch when tools are required.

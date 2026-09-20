@@ -122,9 +122,9 @@ class LearningApiTest {
 
     @Test
     void aDraftUnitCannotCollectEvidence() throws Exception {
-        event("scaled-dot-product-attention", "{\"kind\":\"unit_opened\"}")
+        event("mixture-of-experts-draft", "{\"kind\":\"unit_opened\"}")
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/v1/units/scaled-dot-product-attention/mastery").session(session))
+        mockMvc.perform(get("/v1/units/mixture-of-experts-draft/mastery").session(session))
                 .andExpect(status().isNotFound());
     }
 

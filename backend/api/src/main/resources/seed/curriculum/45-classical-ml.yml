@@ -1,0 +1,954 @@
+# Wave 2, part 3: the supervised learning core.
+#
+# These four pages are the ones a learner needs before any deep learning content means anything.
+# The framing page defines the problem; linear regression is the smallest complete instance of
+# it; splits and overfitting are the two things that decide whether a model is real.
+#
+# Parent domain is classical-ml, which is where the spec puts linear and tree models.
+
+units:
+  - slug: supervised-learning-core
+    title: The Supervised Learning Core
+    kind: chapter
+    parent: classical-ml
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 140
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [machine-learning, supervised-learning]
+    objectives:
+      - State a problem as a supervised learning task, including what the label actually is.
+      - Fit and interpret the simplest useful model, and know what it cannot express.
+      - Split data so that the number you report means something.
+      - Diagnose overfitting and choose a remedy rather than guessing.
+    description: >-
+      Four pages that hold up everything after them: what supervised learning is, the smallest
+      model that does it, how to split data honestly, and what to do when a model has memorised
+      instead of learned.
+    blocks:
+      - type: why
+        markdown: |
+          Deep learning is a family of supervised learning methods. Every idea in the neural
+          network and transformer units — loss, generalisation, validation, regularisation — is
+          defined here first, on models small enough to inspect completely.
+
+          Starting with neural networks and coming back to this later is the usual order, and it
+          is why so many practitioners can train a model but cannot say whether the resulting
+          number is trustworthy.
+
+  - slug: supervised-learning-framing
+    title: Framing a Problem as Supervised Learning
+    kind: knowledge_unit
+    parent: supervised-learning-core
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 30
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [machine-learning, supervised-learning, framing]
+    objectives:
+      - Identify the features, the label, and the unit of prediction in a stated problem.
+      - Distinguish supervised learning from unsupervised and reinforcement settings.
+      - Recognise a label that will not be available at prediction time.
+      - Say what a model is being asked to generalise over.
+    description: >-
+      Supervised learning is learning a function from examples of its input and output. The hard
+      part is almost never the algorithm; it is deciding what the input and output are.
+    blocks:
+      - type: why
+        markdown: |
+          Most failed machine learning projects were framed wrong, not modelled wrong. The label
+          did not exist at prediction time, or it encoded the answer, or the unit of prediction
+          did not match the decision anyone was going to make with it.
+
+          None of that is visible from the accuracy figure. It is visible from the framing, which
+          takes twenty minutes and is skipped more often than any other step.
+
+      - type: eli5
+        markdown: |
+          You want to teach someone to price second-hand bikes. You show them a thousand bikes and
+          the price each one actually sold for. After enough of them, they can price a new bike.
+
+          That is supervised learning. The bikes are the inputs, the prices are the answers, and
+          learning means finding the pattern that connects them.
+
+          The trick is choosing what to show. If you include "the price the seller asked for", your
+          student learns nothing about bikes — they just repeat a number that was already the
+          answer, and they are useless the moment that number is missing.
+
+      - type: beginner
+        markdown: |
+          A supervised learning problem has four parts. Name all four before writing any code.
+
+          1. **Unit of prediction.** What is one row? One customer, one transaction, one sentence,
+             one customer-month. This decides everything else.
+          2. **Features $x$.** What is known at the moment the prediction must be made.
+          3. **Label $y$.** The thing you want predicted, recorded for past examples.
+          4. **Loss.** How wrong a prediction is, which encodes what you actually care about.
+
+          The task is to find $f$ such that $f(x) \approx y$ on examples you have not seen. Two
+          standard shapes:
+
+          - **Regression:** $y$ is a number. Price, duration, temperature.
+          - **Classification:** $y$ is one of a fixed set of categories. Fraud or not, which of ten
+            digits, which of five intents.
+
+          Contrast with the neighbours:
+
+          - **Unsupervised learning** has no $y$. Clustering, dimensionality reduction. You are
+            looking for structure, and there is no ground truth to be right about.
+          - **Reinforcement learning** has no $y$ either — only a reward that arrives later, often
+            after many actions, and which depends on what the system chose to do.
+
+      - type: intermediate
+        markdown: |
+          Framing decisions that do the most damage, in rough order of how often they are made:
+
+          **Leakage through the label.** A feature that is a consequence of the label, or recorded
+          at the same time as it, gives spectacular offline results and nothing in production. The
+          classic is a "case closed" flag in a fraud dataset: it only gets set after the fraud was
+          confirmed. Test for this by asking, for every feature, *when was this value written?*
+
+          **Temporal leakage.** Using data from after the prediction moment. If you are predicting
+          churn on 1 March, an aggregate computed over "the last 90 days" from the dataset's
+          extraction date silently includes April. Any split that ignores time will hide it.
+
+          **A label that does not match the decision.** Predicting "will this customer churn in the
+          next year" when the retention team can only act this month. The model is accurate about a
+          question nobody asked.
+
+          **A unit of prediction that does not match the action.** If the system intervenes per
+          customer but the model scores per session, someone downstream will average or take a
+          maximum, and that aggregation is an unexamined modelling decision made by whoever wrote
+          the glue code.
+
+          There is also a legitimacy question that framing decides. A feature can be predictive and
+          still be unacceptable to use — a proxy for a protected attribute, or data the subject did
+          not consent to. That judgement belongs at framing time, when it costs nothing, not after
+          the model is built. The responsible AI unit takes this further.
+
+      - type: example
+        markdown: |
+          **The request:** "Use AI to reduce customer churn."
+
+          That is not a task. Framing it:
+
+          - **Unit of prediction:** one active subscriber, scored on the first of each month.
+          - **Prediction moment:** the 1st. Only data timestamped before that is admissible.
+          - **Label:** did this subscriber cancel between day 1 and day 30 of the following month?
+            Binary. Note the gap — the retention team needs a week to act, so predicting a
+            cancellation that happens tomorrow is useless.
+          - **Features:** logins in the prior 30 days, support tickets opened, plan tier, tenure in
+            months, last invoice amount. All knowable on the 1st.
+          - **Rejected feature:** `cancellation_reason_code`. It exists in the table, correlates
+            near-perfectly, and is written *at cancellation*. Including it yields 0.99 AUC and a
+            worthless model.
+          - **Loss:** not plain accuracy. Churners are 3% of the base, so accuracy rewards
+            predicting "stays" for everyone. The team can contact 500 customers a month, so the
+            metric is precision within the top 500 scores — which is a business constraint turned
+            into a metric.
+
+          Now the problem is specified tightly enough that two people would build the same dataset,
+          and the evaluation matches what will actually be done with the output.
+
+      - type: misconception
+        payload:
+          code: ml.more_features_better
+          claim: "Add every column you have and let the model figure out what matters."
+          markdown: |
+            **The claim:** models are good at ignoring useless features, so including everything is
+            free and might help.
+
+            **Why it feels right:** regularisation does shrink useless coefficients, tree models do
+            ignore uninformative splits, and removing a column feels like throwing away information.
+
+            **What actually happens:** the danger is not useless features, it is *too useful* ones.
+            Leaked columns are the most predictive things in any dataset, so a model built on
+            everything will find them first and rely on them entirely. Offline metrics look
+            extraordinary and production performance collapses, with no warning in between.
+
+            Secondary costs are real too: every extra feature is a pipeline that can break, a
+            distribution that can drift, and another chance to include something you are not
+            permitted to use.
+
+            **How to catch yourself:** for every feature, answer "at what timestamp is this value
+            written, and is that before the prediction moment?" Anything you cannot answer is out
+            until you can. A suspiciously excellent first result is a leakage alarm, not a success.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Frame "predict which support tickets will escalate" completely: unit, prediction
+               moment, label, three admissible features, one tempting feature that leaks.
+            2. For a hospital readmission model, list three features that would leak and say when
+               each is written.
+            3. Classify each as supervised, unsupervised, or reinforcement: grouping customers by
+               behaviour; predicting delivery time; learning to play a game from the score;
+               flagging anomalous logins with no labelled examples.
+            4. A model predicts daily revenue with 2% error. Name two decisions it could support
+               and one it could not, and explain the difference in terms of the unit of prediction.
+            5. Take a model you have seen described publicly and write down what you think its unit
+               of prediction and label were. Note where the description was ambiguous.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What are the four things to name before modelling?"
+              answer: "The unit of prediction, the features, the label, and the loss."
+            - question: "What is the test for whether a feature leaks?"
+              answer: >-
+                Whether its value is written before the prediction moment. If it is recorded at or
+                after the label, it leaks.
+            - question: "What separates supervised from reinforcement learning?"
+              answer: >-
+                Supervised learning has a correct answer attached to each example; reinforcement
+                learning has only a reward signal that depends on the actions taken, often delayed.
+            - question: "Why can a perfectly accurate model still be useless?"
+              answer: >-
+                Because the label or the unit of prediction does not match the decision anyone can
+                act on — the right answer to the wrong question.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Turn a vague business request into a stated unit, label, feature set, and metric that
+              two people would implement the same way.
+            - Identify a leaking feature by reasoning about when its value is written.
+            - Explain why a metric was chosen in terms of the decision it supports.
+            - Recognise when a problem is not supervised learning at all.
+    resources:
+      - source: esl-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.7
+        excerpt: "Chapter 2 sets out the supervised learning problem and the language used on this page."
+      - source: sklearn-linear-model
+        purpose: TOOL_REFERENCE
+        relevance: 0.5
+        excerpt: "The API's fit(X, y) signature is this framing made concrete: a feature matrix and a label vector."
+
+  - slug: linear-regression-intuition
+    title: Linear Regression, Understood Rather Than Called
+    kind: knowledge_unit
+    parent: supervised-learning-core
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [machine-learning, regression, linear-models]
+    objectives:
+      - Write the linear model and say what each parameter means in the problem's units.
+      - Explain why squared error is the usual loss and what that choice costs.
+      - Interpret a coefficient correctly, including what it holds fixed.
+      - Name two things a linear model cannot represent and what to do about them.
+    description: >-
+      The smallest model that is genuinely a model. Worth knowing properly because its parameters
+      are interpretable, its failure modes are visible, and it is still the right answer often.
+    blocks:
+      - type: why
+        markdown: |
+          Linear regression is the baseline you have to beat, and beating it is harder than people
+          expect. When a gradient-boosted ensemble improves on it by half a percent, the honest
+          conclusion is usually to ship the linear model and keep the interpretability.
+
+          It is also the clearest place to see the machinery: a loss, a gradient, parameters with
+          meanings, and a model class with real limits. Every one of those reappears, less visibly,
+          in a network with a billion parameters.
+
+      - type: eli5
+        markdown: |
+          You have a scatter of dots: bike size against price. You lay a ruler across them so the
+          line sits as close to the dots as you can manage.
+
+          Now, for a new bike, you read the price off the line.
+
+          That is linear regression. The only refinements are a precise definition of "as close as
+          possible" and a way to do it in more than two dimensions, where you cannot see the dots.
+
+      - type: beginner
+        markdown: |
+          The model predicts a weighted sum of the features plus an intercept:
+
+          $$
+          \hat{y} = w_1 x_1 + w_2 x_2 + \cdots + w_d x_d + b
+          $$
+
+          which is $\hat{y} = \mathbf{w} \cdot \mathbf{x} + b$ — the dot product from the vectors
+          unit, and exactly the pre-activation of a single neuron.
+
+          Fitting means choosing $\mathbf{w}$ and $b$ to minimise the mean squared error:
+
+          $$
+          L(\mathbf{w}, b) = \frac{1}{n}\sum_{i=1}^{n}\big(\hat{y}_i - y_i\big)^2
+          $$
+
+          Each parameter has a readable meaning:
+
+          - $w_j$ is the predicted change in $y$ for a one-unit increase in $x_j$, **with all other
+            features held fixed**. That clause is not decoration; it is the whole interpretation.
+          - $b$ is the prediction when every feature is zero, which may or may not be a meaningful
+            situation.
+
+          Squared error is chosen because it is differentiable everywhere, it has a closed-form
+          solution, and it corresponds to assuming Gaussian noise. The price is sensitivity to
+          outliers: an error of 10 contributes a hundred times as much as an error of 1.
+
+      - type: intermediate
+        markdown: |
+          Two ways to fit it, and the difference matters in practice.
+
+          **Closed form.** Setting the gradient to zero gives the normal equations,
+          $\hat{\mathbf{w}} = (X^{T}X)^{-1}X^{T}\mathbf{y}$. Exact, and fine for a few thousand
+          features. It costs roughly $O(d^3)$ and falls apart when $X^{T}X$ is near-singular —
+          which happens whenever two features are nearly collinear.
+
+          **Gradient descent.** The same update as the neuron unit, scaling to large $n$ and $d$
+          and to losses with no closed form. Requires scaled features, because the gradient with
+          respect to $w_j$ is proportional to $x_j$ and wildly different feature scales make a
+          single learning rate impossible.
+
+          **Interpreting coefficients** is where careful people still go wrong:
+
+          - A coefficient is **conditional on the other features in the model**. Add a correlated
+            feature and the coefficient can change sign. Nothing about the world changed; the
+            question the coefficient answers did.
+          - Coefficient magnitude is not importance unless features are on comparable scales. A
+            coefficient of 0.001 on a feature measured in millions is large.
+          - Collinearity does not hurt predictions much, but it makes individual coefficients
+            unstable and their standard errors enormous. Predict fine, explain badly.
+          - A coefficient is not a causal effect. It is the slope of the best-fitting hyperplane on
+            observational data.
+
+          **Limits of the model class.** Linear regression cannot represent an interaction (the
+          effect of $x_1$ depending on $x_2$) or a curve. It can, however, represent both if you
+          give it the right columns: add $x_1 x_2$ for the interaction, add $x^2$ for curvature.
+          The model is linear *in its parameters*, not in the raw inputs — which is why polynomial
+          regression is still linear regression, and why the choice of features is where the
+          modelling actually happens.
+
+      - type: example
+        markdown: |
+          Four apartments: size in square metres, and price in thousands.
+
+          | Size | Price |
+          |------|-------|
+          | 50   | 150   |
+          | 60   | 180   |
+          | 70   | 195   |
+          | 80   | 235   |
+
+          Fit $\hat{y} = wx + b$ by the standard formulas. Means: $\bar{x} = 65$, $\bar{y} = 190$.
+
+          $$
+          w = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sum (x_i - \bar{x})^2}
+          = \frac{1350}{500} = 2.7
+          $$
+
+          $$
+          b = \bar{y} - w\bar{x} = 190 - 2.7 \times 65 = 14.5
+          $$
+
+          **Reading it.** Each extra square metre is associated with £2,700 more in price. The
+          intercept of £14,500 for a zero-square-metre apartment is not a claim about anything — it
+          is where the line crosses an axis far outside the data.
+
+          **Residuals:** predictions are 149.5, 176.5, 203.5, 230.5, so the errors are $+0.5$,
+          $+3.5$, $-8.5$, $+4.5$. The third apartment is over-predicted by £8,500 while the others
+          are close, and squaring makes that one point contribute $72.25$ of the total $99$. One
+          point is carrying three-quarters of the loss, which is exactly the outlier sensitivity of
+          squared error, visible on four rows.
+
+          **Extrapolation.** The model happily prices a 500 m² apartment at £1.365m. It has no idea
+          that it has left the data. Linear models extrapolate confidently and silently.
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            ```python
+            import numpy as np
+
+            x = np.array([50.0, 60.0, 70.0, 80.0])
+            y = np.array([150.0, 180.0, 195.0, 235.0])
+
+            w = ((x - x.mean()) * (y - y.mean())).sum() / ((x - x.mean()) ** 2).sum()
+            b = y.mean() - w * x.mean()
+            pred = w * x + b
+
+            print(f"w={w:.2f} b={b:.2f}")
+            print("residuals:", np.round(y - pred, 2))
+            print(f"mse={np.mean((y - pred) ** 2):.2f}")
+
+            # w=2.70 b=14.50
+            # residuals: [ 0.5  3.5 -8.5  4.5]
+            # mse=24.75
+            ```
+
+            Change the third price from 195 to 205 and refit. The slope moves and every residual
+            changes, because least squares distributes one point's error across all parameters.
+            That is worth doing once by hand: it is the clearest demonstration that no coefficient
+            in any fitted model is a property of a single observation.
+
+      - type: misconception
+        payload:
+          code: ml.coefficient_is_cause
+          claim: "A large positive coefficient means that feature causes the outcome to rise."
+          markdown: |
+            **The claim:** the fitted coefficients tell you what drives the outcome, so a large one
+            identifies a lever you can pull.
+
+            **Why it feels right:** the model says "one more unit of $x_j$, $w_j$ more $y$", which
+            is grammatically a causal sentence. And the model does predict well.
+
+            **What actually happens:** the coefficient is the slope of the best-fitting hyperplane
+            through observational data, conditional on exactly the other features in the model. It
+            confounds every unmeasured common cause. Ice cream sales have a large positive
+            coefficient on drownings; banning ice cream will not help anyone.
+
+            The conditional part bites even without confounding. Fit price on size alone and the
+            size coefficient is large; add number of rooms, which is correlated with size, and the
+            size coefficient shrinks or flips. Both models predict well. Neither describes a
+            mechanism.
+
+            **How to catch yourself:** ask what would have to be true for the coefficient to be
+            causal — random assignment of that feature, or a defensible claim that every confounder
+            is in the model. If neither holds, report it as association, and say so in the sentence
+            rather than in a footnote.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Fit $\hat{y} = wx + b$ by hand for $(1, 2), (2, 4), (3, 5)$. Report $w$, $b$, the
+               residuals, and the MSE.
+            2. Add the point $(4, 20)$ and refit. How far does the slope move, and why so far?
+            3. A model predicting salary has coefficient $+8000$ on "years of experience" and
+               $-2000$ on "current title level". Give a plausible reason the second is negative
+               that has nothing to do with titles reducing pay.
+            4. You need to model an effect that rises then flattens. Name two ways to do it while
+               keeping a linear model.
+            5. Explain in two sentences why feature scaling matters for gradient descent but not
+               for the closed-form solution.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does a coefficient mean, stated precisely?"
+              answer: >-
+                The predicted change in the outcome for a one-unit increase in that feature, holding
+                every other feature in the model fixed. It is conditional on the model's feature set.
+            - question: "Why squared error rather than absolute error?"
+              answer: >-
+                It is differentiable everywhere, has a closed-form solution, and matches a Gaussian
+                noise assumption. The cost is heavy sensitivity to outliers.
+            - question: "Is polynomial regression a linear model?"
+              answer: >-
+                Yes. Linearity is in the parameters, not the inputs, so adding $x^2$ as a column
+                keeps the model linear while letting it fit a curve.
+            - question: "What happens to a linear model outside the range of its training data?"
+              answer: >-
+                It extrapolates the straight line indefinitely, with no signal that it has left the
+                region where it was fitted.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Fit a one-feature linear regression by hand and interpret both parameters in the
+              problem's own units.
+            - State the "holding other features fixed" clause without being prompted.
+            - Explain why squared error rewards outliers with disproportionate influence, using a
+              worked residual.
+            - Extend a linear model to a curve or an interaction by choosing features, and say why
+              it is still linear.
+    resources:
+      - source: sklearn-linear-model
+        purpose: TOOL_REFERENCE
+        relevance: 0.8
+        excerpt: "Ordinary least squares, its assumptions, and the collinearity warning, in the library you will use."
+      - source: esl-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.8
+        excerpt: "Chapter 3 covers least squares, coefficient interpretation, and collinearity in detail."
+      - source: mml-book
+        purpose: MATHEMATICAL_BACKGROUND
+        relevance: 0.6
+        excerpt: "Chapter 9 derives linear regression from both the least-squares and the probabilistic view."
+
+  - slug: train-validation-test
+    title: Train, Validation, and Test
+    kind: knowledge_unit
+    parent: supervised-learning-core
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 30
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [machine-learning, evaluation, data-splits]
+    objectives:
+      - Say what each of the three splits is for and what touching it costs.
+      - Explain why a validation score becomes optimistic as you tune against it.
+      - Choose a splitting strategy that respects time and grouping in the data.
+      - Recognise preprocessing that leaks information across a split.
+    description: >-
+      Three splits, three different jobs. The discipline is unglamorous and it is the difference
+      between a number you can quote and a number that is about to embarrass you.
+    blocks:
+      - type: why
+        markdown: |
+          A model's score on data it was fitted to is not evidence. It can be driven to perfection
+          by memorisation, which is why every reported result has to come from data the model has
+          never influenced.
+
+          That is easy to state and surprisingly hard to do. Most leakage is not someone testing on
+          the training set; it is a scaler fitted before the split, a random split on time-ordered
+          rows, or a test set consulted forty times over three weeks.
+
+      - type: eli5
+        markdown: |
+          You are revising for an exam with a book of practice questions and their answers.
+
+          - **Training set:** the questions you study with the answers in front of you.
+          - **Validation set:** questions you try without answers, to decide what to revise next.
+          - **Test set:** the real exam. You sit it once.
+
+          If you had the exam paper in advance and practised on it, your mark says nothing about
+          what you know. And if you keep re-testing yourself on the same mock paper until you score
+          well, that mock is now just more revision.
+
+      - type: beginner
+        markdown: |
+          Three splits, three jobs:
+
+          - **Training set** (≈60–80%). The model's parameters are fitted on this. It sees it many
+            times.
+          - **Validation set** (≈10–20%). Used to make *decisions*: which model, which
+            hyperparameters, when to stop. The model does not fit on it, but you do.
+          - **Test set** (≈10–20%). Used once, at the end, to estimate performance on unseen data.
+            Every extra look spends some of its value.
+
+          The rule that makes all of it work: **any transformation learned from data must be
+          learned on the training split only.** That includes scalers, encoders, imputers, feature
+          selection, and target encoding. Fit on train, apply to validation and test.
+
+          A quick diagnostic table, which you will use constantly:
+
+          | Train score | Validation score | Reading                |
+          |-------------|------------------|------------------------|
+          | Low         | Low              | Underfitting           |
+          | High        | Much lower       | Overfitting            |
+          | High        | High             | Plausible; check leakage |
+          | Low         | High             | A bug, or a split mistake |
+
+      - type: intermediate
+        markdown: |
+          **Why the validation set decays.** Each time you pick the better of two options by its
+          validation score, you fit one bit of information about that set into your model choice.
+          Do it fifty times and the winning configuration is partly fitted to the validation set's
+          noise. The reported validation score is then optimistic by an amount nobody can measure —
+          which is precisely why a separate test set exists, and why it is used once.
+
+          **Random splitting is wrong more often than people think.**
+
+          - **Time series, or anything deployed forward in time.** Split by date: train on the past,
+            validate on the future. A random split lets the model see Tuesday when predicting
+            Monday, and production never will.
+          - **Grouped data.** Several rows per patient, per user, per document. A random split puts
+            the same group on both sides and the model recognises the group rather than the pattern.
+            Split by group.
+          - **Rare classes.** Stratify, or a small validation set may contain none of the positive
+            class and its score becomes meaningless noise.
+
+          **Preprocessing leakage** is the most common real failure. Standardising the whole dataset
+          before splitting leaks the test set's mean and variance into training. The effect is
+          usually small and always in the optimistic direction, so it is never caught by a result
+          that looks too good. Build a pipeline where every fitted transformation lives inside the
+          training fold; libraries provide this precisely so you cannot get it wrong by hand.
+
+          **How big should the test set be?** Large enough for the difference you care about to be
+          bigger than its noise. With 200 test examples, a binary accuracy has a standard error of
+          roughly 3.5 percentage points, so a "2% improvement" measured on it is indistinguishable
+          from nothing. State the uncertainty alongside the number, or expect to defend a result
+          that was never real.
+
+      - type: example
+        markdown: |
+          10,000 subscribers, 18 months of monthly snapshots, predicting churn in the next 30 days.
+
+          **The wrong split**, which looks completely reasonable:
+
+          ```
+          shuffle all 180,000 rows, take 80/10/10
+          ```
+
+          Two failures at once. The same subscriber appears in train and test, so the model can
+          learn subscriber identity. And January 2026 rows are used to predict August 2025 ones,
+          which cannot happen in production.
+
+          **The right split:**
+
+          - Train: months 1–12.
+          - Validation: months 13–15.
+          - Test: months 16–18.
+          - No subscriber crosses a boundary within the same prediction window.
+
+          Results tell a clear story: validation AUC 0.81 on the wrong split, 0.68 on the right one.
+          Nothing about the model changed. The first number was measuring how well it could
+          recognise subscribers it had already seen.
+
+          **The preprocessing detail.** Tenure is standardised. Fit the scaler on months 1–12 only;
+          apply those means to months 13–18. Fitting it on all 18 months would let the training
+          fold know about a pricing change in month 17 — a small leak, an optimistic result, and
+          nothing in the output to suggest it happened.
+
+      - type: misconception
+        payload:
+          code: ml.validation_is_unbiased
+          claim: "The validation score is an unbiased estimate of real-world performance."
+          markdown: |
+            **The claim:** the validation set is held out, so its score is an honest estimate of
+            performance on new data — no separate test set needed.
+
+            **Why it feels right:** the model never trained on it. On the first evaluation, the
+            claim is actually true.
+
+            **What actually happens:** it stops being true the moment you use the score to make a
+            decision. Choosing the best of 50 configurations by validation score is a search that
+            optimises against that set, and the winner's score includes however much of that set's
+            noise it happened to fit. With 50 candidates and a 2,000-row validation set, an
+            optimism of a percentage point or two is routine — large enough to swamp most claimed
+            improvements.
+
+            The same applies to a test set consulted repeatedly. A test set looked at thirty times
+            is a validation set, whatever the variable is called.
+
+            **How to catch yourself:** count your evaluations. If you cannot say how many times you
+            have looked at a split, treat its score as a tuning signal rather than a result. Keep
+            one split genuinely untouched, and write down the number the first time you use it.
+
+      - type: common_mistake
+        markdown: |
+          **Fitting the scaler before splitting.** Small, invisible, always optimistic. Use a
+          pipeline object rather than discipline.
+
+          **Re-splitting after a disappointing result.** Trying three random seeds and reporting the
+          best is selection on noise, and it is indistinguishable from fraud in the write-up.
+
+          **Quoting a test score without its uncertainty.** A percentage on 200 examples is not a
+          point estimate anyone should act on.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. For each dataset, say how to split and why: hospital readmissions with multiple
+               visits per patient; daily electricity demand; 50,000 independent product reviews;
+               fraud at a 0.2% base rate.
+            2. You compare 40 hyperparameter settings on a 1,000-row validation set. Explain why the
+               best score is optimistic and roughly what you would do about it.
+            3. Name three preprocessing steps that leak if fitted before the split, and say what
+               each one leaks.
+            4. Train accuracy 0.99, validation 0.71, test 0.70. Diagnose it, and say what you would
+               change first.
+            5. Train 0.72, validation 0.98. This cannot be overfitting. Name two causes.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is each split for, in one clause each?"
+              answer: >-
+                Train fits the parameters, validation makes the modelling decisions, test estimates
+                performance on unseen data once.
+            - question: "Why does the validation score become optimistic?"
+              answer: >-
+                Because it is used to select among options, so the winner is partly fitted to that
+                set's noise. Selection is a form of fitting.
+            - question: "When is a random split wrong?"
+              answer: >-
+                Whenever rows are not exchangeable: time-ordered data, or multiple rows belonging to
+                the same group. Split by time or by group instead.
+            - question: "Why must a scaler be fitted only on the training split?"
+              answer: >-
+                Fitting it on everything leaks the held-out data's statistics into training, which
+                makes the evaluation optimistic in a way nothing in the output reveals.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Choose a split strategy for a described dataset and justify it from the structure of
+              the data rather than from habit.
+            - Explain the decay of a validation score in terms of selection, not superstition.
+            - Spot preprocessing leakage in someone else's code by looking at where the transform
+              is fitted.
+            - Attach an uncertainty to a test score and say whether a claimed improvement survives it.
+    resources:
+      - source: sklearn-cross-validation
+        purpose: TOOL_REFERENCE
+        relevance: 0.8
+        excerpt: >-
+          The opening section shows the three-way split and the pipeline pattern that prevents
+          preprocessing leakage.
+      - source: esl-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.7
+        excerpt: "Chapter 7 separates model selection from model assessment, which is the reason two held-out sets exist."
+
+  - slug: overfitting-and-regularization
+    title: Overfitting, and What Actually Fixes It
+    kind: knowledge_unit
+    parent: supervised-learning-core
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 38
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [machine-learning, overfitting, regularization, generalization]
+    objectives:
+      - Recognise overfitting from training and validation curves.
+      - Explain the bias-variance trade-off in terms of what changes when data is resampled.
+      - Describe what L2 and L1 penalties do to parameters and when each is appropriate.
+      - Choose between more data, fewer parameters, and a penalty for a given situation.
+    description: >-
+      Fitting the noise instead of the signal. What it looks like, why capacity causes it, and the
+      handful of remedies that work — including the one that works best and is least discussed.
+    blocks:
+      - type: why
+        markdown: |
+          Overfitting is the default outcome. Any model with enough capacity will fit its training
+          data perfectly, including the parts that are noise, and will then generalise badly.
+          Everything called "regularisation" exists to trade a little training fit for a lot of
+          held-out fit.
+
+          It is also the concept that explains most of deep learning practice: dropout, weight
+          decay, early stopping, data augmentation, and the entire reason models are trained on
+          enormous datasets are all answers to this page.
+
+      - type: eli5
+        markdown: |
+          A student memorises the answers to last year's exam word for word. On last year's paper,
+          100%. On this year's, lost — because they learned the answers, not the subject.
+
+          A model can do the same thing. Given enough freedom, it will find a rule that fits every
+          training example exactly, including the accidents in it, and that rule describes your
+          particular dataset rather than the world.
+
+          The fix is not a cleverer student. It is either more practice papers, or refusing to let
+          them write down answers that are too specific.
+
+      - type: beginner
+        markdown: |
+          **Overfitting:** the model fits patterns in the training data that do not exist in new
+          data. Training error keeps falling while validation error rises.
+
+          **Underfitting:** the model is too constrained to fit the real pattern. Both errors are
+          high and close together.
+
+          The signature is the gap. Two curves over training time:
+
+          | Symptom                                  | Diagnosis     |
+          |------------------------------------------|---------------|
+          | Both errors high, small gap              | Underfitting  |
+          | Training error low, validation much higher | Overfitting   |
+          | Validation error falls then rises        | Overfitting begins at the turn |
+
+          **Capacity** is how complicated a function a model can express: number of parameters,
+          tree depth, polynomial degree. More capacity means more ability to fit both the signal
+          and the noise, and nothing in the training loss distinguishes the two.
+
+          The main remedies, in the order worth trying:
+
+          1. **More data.** Reliably the most effective and the least often available.
+          2. **Fewer effective parameters.** A simpler model, a shallower tree, fewer features.
+          3. **A penalty on the parameters** (regularisation), which is the subject below.
+          4. **Early stopping**, which halts training at the turn in the validation curve.
+
+      - type: intermediate
+        markdown: |
+          **Bias and variance.** Imagine refitting your model on many different samples from the
+          same population. Expected error decomposes into:
+
+          $$
+          \text{Error} = \text{Bias}^2 + \text{Variance} + \text{Irreducible noise}
+          $$
+
+          - **Bias** is how far the average fit is from the truth — error from the model class
+            being too restrictive.
+          - **Variance** is how much the fit moves between samples — error from the model chasing
+            whatever the particular sample happened to contain.
+          - **Irreducible noise** is the floor. No model beats it, and a model that appears to has
+            leaked.
+
+          Overfitting is high variance. Underfitting is high bias. Increasing capacity trades one
+          for the other, which is why "make the model bigger" is not a direction so much as a
+          position on a curve.
+
+          **Regularisation** adds a penalty on parameter size to the loss:
+
+          $$
+          L_{\text{ridge}} = \sum_i (\hat{y}_i - y_i)^2 + \lambda \sum_j w_j^2
+          $$
+
+          $$
+          L_{\text{lasso}} = \sum_i (\hat{y}_i - y_i)^2 + \lambda \sum_j |w_j|
+          $$
+
+          - **L2 (ridge, weight decay)** shrinks all coefficients smoothly toward zero without
+            reaching it. It handles collinearity well and is the default in neural networks, where
+            it appears as the `weight_decay` argument.
+          - **L1 (lasso)** drives some coefficients exactly to zero, so it performs feature
+            selection. Useful when you believe most features are irrelevant and you want a sparse,
+            readable model.
+          - $\lambda$ controls the trade. At $\lambda = 0$ you are back to unpenalised fitting; as
+            $\lambda \to \infty$ every coefficient goes to zero and the model predicts the mean. It
+            is chosen on the validation set, never on the training set, where larger $\lambda$
+            always looks worse by construction.
+
+          Penalties require **scaled features**. A penalty on raw coefficients punishes features
+          measured in small units far more than the same feature measured in large ones, so
+          unscaled ridge regression silently selects based on unit choice.
+
+          **Deep learning caveat.** Very large networks often generalise well despite having far
+          more parameters than training examples, which the classical picture does not predict. The
+          diagnosis and the remedies on this page still hold empirically; the theoretical account is
+          genuinely unsettled, and anyone presenting one as established is overstating it.
+
+      - type: example
+        markdown: |
+          Ten points from $y = 2x + \text{noise}$, fitted with polynomials of increasing degree.
+
+          | Degree | Train MSE | Validation MSE | Reading            |
+          |--------|-----------|----------------|--------------------|
+          | 1      | 4.2       | 4.8            | Slight underfit    |
+          | 3      | 1.1       | 2.0            | About right        |
+          | 9      | 0.0       | 47.3           | Memorised the noise |
+
+          The degree-9 polynomial passes through all ten points exactly — ten coefficients, ten
+          constraints — so its training error is zero. Between the points it swings violently, and
+          on new data it is an order of magnitude worse than the straight line it was supposed to
+          improve on.
+
+          **Ridge on the degree-9 fit:**
+
+          | $\lambda$ | Train MSE | Validation MSE |
+          |-----------|-----------|----------------|
+          | 0         | 0.0       | 47.3           |
+          | 0.1       | 0.9       | 3.1            |
+          | 1.0       | 1.4       | 2.2            |
+          | 100       | 4.6       | 5.1            |
+
+          Training error rises monotonically with $\lambda$ — the penalty is doing exactly what it
+          promises — while validation error falls, bottoms out near $\lambda = 1$, and then rises as
+          the model becomes too constrained. That U-shape is the bias-variance trade-off drawn
+          directly.
+
+          Two things to notice. First, the best regularised degree-9 model beats the degree-3 model:
+          capacity plus a penalty can outperform a smaller model. Second, the training error *never*
+          tells you where the bottom is. Only the validation column does.
+
+      - type: misconception
+        payload:
+          code: ml.overfitting_means_too_many_parameters
+          claim: "Overfitting means the model has too many parameters, so use a smaller one."
+          markdown: |
+            **The claim:** parameter count causes overfitting, so the remedy is a smaller model.
+
+            **Why it feels right:** the polynomial example above, where degree 9 overfits ten points
+            and degree 3 does not. And it is often a workable heuristic on small tabular data.
+
+            **What actually happens:** what matters is the model's *effective* capacity relative to
+            the amount and cleanliness of the data — and effective capacity is not parameter count.
+            A ridge-penalised degree-9 model has nine parameters and behaves like a much simpler
+            one. Modern networks with billions of parameters routinely generalise better than
+            smaller ones trained on the same data.
+
+            Treating parameter count as the cause leads to the wrong fix. The question is not "how
+            many parameters" but "how much freedom does this model have to fit noise, given the
+            constraints on it". Weight decay, dropout, early stopping, data augmentation, and simply
+            more data all reduce effective capacity without removing a single parameter.
+
+            **How to catch yourself:** before shrinking the model, ask what the training-validation
+            gap would look like with twice the data. If the gap would close, the problem is data or
+            constraints, not size. Try a penalty and early stopping before an architecture change —
+            they are cheaper and more often right.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Train MSE 0.02, validation MSE 0.9. Name three interventions in the order you would
+               try them, with a reason for the order.
+            2. Explain why increasing $\lambda$ always increases training error, and why that is not
+               an argument against it.
+            3. You have 300 features and believe about 20 matter. Choose L1 or L2 and justify it.
+            4. Sketch the validation error curve against model capacity and mark the underfitting
+               region, the overfitting region, and the point early stopping would pick.
+            5. A colleague reports that a bigger network generalised better than a smaller one and
+               concludes overfitting is a myth. Write a two-sentence reply that is neither
+               dismissive nor wrong.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does the training-validation gap tell you?"
+              answer: >-
+                A large gap means the model is fitting something present in training and absent in
+                new data — overfitting. A small gap with both errors high means underfitting.
+            - question: "What is the difference between L1 and L2 penalties in effect?"
+              answer: >-
+                L2 shrinks all coefficients smoothly toward zero; L1 drives some exactly to zero and
+                therefore selects features.
+            - question: "Why is $\\lambda$ chosen on validation data?"
+              answer: >-
+                Training error increases monotonically with $\lambda$, so the training set would
+                always choose zero. Only held-out data shows the trade-off.
+            - question: "What does high variance mean, concretely?"
+              answer: >-
+                Refitting the model on a different sample from the same population would give a
+                noticeably different model. It is fitting the sample rather than the population.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Diagnose under- or overfitting from a pair of curves and say what you would change.
+            - Explain bias and variance in terms of resampling, without reciting the formula.
+            - Choose between L1 and L2 for a stated problem and justify it in one sentence.
+            - Argue against "just use a smaller model" without overclaiming about why large models
+              generalise.
+    resources:
+      - source: esl-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Chapter 7 develops the bias-variance decomposition; Chapter 3 covers ridge and lasso."
+      - source: sklearn-linear-model
+        purpose: TOOL_REFERENCE
+        relevance: 0.7
+        excerpt: "The Ridge and Lasso sections show the penalties above and the scaling requirement."
+      - source: dropout-2012
+        purpose: DEEPER_REFERENCE
+        relevance: 0.6
+        excerpt: >-
+          The regularisation idea carried into neural networks — randomly dropping units
+          approximates averaging many thinned models. Open access.

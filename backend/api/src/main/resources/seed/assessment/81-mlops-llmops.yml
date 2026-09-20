@@ -1,0 +1,345 @@
+# Assessments for Wave 3 MLOps / LLMOps units.
+
+items:
+  - slug: mlops-skew-definition
+    unit: training-serving-skew
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "What is training–serving skew?"
+    choices:
+      - id: a
+        text: "A mismatch between features (or their meaning) at train/eval time and at prediction time."
+        correct: true
+      - id: b
+        text: "Using a different random seed when you retrain."
+      - id: c
+        text: "Deploying a model file whose checksum differs from the notebook artefact."
+        misconception: mlops.same_weights_same_system
+      - id: d
+        text: "A drop in accuracy caused only by concept drift in labels."
+    explanation: |
+      Skew is about the *inputs* (and transforms) diverging between the pipeline you measured and
+      the pipeline you serve. Identical weights do not imply an identical system if defaults, joins,
+      or encodings changed.
+
+  - slug: mlops-shared-transform
+    unit: training-serving-skew
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What is the most reliable way to prevent everyday feature skew?"
+    choices:
+      - id: a
+        text: "Compute features in one shared library or service called from both training and serving."
+        correct: true
+      - id: b
+        text: "Document the notebook transforms carefully and re-implement them in the API."
+      - id: c
+        text: "Ship the same model weights and assume features will match."
+        misconception: mlops.same_weights_same_system
+      - id: d
+        text: "Retrain weekly so any skew is quickly overwritten."
+    explanation: |
+      Two implementations drift. Shared code (plus replay tests on production raw events) keeps
+      training and serving as one system. Documentation without a single implementation is how skew
+      ships.
+
+  - slug: mlops-replay-test
+    unit: training-serving-skew
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      Before promoting a model, you replay 1,000 production raw events through the training
+      transform and compare feature vectors to what the scorerservice produced. Why?
+    choices:
+      - id: a
+        text: "To detect training–serving skew before users see wrong predictions."
+        correct: true
+      - id: b
+        text: "To measure concept drift in labels."
+      - id: c
+        text: "To prove the model weights are identical to the notebook."
+        misconception: mlops.same_weights_same_system
+      - id: d
+        text: "To estimate latency of the training cluster."
+    explanation: |
+      Systematic feature disagreement is a pipeline bug. Catching it on replay is cheaper than
+      catching it in incident review. Weight checksums answer a different question.
+
+  - slug: mlops-version-chain
+    unit: training-serving-skew
+    type: short_text
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Name three artefacts you should version so a production prediction is attributable to a
+      training run. (Short list; order does not matter.)
+    accepted:
+      - "data/transform/model"
+      - "data, code, model"
+      - "dataset, features, model, serving config"
+    explanation: |
+      At minimum: data snapshot or query, transform code hash, model artefact — plus the serving
+      config that selects them. Without that chain, skew debugging is folklore.
+
+  - slug: llmops-tradeoff-axes
+    unit: cost-latency-quality-tradeoffs
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 80
+    stem: "Which three axes define the core LLMOps trade-off surface?"
+    choices:
+      - id: a
+        text: "Cost, latency, and multi-dimensional quality."
+        correct: true
+      - id: b
+        text: "GPU brand, dataset size, and number of engineers."
+      - id: c
+        text: "Temperature, top-p, and presence penalty."
+      - id: d
+        text: "Uptime, CPU utilisation, and disk free space."
+    explanation: |
+      Every LLM feature sits on spend, speed (especially tail latency), and quality dimensions such
+      as task success, groundedness, safety, and format. Decode knobs are levers, not the axes
+      themselves.
+
+  - slug: llmops-biggest-model
+    unit: cost-latency-quality-tradeoffs
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A team insists every production request must use the largest available model "for quality."
+      What is the strongest critique?
+    choices:
+      - id: a
+        text: "Many tasks are retrieval- or format-bound; a cascade or smaller model can match the metrics that matter at far lower cost and latency."
+        correct: true
+      - id: b
+        text: "Large models are always worse on latency but never on quality, so the claim is fine."
+      - id: c
+        text: "They are correct — production quality requires the frontier model on every call."
+        misconception: llmops.biggest_model_always
+      - id: d
+        text: "Model size does not affect cost, only latency."
+    explanation: |
+      "Always frontier" is a product strategy, not a law. Measure the gap on your suite; keep the
+      large model as an escalate path for the hard tail.
+
+  - slug: llmops-cascade
+    unit: cost-latency-quality-tradeoffs
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      A model cascade tries a cheaper/faster path first and escalates to a stronger model only when
+      a rule or score says it is needed.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. The win is average cost; the risk is mis-routing — which is why you evaluate the system,
+      not each model alone.
+
+  - slug: llmops-context-cost
+    unit: cost-latency-quality-tradeoffs
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Why can stuffing a huge context into every call hurt both cost and quality?"
+    choices:
+      - id: a
+        text: "You pay for input tokens and latency rises, while relevant evidence can be poorly used when buried mid-context."
+        correct: true
+      - id: b
+        text: "Providers only bill output tokens, so context is free but confusing."
+      - id: c
+        text: "Larger contexts always improve quality enough to justify any cost."
+        misconception: llmops.biggest_model_always
+      - id: d
+        text: "Context size does not affect latency on modern APIs."
+    explanation: |
+      Input tokens usually dominate RAG/chat bills, and long contexts have known attention failure
+      modes. Prefer retrieval, controlled summaries, and hard caps.
+
+  - slug: llmops-uptime
+    unit: observability-for-llm-apps
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      An LLM feature shows 99.8% HTTP 200s and healthy p95 latency, but users report confident wrong
+      answers. What was missing?
+    choices:
+      - id: a
+        text: "Quality sampling / eval scores and versioned traces — uptime does not detect fluent failure."
+        correct: true
+      - id: b
+        text: "Nothing; if latency and uptime are fine, the feature is healthy."
+        misconception: llmops.uptime_equals_healthy
+      - id: c
+        text: "Only a higher max_tokens setting."
+      - id: d
+        text: "Disabling HTTPS so payloads can be inspected."
+    explanation: |
+      LLM apps fail politely. Operational SRE signals must be paired with sampled quality review and
+      regression suites.
+
+  - slug: llmops-trace-fields
+    unit: observability-for-llm-apps
+    type: mcq
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Which set belongs in a minimum production LLM trace?"
+    choices:
+      - id: a
+        text: "Prompt and model versions, token/cost/latency, retrieval or tool references, safety/schema outcomes."
+        correct: true
+      - id: b
+        text: "Only the final assistant string and an HTTP status code."
+      - id: c
+        text: "GPU temperature and rack location."
+      - id: d
+        text: "The CEO's email address for every call."
+    explanation: |
+      You need enough structure to debug quality and cost and to run canaries by version. Final text
+      alone is not enough for RAG or tool loops.
+
+  - slug: llmops-canary
+    unit: observability-for-llm-apps
+    type: mcq
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Why store prompt_version on every trace?"
+    choices:
+      - id: a
+        text: "So canaries and rollbacks can attribute behaviour to a specific prompt/model pair."
+        correct: true
+      - id: b
+        text: "Because uptime monitors require it to compute HTTP success."
+        misconception: llmops.uptime_equals_healthy
+      - id: c
+        text: "To increase output token counts for billing."
+      - id: d
+        text: "It is only useful in the playground, not in production."
+    explanation: |
+      Version pins turn "the assistant got worse" into a diffable change. Canary a new prompt to a
+      slice of traffic and compare eval and cost distributions.
+
+  - slug: llmops-three-views
+    unit: observability-for-llm-apps
+    type: short_text
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      Name the three complementary quality/ops views for an LLM feature (short labels).
+    accepted:
+      - "ops, online sample, offline suite"
+      - "metrics, human/judge sample, golden evals"
+      - "operational metrics, quality sample, regression suite"
+    explanation: |
+      (1) Operational: latency, errors, tokens, $. (2) Sampled online quality review. (3) Fixed
+      offline regression suite on every change. Uptime alone is none of these for quality.
+
+assessments:
+  - slug: training-serving-skew-practice
+    title: "Practice: training–serving skew"
+    kind: practice
+    unit: training-serving-skew
+    items:
+      - mlops-skew-definition
+      - mlops-shared-transform
+      - mlops-version-chain
+
+  - slug: training-serving-skew-quiz
+    title: "Quiz: training–serving skew"
+    kind: quiz
+    unit: training-serving-skew
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - mlops-skew-definition
+      - mlops-shared-transform
+      - mlops-replay-test
+      - mlops-version-chain
+
+  - slug: cost-latency-quality-tradeoffs-practice
+    title: "Practice: cost, latency, quality"
+    kind: practice
+    unit: cost-latency-quality-tradeoffs
+    items:
+      - llmops-tradeoff-axes
+      - llmops-cascade
+      - llmops-context-cost
+
+  - slug: cost-latency-quality-tradeoffs-quiz
+    title: "Quiz: cost, latency, quality"
+    kind: quiz
+    unit: cost-latency-quality-tradeoffs
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - llmops-tradeoff-axes
+      - llmops-biggest-model
+      - llmops-cascade
+      - llmops-context-cost
+
+  - slug: observability-for-llm-apps-practice
+    title: "Practice: LLM observability"
+    kind: practice
+    unit: observability-for-llm-apps
+    items:
+      - llmops-trace-fields
+      - llmops-three-views
+      - llmops-canary
+
+  - slug: observability-for-llm-apps-quiz
+    title: "Quiz: observability for LLM apps"
+    kind: quiz
+    unit: observability-for-llm-apps
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - llmops-uptime
+      - llmops-trace-fields
+      - llmops-canary
+      - llmops-three-views
+
+cards:
+  - slug: card-mlops-skew
+    unit: training-serving-skew
+    front: "Same model file, different predictions online — first suspect?"
+    back: |
+      Training–serving skew: transforms, defaults, joins, or encodings diverged. Shared feature code
+      + replay tests beat hoping weights imply identical systems.
+
+  - slug: card-llmops-axes
+    unit: cost-latency-quality-tradeoffs
+    front: "Name the three LLMOps trade-off axes."
+    back: |
+      Cost (tokens × price), latency (esp. p95), and multi-dimensional quality — with cascades,
+      caching, and retrieval as levers.
+
+  - slug: card-llmops-fluent-failure
+    unit: observability-for-llm-apps
+    front: "Why can HTTP 200 hide an LLM outage?"
+    back: |
+      Fluent wrong answers still succeed at the transport layer. Sample quality, score suites, and
+      versioned traces — do not trust uptime alone.

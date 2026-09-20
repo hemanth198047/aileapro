@@ -1,0 +1,423 @@
+# Wave 3: statistics for ML — sampling bias and confidence-interval intuition.
+#
+# Narrow scope: selection effects that corrupt datasets, and what a CI is saying (and not saying).
+# Formal proofs and hypothesis-test catalogs are left to later units.
+
+units:
+  - slug: statistics-for-ml
+    title: Statistics for Machine Learning
+    kind: chapter
+    parent: statistics
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 70
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    tags: [statistics, sampling, uncertainty]
+    objectives:
+      - Recognise sampling and selection effects that distort training and evaluation data.
+      - Read a confidence interval as a statement about a procedure, not about one lucky interval.
+      - Connect both ideas to dataset construction and metric reporting in ML.
+    description: >-
+      Two practical ideas before models get fancy: biased samples produce biased learners, and
+      uncertainty intervals are about procedures — not magic error bars on a single number.
+    blocks:
+      - type: why
+        markdown: |
+          Every dataset is a sample. If the sample is skewed, the model inherits the skew. Every
+          reported accuracy is an estimate. If you treat the point estimate as exact, you ship
+          noise as confidence.
+
+          These pages teach the two failure modes you will meet first: selection bias, and
+          misreading uncertainty.
+
+  - slug: sampling-bias-and-selection
+    title: Sampling Bias and Selection Effects
+    kind: knowledge_unit
+    parent: statistics-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 34
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [statistics, sampling, bias, data]
+    objectives:
+      - Distinguish population, sampling frame, and observed sample in an ML dataset story.
+      - Name common selection effects (convenience, survivorship, temporal, feedback loops).
+      - Explain why a high in-sample metric can fail under a different selection process.
+      - Propose one check that would reveal a suspected sampling bias.
+    description: >-
+      Models learn the distribution they are shown. Sampling bias is how that distribution
+      quietly differs from the one you care about at deployment.
+    blocks:
+      - type: why
+        markdown: |
+          "We trained on all the data we have" is not a sampling plan — it is a confession that
+          the data arrived through some process you did not design. Users who click, patients who
+          reach the clinic, tickets that get labelled, logs that survive retention — each is a
+          filter.
+
+          Selection effects are why a model can look excellent on a held-out split cut from the
+          *same* biased stream and still fail in production. The split was random; the stream was
+          not.
+
+      - type: eli5
+        markdown: |
+          You want to know the average height of everyone in a city. You measure only people who
+          walk into a basketball gym.
+
+          Your average will be high. Measuring carefully inside the gym does not fix it — the
+          door was the bias.
+
+          ML datasets have doors too: who uploads, who gets labelled, who stays long enough to
+          generate events.
+
+      - type: beginner
+        markdown: |
+          Three nested sets:
+
+          - **Population** — the people, queries, or events you care about at deployment.
+          - **Sampling frame** — the subset you *could* have measured (logged users, one region,
+            one hospital system).
+          - **Sample** — the rows you actually have.
+
+          Bias enters when the frame or the sample systematically differs from the population on
+          features that matter for the prediction.
+
+          Common mechanisms:
+
+          | Effect | What happens | ML symptom |
+          |--------|--------------|------------|
+          | Convenience | Easy data only | Offline metric ≠ production |
+          | Survivorship | Failures never logged | Optimism on "completed" cases |
+          | Temporal | Train on past, deploy on shifted present | Silent drift |
+          | Label selection | Only disputed cases labelled | Label distribution ≠ traffic |
+          | Feedback | Model decisions shape next labels | Self-fulfilling metrics |
+
+          A **random train/test split** only randomises within the sample you already have. It
+          does not undo a biased frame.
+
+      - type: intermediate
+        markdown: |
+          **Selection on labels.** If humans only label hard or complained-about examples, your
+          training distribution over-represents edge cases. Accuracy on that set is not accuracy
+          on traffic.
+
+          **Selection on features.** Scraping only English Reddit, only desktop browsers, or only
+          users who accepted cookies changes the covariate distribution. Covariate shift is the
+          name when $P(x)$ changes but $P(y \mid x)$ might stay similar — still enough to break
+          calibration and thresholds.
+
+          **Feedback loops.** A ranking model that only trains on clicked items never sees what
+          users would have done with items never shown. The sample is entangled with the previous
+          policy.
+
+          **What to do, practically:**
+
+          1. Write the intended population in one sentence before collecting more data.
+          2. Compare feature and label histograms between training, validation, and a production
+             sample.
+          3. Track who is *missing* (null rates, coverage by segment), not only who is present.
+          4. Prefer evaluation sets drawn from the deployment process, even if smaller and noisier.
+
+          Formal survey sampling has weights and designs for this. ML teams rarely have a design —
+          so the cheap substitute is explicit documentation of how rows entered the table.
+
+      - type: example
+        markdown: |
+          A support-ticket classifier is trained on tickets that agents marked "resolved with
+          tag". Abandoned chats and untagged tickets never enter the table.
+
+          Offline F1 looks strong. In production, half of traffic is short abandoned chats with
+          different language. The model was never shown that mass — survivorship of *tagged
+          resolutions*.
+
+          A useful check: pull a random production day, including untagged and abandoned events,
+          and score the same metrics. The drop is the selection gap, not "the model forgot how to
+          classify".
+
+      - type: misconception
+        payload:
+          code: stats.random_split_fixes_bias
+          claim: "A random train/test split removes sampling bias."
+          markdown: |
+            **The claim:** if the split is random, evaluation is unbiased.
+
+            **Why it feels right:** randomisation is the right tool against *assignment* bias
+            inside an experiment. It feels like it should clean the data.
+
+            **What actually happens:** a random split of a biased sample yields two biased
+            subsets. They agree with each other and still disagree with the population. That is
+            why offline and online metrics diverge while cross-validation looks tidy.
+
+            **How to catch yourself:** ask "what process put a row in this table?" If the answer
+            is not "every unit in the population had a known chance", the split did not fix
+            selection.
+
+      - type: common_mistake
+        markdown: |
+          **Equating "big data" with "representative data".** Volume does not cancel a filter.
+
+          **Evaluating only on the labelled slice.** Labels are often the most selected part of
+          the pipeline.
+
+          **Ignoring time.** Shuffling across months can hide temporal shift that production will
+          hit tomorrow.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. For a resume-screening dataset, name the population, a plausible sampling frame,
+               and two selection filters that could bias hiring predictions.
+            2. Explain why 99% accuracy on randomly held-out medical notes from one hospital may
+               still fail at another hospital.
+            3. A recommender trains only on clicked items. What is missing from the sample, and
+               what failure does that cause?
+            4. Design a one-day production audit that would detect survivorship bias in a
+               "resolved tickets only" training set.
+            5. Write three datasheet-style questions about how examples entered your last dataset.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why doesn't a random split remove sampling bias?"
+              answer: >-
+                It only randomises within the sample you already have; both halves inherit the
+                same selection process relative to the population.
+            - question: "What is survivorship bias in a dataset?"
+              answer: >-
+                Only units that "made it" into the log or label store are observed, so failures
+                and dropouts are underrepresented.
+            - question: "Name one check for selection bias beyond looking at overall accuracy."
+              answer: >-
+                Compare feature/label distributions to production traffic, or evaluate on a sample
+                drawn from the deployment process including unlabelled or abandoned cases.
+            - question: "How can model feedback create selection bias?"
+              answer: >-
+                Decisions (what was shown, approved, or rejected) determine which outcomes are
+                observed next, so the training sample reflects the old policy.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - State population vs frame vs sample for a concrete ML dataset.
+            - Name the selection mechanism when offline and online metrics disagree.
+            - Explain why random splitting does not fix a biased frame.
+            - Propose a practical audit against production traffic.
+    resources:
+      - source: seeing-theory
+        purpose: VISUAL_INTUITION
+        relevance: 0.75
+        excerpt: >-
+          Interactive probability and sampling visualisations — useful intuition for how samples
+          can misrepresent a population.
+      - source: esl-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.7
+        excerpt: "Classical discussion of training data, generalisation, and the gap between in-sample fit and target populations."
+      - source: datasheets-2018
+        purpose: TOOL_REFERENCE
+        relevance: 0.65
+        excerpt: "Documentation questions that force you to write how data was collected and what is missing."
+
+  - slug: confidence-intervals-intuition
+    title: Confidence Intervals — The Useful Intuition
+    kind: knowledge_unit
+    parent: statistics-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 36
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [statistics, uncertainty, confidence-intervals]
+    objectives:
+      - State what a confidence interval claims about a procedure across repeated samples.
+      - Avoid the false reading that a single 95% CI contains the true value with probability 95%.
+      - Relate interval width to sample size and variability for a simple mean or rate.
+      - Use intervals to compare metrics without treating tiny differences as decisive.
+    description: >-
+      A confidence interval quantifies uncertainty in an estimate. The hard part is reading what
+      the percentage refers to — the method, not one realised interval.
+    blocks:
+      - type: why
+        markdown: |
+          Teams ship models on a single validation number: "0.912 accuracy". That digit looks
+          precise and is often noise. A confidence interval (or a bootstrap interval) is how you
+          stop arguing about the third decimal place.
+
+          Misreading the interval is almost as common as omitting it. This page fixes the reading
+          first, then the scaling with $n$.
+
+      - type: eli5
+        markdown: |
+          You weigh a mystery box on a shaky scale. One weighing says 10.2 kg. That might be luck.
+
+          A confidence interval is like saying: "If I used this weighing procedure many times,
+          most of the ranges I write down would cover the true weight." It is a statement about
+          the *procedure*, not a guarantee about today's single range.
+
+      - type: beginner
+        markdown: |
+          You estimate a parameter $\theta$ (a mean error rate, a precision, a click rate) from a
+          sample and report an interval $[L, U]$.
+
+          A **95% confidence interval** from a well-calibrated procedure means: if you repeated
+          the sampling and interval construction many times, about 95% of those intervals would
+          contain the true $\theta$.
+
+          It does **not** mean: "there is a 95% probability that $\theta$ lies in *this* interval"
+          in the Bayesian sense, once the data are fixed. After you see the numbers, $\theta$ is
+          fixed (unknown) and the interval either covers it or not.
+
+          Width shrinks when:
+
+          - sample size $n$ grows (roughly like $1/\sqrt{n}$ for many mean estimators),
+          - variability of the data falls,
+          - you accept a lower confidence level (e.g. 90% vs 99%).
+
+          For a sample mean with roughly normal sampling distribution and known-ish variance,
+
+          $$
+          \bar{x} \pm z \frac{s}{\sqrt{n}}
+          $$
+
+          is the familiar shape. Exact formulae differ for proportions and for small $n$; the
+          intuition about $n$ and $s$ remains.
+
+      - type: intermediate
+        markdown: |
+          **For ML metrics.** Accuracy on a finite validation set is a sample estimate. With $n$
+          i.i.d. examples and accuracy $\hat{p}$, a normal approximation interval for the true
+          accuracy $p$ is often sketched as
+
+          $$
+          \hat{p} \pm z \sqrt{\frac{\hat{p}(1-\hat{p})}{n}}
+          $$
+
+          (with the usual caveats near 0/1 and for dependent examples). The point is the scaling:
+          going from 100 to 10_000 examples shrinks the interval by about $10\times$, not by
+          magic model tweaks.
+
+          **Comparing two models.** If intervals heavily overlap, a 0.3-point accuracy gap is
+          usually not a decision. Prefer paired evaluation on the same examples, or bootstrap the
+          difference.
+
+          **Dependent data.** Time series, users with many rows, and retrieval candidates violate
+          i.i.d. assumptions. Then textbook intervals are optimistic — cluster or block bootstrap.
+
+          **Bayesian intervals** (credible intervals) answer a different question with different
+          assumptions. Do not mix the vocabularies casually in a report.
+
+      - type: example
+        markdown: |
+          Validation accuracy $\hat{p} = 0.90$ on $n = 100$ examples. Using $z \approx 1.96$,
+
+          $$
+          \sqrt{\frac{0.9 \times 0.1}{100}} = 0.03, \qquad
+          0.90 \pm 1.96 \times 0.03 \approx [0.841,\ 0.959]
+          $$
+
+          On $n = 10\,000$ with the same $\hat{p}$, the standard error is $0.003$, and the
+          interval is roughly $[0.894,\ 0.906]$.
+
+          Same headline accuracy; wildly different decisiveness. That is why "we beat the baseline
+          by 0.4%" on a tiny set is often theatre.
+
+      - type: misconception
+        payload:
+          code: stats.ci_is_probability_true_in_interval
+          claim: "A 95% CI means there is a 95% chance the true value is inside this interval."
+          markdown: |
+            **The claim:** after computing $[L, U]$, $P(\theta \in [L,U]) = 0.95$.
+
+            **Why it feels right:** the number 95% wants to be a probability about $\theta$, and
+            everyday language says "we're 95% confident".
+
+            **What actually happens:** in the classical construction, $\theta$ is fixed and the
+            interval is random before you see the data. The 95% refers to long-run coverage of the
+            *method*. This particular interval either covers or it does not.
+
+            **How to catch yourself:** rephrase reports as "a 95% procedure gave $[L,U]$" and
+            avoid "95% probability the parameter is here" unless you are explicitly doing Bayesian
+            inference with a stated prior.
+
+      - type: common_mistake
+        markdown: |
+          **Treating non-overlap of 95% CIs as the only test of difference.** Intervals can
+          overlap while a paired difference is still significant, and vice versa with sloppy
+          comparisons.
+
+          **Reporting CI on training accuracy.** In-sample fit is not the uncertainty you care
+          about for generalisation.
+
+          **Ignoring dependence.** User-level correlation makes $n$ look larger than the
+          effective sample size.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Rephrase a teammate's claim "we're 95% sure the true accuracy is in [0.88, 0.92]"
+               into a procedurally correct sentence.
+            2. If a standard error shrinks like $1/\sqrt{n}$, by about what factor does interval
+               width shrink when $n$ grows $16\times$?
+            3. Accuracy 0.80 on $n=25$ vs 0.80 on $n=2500$ — which supports a stronger product
+               claim, and why?
+            4. Two models differ by 0.2% on 500 examples with overlapping intervals. What would
+               you request next before picking a winner?
+            5. Why might a CI for click-through rate be misleading if each user contributes many
+               rows treated as independent?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does the 95% in a 95% confidence interval refer to?"
+              answer: >-
+                The long-run fraction of intervals from the procedure that would cover the true
+                parameter under repeated sampling — not a posterior probability for one interval.
+            - question: "How does interval width typically scale with sample size for a mean?"
+              answer: "Roughly like 1 over square root of n, other things equal."
+            - question: "Why can a large CI around a good-looking metric stop a ship decision?"
+              answer: >-
+                The estimate is too uncertain; apparent gains may be noise, so you need more data
+                or a better evaluation design.
+            - question: "Name one reason textbook CIs can be too narrow on ML logs."
+              answer: >-
+                Dependence across rows (users, time, near-duplicates) inflates the effective
+                sample size if you treat rows as i.i.d.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Correct the "95% chance theta is in this interval" reading without hedging.
+            - Predict how width moves with $n$ and variance at an order-of-magnitude level.
+            - Refuse to treat tiny metric gaps on small $n$ as decisive.
+            - Flag dependence that invalidates a naive interval.
+    resources:
+      - source: seeing-theory
+        purpose: VISUAL_INTUITION
+        relevance: 0.9
+        excerpt: "Confidence interval visualisations that show coverage across repeated samples."
+      - source: mml-book
+        purpose: MATHEMATICAL_BACKGROUND
+        relevance: 0.6
+        excerpt: "Probability and estimation background for reading sampling distributions."
+      - source: esl-book
+        purpose: DEEPER_REFERENCE
+        relevance: 0.55
+        excerpt: "Statistical learning perspective on estimation error and model assessment."

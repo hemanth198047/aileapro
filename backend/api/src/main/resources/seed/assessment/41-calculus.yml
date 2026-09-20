@@ -1,0 +1,244 @@
+# Items for the calculus-for-ml chapter.
+
+items:
+  - slug: calc-derivative-from-quotient
+    unit: derivatives-as-rates
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 90
+    stem: |
+      For $f(x) = x^2$, what is $f'(4)$?
+    answer: 8
+    tolerance: 0.001
+    explanation: |
+      $f'(x) = 2x$, so $f'(4) = 8$.
+
+      Read it as a rate rather than a formula: at $x = 4$ the output climbs eight units for every
+      unit the input climbs. That is what tells gradient descent to move $x$ down if it wants $f$
+      smaller.
+
+  - slug: calc-gradient-direction
+    unit: derivatives-as-rates
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: "In which direction does the gradient of a loss function point?"
+    choices:
+      - id: a
+        text: "The direction of steepest increase of the loss."
+        correct: true
+      - id: b
+        text: "The direction of steepest decrease of the loss."
+        misconception: calc.gradient_points_downhill
+      - id: c
+        text: "Straight toward the nearest minimum."
+        misconception: calc.gradient_points_downhill
+      - id: d
+        text: "Perpendicular to the direction of fastest change."
+    explanation: |
+      Uphill. That is the entire reason the update rule subtracts it:
+      $w \leftarrow w - \eta \, \partial L / \partial w$.
+
+      Option (c) is the subtler error. Even $-\nabla f$ does not point at the minimum — it points
+      at the steepest *local* descent, which in a long narrow valley is mostly across the valley
+      rather than along it. That is why plain gradient descent zigzags and why momentum exists.
+
+  - slug: calc-step-overshoot
+    unit: derivatives-as-rates
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      Starting at $x = 3$ on $f(x) = x^2$, take one gradient descent step with $\eta = 0.1$.
+      What is the new value of $x$?
+    answer: 2.4
+    tolerance: 0.001
+    explanation: |
+      $f'(3) = 6$, so $x \leftarrow 3 - 0.1 \times 6 = 2.4$, and $f(2.4) = 5.76 < 9$.
+
+      Try the same step with $\eta = 1.0$: $x$ lands on $-3$, where $f = 9$ again — no progress.
+      The step left the neighbourhood where the linear approximation was accurate, which is what
+      "the learning rate is too high" means mechanically.
+
+  - slug: calc-zero-gradient
+    unit: derivatives-as-rates
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 110
+    stem: |
+      A particular weight has a gradient of exactly zero on every training example.
+      What follows?
+    choices:
+      - id: a
+        text: "It receives no update, so it stays at whatever value it was initialised to."
+        correct: true
+      - id: b
+        text: "It has converged to its optimal value."
+      - id: c
+        text: "The learning rate is too small for it."
+      - id: d
+        text: "The loss must also be zero."
+    explanation: |
+      No gradient means no update, forever. The weight is frozen at its initial random value.
+
+      (b) is the tempting reading and it is wrong: a zero gradient means the loss is locally flat
+      in that direction, which can equally be a saturated sigmoid, a dead ReLU, or a feature that
+      is always zero. None of those are convergence. This is the mechanism behind both saturation
+      and dead units, and it is why activation choice is a trainability question.
+
+  - slug: calc-chain-rule-apply
+    unit: chain-rule-for-gradients
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      Let $u = 2x$ and $L = u^2$. Using the chain rule, what is $\partial L / \partial x$ at
+      $x = 3$?
+    answer: 24
+    tolerance: 0.001
+    explanation: |
+      $\partial L / \partial u = 2u = 12$ and $\partial u / \partial x = 2$, so the product is 24.
+
+      Check it by substitution: $L = 4x^2$, so $dL/dx = 8x = 24$ at $x = 3$. Two routes, one
+      answer — which is the point of the unit. There is no second algorithm in backpropagation.
+
+  - slug: calc-backprop-is-chain-rule
+    unit: chain-rule-for-gradients
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What does backpropagation contribute beyond the chain rule itself?"
+    choices:
+      - id: a
+        text: "An evaluation order and caching, so the gradient costs about what the forward pass costs."
+        correct: true
+      - id: b
+        text: "A different rule of differentiation designed for networks."
+        misconception: calc.backprop_is_new_math
+      - id: c
+        text: "A guarantee that gradient descent reaches a global minimum."
+      - id: d
+        text: "A way to differentiate functions that are not differentiable."
+    explanation: |
+      Nothing mathematical. Backpropagation evaluates the chain rule from the output backwards,
+      reusing each node's cached local derivative instead of recomputing it for every path. The
+      contribution is computational: the backward pass stays proportional to the forward pass
+      rather than growing with the number of parameters.
+
+      Believing (b) is expensive, because vanishing gradients, activation choice, and training
+      memory all follow immediately from "it is a product of cached local derivatives" and are
+      inexplicable without it.
+
+  - slug: calc-vanishing-product
+    unit: chain-rule-for-gradients
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      In a 20-layer network, each layer contributes a local derivative of about 0.5. Roughly what
+      factor does the gradient reaching layer 1 carry?
+    choices:
+      - id: a
+        text: "About $10^{-6}$ — the early layers barely learn."
+        correct: true
+      - id: b
+        text: "About 10 — the gradient grows with depth."
+      - id: c
+        text: "About 0.5 — each layer's factor replaces the last."
+      - id: d
+        text: "Exactly 1 — the factors cancel."
+    explanation: |
+      $0.5^{20} \approx 9.5 \times 10^{-7}$. The factors multiply, so depth is exponential in its
+      effect, not additive.
+
+      This is the vanishing gradient problem stated as arithmetic. A sigmoid's derivative maxes at
+      0.25, so the *best case* for a sigmoid layer is worse than this example — which is precisely
+      why deep sigmoid stacks were untrainable and why ReLU mattered.
+
+  - slug: calc-training-memory
+    unit: chain-rule-for-gradients
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 80
+    stem: |
+      Training needs more memory than inference because the backward pass requires the
+      intermediate activations computed during the forward pass.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. A node's local derivative is usually a function of its forward value — for $v = u^2$
+      it is $2u$, which needs $u$. So the forward pass must keep its intermediates rather than
+      discarding them.
+
+      This is why a batch size that fits comfortably for inference can run out of memory during
+      training, and why activation checkpointing (recomputing instead of storing) is a real
+      trade-off rather than a micro-optimisation.
+
+assessments:
+  - slug: derivatives-as-rates-practice
+    title: "Practice: derivatives as rates"
+    kind: practice
+    unit: derivatives-as-rates
+    items:
+      - calc-derivative-from-quotient
+      - calc-gradient-direction
+      - calc-step-overshoot
+
+  - slug: derivatives-as-rates-quiz
+    title: "Quiz: derivatives as rates"
+    kind: quiz
+    unit: derivatives-as-rates
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - calc-gradient-direction
+      - calc-step-overshoot
+      - calc-zero-gradient
+
+  - slug: chain-rule-for-gradients-practice
+    title: "Practice: the chain rule"
+    kind: practice
+    unit: chain-rule-for-gradients
+    items:
+      - calc-chain-rule-apply
+      - calc-backprop-is-chain-rule
+      - calc-training-memory
+
+  - slug: chain-rule-for-gradients-quiz
+    title: "Quiz: the chain rule and backpropagation"
+    kind: quiz
+    unit: chain-rule-for-gradients
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - calc-chain-rule-apply
+      - calc-backprop-is-chain-rule
+      - calc-vanishing-product
+      - calc-training-memory
+
+cards:
+  - slug: card-calc-update-sign
+    unit: derivatives-as-rates
+    front: "Which way does the gradient point, and what follows?"
+    back: |
+      Uphill — the direction of steepest increase. So the update subtracts it:
+      $w \leftarrow w - \eta \, \partial L / \partial w$.
+
+  - slug: card-calc-chain-rule
+    unit: chain-rule-for-gradients
+    front: "State the chain rule as a sentence about rates."
+    back: |
+      $dy/dx = (dy/du)(du/dx)$. The rate of $y$ per unit of $x$ is the product of the rates along
+      the chain — which is why depth multiplies gradients rather than adding them.

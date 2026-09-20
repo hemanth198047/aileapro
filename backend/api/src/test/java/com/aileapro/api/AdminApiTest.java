@@ -76,7 +76,7 @@ class AdminApiTest {
 
         mockMvc.perform(get("/v1/admin/units").session(admin))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.slug == 'scaled-dot-product-attention')].status")
+                .andExpect(jsonPath("$[?(@.slug == 'mixture-of-experts-draft')].status")
                         .value(org.hamcrest.Matchers.hasItem("draft")));
 
         mockMvc.perform(post("/v1/admin/units")

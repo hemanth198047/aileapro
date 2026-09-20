@@ -1,0 +1,644 @@
+# Wave 3, part 1: shipping models and running LLMs.
+#
+# HIGH/MEDIUM volatility by design: tool names change; the failure modes (skew, cost,
+# non-deterministic observability) do not. Pages name practices, not vendor lock-in.
+
+units:
+  - slug: shipping-models
+    title: Shipping Models
+    kind: chapter
+    parent: mlops
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    tags: [mlops, deployment, production]
+    objectives:
+      - State what must be identical between training and serving for a prediction to mean what you measured.
+      - "Name the artefacts a release must version: data, code, model, and the transforms between them."
+    description: >-
+      Getting a trained model into production without silently changing what it computes. One
+      knowledge unit on the skew problem that ends most "it worked in the notebook" stories.
+    blocks:
+      - type: why
+        markdown: |
+          A notebook accuracy number is a claim about a specific pipeline: specific data, specific
+          transforms, a specific model binary. Deploying changes any of those without noticing is
+          how teams ship a different system than the one they evaluated.
+
+          This chapter is about making that pipeline an explicit, versioned object rather than a
+          habit of the person who trained it.
+
+  - slug: training-serving-skew
+    title: Training–Serving Skew
+    kind: knowledge_unit
+    parent: shipping-models
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 38
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [mlops, skew, features, deployment]
+    objectives:
+      - Define training–serving skew and give three concrete ways it appears.
+      - Explain why duplicating feature logic in two languages is a reliability bug, not a style issue.
+      - Design a release checklist that catches skew before users do.
+      - Use run and model versioning so a production prediction is attributable to a training run.
+    description: >-
+      The silent failure where production features, defaults, or preprocessing differ from the
+      training pipeline — so the model you serve is not the model you measured.
+    blocks:
+      - type: why
+        markdown: |
+          Offline evaluation answers: "given these features, how often is the prediction right?"
+          Production asks a different question: "given this live request, which features does the
+          model actually see?"
+
+          When those two pipelines diverge, every metric from the notebook becomes fiction. The
+          model weights can be identical and the system still wrong, because the *inputs* changed.
+          Skew is the most common reason a careful offline win becomes a quiet online loss.
+
+      - type: eli5
+        markdown: |
+          You practise for a spelling test using a list your teacher printed. On the real day,
+          someone swaps half the words and changes the font so you misread two more.
+
+          You studied hard. Your practice score was excellent. The test you sat was not the test
+          you practised — so the practice score does not describe what happened.
+
+          Training–serving skew is that swap, applied to the numbers a model reads.
+
+      - type: beginner
+        markdown: |
+          **Training–serving skew** means the feature values (or their meaning) at prediction time
+          differ from those used when the model was trained and evaluated.
+
+          Common forms:
+
+          1. **Duplicated transforms.** Training fills missing age with the *training* median in
+             Python. Serving fills with `0` in a Java service because "nulls are annoying." Same
+             column name, different number, different prediction.
+          2. **Clock and join timing.** Training joins user features as-of label time. Serving joins
+             "latest" and accidentally includes post-event data — or the opposite: training used a
+             nightly snapshot and serving uses a stale cache.
+          3. **Categorical vocabulary drift.** Training one-hots categories seen in the training
+             window. Serving meets a new category and maps it to an all-zero vector the model never
+             saw as a real class.
+          4. **Default and type coercion.** `"true"` vs `true`, cents vs dollars, timezone-naive
+             timestamps parsed as UTC in one place and local in another.
+
+          **The rule that prevents most of it:** compute features once, in one shared library or
+          service, and call that from both training and serving. Two implementations of "the same"
+          logic will diverge; treat that as a bug waiting for a calendar date, not as optional
+          cleanup.
+
+          **Version everything that defines a prediction.** At minimum: training data snapshot or
+          query, transform code hash, model artefact, and the serving config that selects them. If
+          you cannot answer "which run produced the model that scored this request?", you cannot
+          debug skew when it appears.
+
+      - type: intermediate
+        markdown: |
+          **Why offline metrics lie under skew.** Holdout accuracy assumes the feature distribution
+          at evaluation matches production. Skew breaks that assumption without touching the model
+          file. You can watch validation loss look healthy while live error climbs — classic symptom
+          when a new serving path was "simplified."
+
+          **Detection patterns that work:**
+
+          - **Log raw request fields and the feature vector actually fed to the model.** Diff them
+            against a replay of the training transform on the same raw fields. Mismatches are skew.
+          - **Shadow / replay.** Recompute predictions for a sample of production traffic with the
+            training pipeline. Systematic disagreement is a pipeline bug, not model noise.
+          - **Feature distribution monitors.** Track per-feature means, null rates, and category
+            frequencies online vs the training window. Sudden gaps often mean a join or default
+            changed.
+
+          **Experiment tracking is not bureaucracy here.** A training run that records parameters,
+          metrics, and the model artefact — and a registry that promotes a specific version to
+          "production" — is how you make skew debuggable. Without that chain, "it worked last week"
+          is not an investigation; it is folklore.
+
+          **Batch vs online feature stores.** A common architecture: offline store for training
+          (point-in-time correct joins), online store for low-latency serving, with the *same*
+          transform definitions materialising both. The hard part is point-in-time correctness —
+          preventing future information from leaking into training labels — not the database brand.
+
+          **What not to do:** copy a notebook cell into the API "for now." Temporary feature logic
+          becomes permanent skew. If serving cannot import the training transform, the transform is
+          not ready to ship.
+
+      - type: example
+        markdown: |
+          Fraud model. Training fills missing `amount` with the training median $42. Serving, in a
+          rush, treats missing as `$0`.
+
+          A legitimate $0-auth edge case is rare in training; many incomplete events in production
+          become `$0`. The model was trained to treat very low amounts as slightly suspicious in
+          one context and now sees a flood of artificial zeros. Precision collapses; the dashboard
+          still shows the offline F1 from last Tuesday.
+
+          **Fix path:**
+
+          1. Extract `fill_amount(raw) -> float` into a shared module used by the training job and
+             the scoring service.
+          2. Log `raw.amount`, `features.amount`, `model_version` on every score.
+          3. Replay 1,000 production events through the training transform; assert feature equality
+             within floating-point tolerance before promoting a release.
+          4. Register the model with the run id that produced it, and pin serving to that version
+             explicitly — not "whatever file is in `/models/latest`".
+
+          That checklist is boring on purpose. Skew is defeated by boring identity of pipelines.
+
+      - type: misconception
+        payload:
+          code: mlops.same_weights_same_system
+          claim: "If we deploy the same model file, production matches the notebook."
+          markdown: |
+            **The claim:** the `.pkl` / checkpoint is the system; matching checksums means the
+            evaluated behaviour is what users get.
+
+            **Why it feels right:** the model artefact is the dramatic object. Features feel like
+            plumbing.
+
+            **What actually happens:** the prediction is `f(transform(raw))`. Changing `transform`
+            changes the system even when `f` is byte-identical. Defaults, joins, encodings, and
+            clocks are part of the model in every sense that matters to the user.
+
+            **How to catch yourself:** ask which code path builds the feature vector in training
+            versus in the API. If the answer is two repositories or two languages without a shared
+            library and a replay test, you do not have one system — you have two that temporarily
+            agree.
+
+      - type: common_mistake
+        markdown: |
+          **Filling nulls differently "just for serving."** Serving defaults become a second model.
+
+          **Training on leaked future joins, serving on honest ones** — or the reverse. Point-in-time
+          correctness is part of skew, not a separate topic.
+
+          **Promoting `/models/latest` without a version pin.** You cannot roll back what you cannot
+          name.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. List five fields in a request you know. For each, invent one realistic training vs
+               serving mismatch and the symptom a monitor would see.
+            2. Sketch a shared-transform design: where the code lives, who calls it in training, who
+               calls it in serving, and what a CI replay test asserts.
+            3. Write the log schema for one prediction (raw, features, model version, run id). Say
+               which field you need first when skew is suspected.
+            4. A category appears in production that never appeared in training. Describe two safe
+               policies and what each does to the feature vector.
+            5. Explain why "we use the same SQL" can still skew if training and serving run the query
+               at different times relative to the label.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is training–serving skew?"
+              answer: >-
+                A difference between the features (or their meaning) at train/eval time and at
+                prediction time, so offline metrics no longer describe the live system.
+            - question: "Why is duplicating feature logic in two languages a reliability bug?"
+              answer: >-
+                Two implementations drift — defaults, types, and edge cases diverge — silently
+                changing inputs while the model weights stay the same.
+            - question: "What should you version for a production prediction to be attributable?"
+              answer: >-
+                Data snapshot or query, transform code, model artefact, and the serving config that
+                selects them — linked by a run or registry version.
+            - question: "How do you catch skew before a full incident?"
+              answer: >-
+                Replay production raw events through the training transform and compare feature
+                vectors; monitor feature distributions against the training window.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Define skew without mentioning a specific framework.
+            - Refuse a release that has two independent feature implementations and no replay test.
+            - Trace a live prediction back to a training run and transform version.
+            - Name monitors that catch skew before accuracy dashboards do.
+    resources:
+      - source: mlflow-docs
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.85
+        excerpt: "Run tracking, artefacts, and model registry concepts used to pin and attribute production models."
+
+  - slug: running-llms
+    title: Running LLMs
+    kind: chapter
+    parent: llmops
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 75
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    tags: [llmops, operations, llm]
+    objectives:
+      - Trade off cost, latency, and quality with numbers rather than slogans.
+      - Instrument an LLM feature so regressions and spend are visible in production.
+    description: >-
+      Operating language-model features as products: budgets, latency, quality, and observability
+      over non-deterministic output. Two units — the trade-off surface, then what to measure.
+    blocks:
+      - type: why
+        markdown: |
+          An LLM call is not a free function. Every request spends money and time, returns a
+          distribution rather than a constant, and can fail fluently. Running LLMs well means treating
+          those properties as first-class product constraints — not as something the model provider
+          will sort out.
+
+  - slug: cost-latency-quality-tradeoffs
+    title: Cost, Latency, and Quality Trade-offs
+    kind: knowledge_unit
+    parent: running-llms
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 36
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [llmops, cost, latency, quality]
+    objectives:
+      - Express unit economics of an LLM feature in tokens, dollars, and p95 latency.
+      - Choose model size, context, caching, and routing against an explicit budget.
+      - Explain why "just use the biggest model" fails as a product strategy.
+      - Design a fallback path when the expensive path is too slow or too costly.
+    description: >-
+      The three-way trade-off every LLM feature sits on: how good the answer is, how long it takes,
+      and how much each call costs — and the levers that move each axis.
+    blocks:
+      - type: why
+        markdown: |
+          Offline demos optimise for quality alone. Production has a latency SLO and a margin.
+          Teams that discover cost after launch either silently downgrade the model, truncate
+          context until quality dies, or burn the budget on a feature nobody priced.
+
+          The trade-off is not optional. Naming it early is how you choose architecture — RAG vs
+          fine-tune vs a smaller model — before the invoice arrives.
+
+      - type: eli5
+        markdown: |
+          You can hire a brilliant consultant who answers slowly and bills by the hour, a junior who
+          answers fast and cheaply, or a mid-level person with a good briefing folder so they do not
+          need to re-read the whole company wiki every time.
+
+          "Always hire the genius" sounds wise until you ask them every trivial question. LLM
+          features have the same budget: brains, speed, and money — pick two unless you redesign the
+          job.
+
+      - type: beginner
+        markdown: |
+          Rough cost model for a chat-style call:
+
+          $$
+          \text{cost} \approx (n_{\text{in}} \cdot p_{\text{in}}) + (n_{\text{out}} \cdot p_{\text{out}})
+          $$
+
+          where $n$ is tokens and $p$ is price per token. Latency grows with output tokens and with
+          how large a context the model must attend over; exact curves depend on the provider, but
+          the qualitative shape is stable: **more context and more generation → more time and money**.
+
+          Levers, from cheapest to most invasive:
+
+          | Lever | Helps | Costs you |
+          |-------|-------|-----------|
+          | Smaller / cheaper model | Cost, often latency | Peak quality |
+          | Shorter prompts and fewer shots | Cost, latency | Sometimes quality |
+          | Prompt + response caching | Cost, latency on repeats | Stale answers if data moves |
+          | Retrieval instead of stuffing the corpus | Cost, focus | Retrieval failures |
+          | Streaming | Perceived latency | Not true compute time |
+          | Speculative or cascade routing | Cost at volume | Complexity, eval burden |
+
+          **Budgets belong in the product spec.** Example: "p95 < 2.5s, <$0.02 per successful
+          answer, faithfulness ≥ threshold on the eval set." Without numbers, every review becomes a
+          taste argument.
+
+      - type: intermediate
+        markdown: |
+          **Quality is multi-dimensional.** Latency and cost are scalars; "quality" is not. Split it:
+          task success, factual groundedness, tone, safety refusals, format validity. A cheaper model
+          may win on format and lose on groundedness — that is a measurable trade, not a vibe.
+
+          **Cascade / router patterns.** Try a small model (or a classifier) first; escalate to a
+          large model only when confidence is low or the query matches a hard pattern. The win is
+          average cost; the risk is mis-routing. You need an eval that scores the *system*, not each
+          model in isolation.
+
+          **Context is usually the silent killer.** Dumping a 40k-token transcript into every call
+          because "the model should see everything" multiplies cost and often *hurts* quality when
+          the relevant span sits in the middle. Prefer retrieval, summaries you control, and hard
+          caps with overflow policies.
+
+          **Fine-tuning vs prompting vs RAG for cost.** Fine-tuning can shrink prompt size and allow
+          a smaller base model for a narrow style or format — but it does not update world knowledge.
+          RAG moves knowledge into retrieved chunks you pay for as input tokens. Prompt-only is
+          cheapest to ship and often most expensive per call at scale. Choose with the decision tree
+          in the system-design unit; here, just price each option on your traffic shape.
+
+          **Hard caps in code.** Max input tokens, max output tokens, per-user daily spend, and a
+          kill switch. Soft warnings in a dashboard do not stop a looped agent from draining the
+          key.
+
+      - type: example
+        markdown: |
+          Support draft feature: 200k calls/day.
+
+          - Prompt + retrieved snippets ≈ 2,000 input tokens, draft ≈ 400 output tokens.
+          - Large model: ~$0.01/call → **$2,000/day**.
+          - Small model: ~$0.0015/call → **$300/day**, but faithfulness on the eval set drops from
+            0.91 to 0.78.
+
+          **Design chosen:**
+
+          1. Cache identical (tenant, locale, policy_version, retrieved_ids) → draft for 15 minutes
+             (35% hit rate in pilot).
+          2. Small model by default; escalate to large when retrieval score is weak or the user is in
+             a regulated category.
+          3. Cap output at 500 tokens; refuse to call if retrieved context exceeds 3,000 tokens —
+             fix chunking instead.
+
+          Blended cost lands near $550/day with faithfulness 0.89 on the same suite. The "always
+          large" design was not higher quality enough to justify 4× spend — the cascade closed most
+          of the gap where it mattered.
+
+      - type: misconception
+        payload:
+          code: llmops.biggest_model_always
+          claim: "Production quality means always calling the largest available model."
+          markdown: |
+            **The claim:** any smaller model or cascade is a compromise that users will notice, so
+            the safe product choice is maximum capability on every request.
+
+            **Why it feels right:** demos use the frontier model; leaderboards rank single models,
+            not systems; downgrading feels like admitting defeat.
+
+            **What actually happens:** many tasks are format-constrained, retrieval-bound, or
+            template-like. A smaller model with better context engineering often matches the large
+            model on the metrics that matter, at a fraction of the cost and latency. The large model
+            remains as an escalate path for the hard tail.
+
+            Believing otherwise freezes the architecture: you never invest in retrieval, caching, or
+            eval gates that would make a cheaper path safe.
+
+            **How to catch yourself:** price one week of production traffic at the large-model rate.
+            If that number scares you, you already know the claim is a product strategy, not a law of
+            nature — then build the eval that lets you downshift safely.
+
+      - type: common_mistake
+        markdown: |
+          **Optimising average latency while the SLO is p95.** Streaming helps perception; it does
+          not fix a 12-second slow path.
+
+          **Unlimited max_tokens "so the model can think."** You are buying the long tail of cost
+          and latency on every call.
+
+          **Counting only output tokens.** Input context usually dominates chat and RAG bills.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Given $p_{\text{in}}$, $p_{\text{out}}$, and expected $n_{\text{in}}$, $n_{\text{out}}$,
+               compute cost per 1k calls. Halve context; recompute.
+            2. Write a one-page budget: p95 latency, $ per successful task, and two quality metrics
+               with thresholds.
+            3. Design a two-tier cascade: routing rule, escalate condition, and what you log.
+            4. List what you would cache for a docs Q&A feature and when a cache entry must invalidate.
+            5. Explain when fine-tuning might reduce cost versus when it cannot.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What three axes define the LLMOps trade-off surface?"
+              answer: >-
+                Cost (usually tokens × price), latency (especially p95), and multi-dimensional
+                quality (task success, groundedness, safety, format).
+            - question: "Why can stuffing a huge context hurt both cost and quality?"
+              answer: >-
+                You pay for every input token, latency rises, and relevant evidence can be attended
+                to less reliably when buried in the middle of a long prompt.
+            - question: "What is a model cascade?"
+              answer: >-
+                A system that tries a cheaper/faster path first and escalates to a stronger model
+                  only when a rule or score says the hard path is needed.
+            - question: "Where should spend limits live?"
+              answer: >-
+                In code and policy enforcement — max tokens, per-user budgets, kill switches — not
+                only in dashboards.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Price a feature from traffic shape and token estimates before building it.
+            - Propose a cascade or cache with a clear quality risk and an eval to watch it.
+            - Refuse "always frontier model" without a measured gap on your suite.
+            - Put hard caps in the serving path, not only alerts after the bill.
+    resources:
+      - source: instructgpt-2022
+        purpose: DEEPER_REFERENCE
+        relevance: 0.55
+        excerpt: "Preference-tuned assistants change the quality axis; cost still scales with tokens and model size at inference."
+      - source: rag-2020
+        purpose: RELATED_READING
+        relevance: 0.5
+        excerpt: "Retrieval as an alternative to packing parametric knowledge into every call — a cost and freshness lever."
+
+  - slug: observability-for-llm-apps
+    title: Observability for LLM Apps
+    kind: knowledge_unit
+    parent: running-llms
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 38
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [llmops, observability, evaluation, tracing]
+    objectives:
+      - List the fields a production LLM trace must record to debug quality and cost.
+      - Separate online metrics, sampled human review, and offline regression suites.
+      - Detect silent quality regressions when accuracy-style metrics do not apply.
+      - Design alerts that fire on spend, latency, and eval-score drift — not only on HTTP 500s.
+    description: >-
+      Seeing inside non-deterministic LLM features: traces, token and cost accounting, eval scores
+      in production samples, and alerts that notice fluent failure.
+    blocks:
+      - type: why
+        markdown: |
+          Classical services fail loudly: 500s, timeouts, empty bodies. LLM features fail politely:
+          a confident wrong answer with HTTP 200. If you only monitor uptime, you will learn about
+          quality from Twitter.
+
+          Observability here means reconstructing *what the model saw and said*, what it cost, and
+          whether sampled outputs still pass the bars you set before launch.
+
+      - type: eli5
+        markdown: |
+          A vending machine that sometimes gives the wrong snack but always takes the money will
+          never light its "out of order" bulb. You only notice if you watch what people received,
+          how long they waited, and how often they ask for a refund.
+
+          LLM apps are that machine. Logs of "request succeeded" are not enough — you need a record
+          of the snack.
+
+      - type: beginner
+        markdown: |
+          **Minimum trace for one LLM call** (extend for tool loops):
+
+          - Request id, user/tenant id (or a privacy-preserving stand-in)
+          - Prompt template id + version, model id + version, temperature and other decode params
+          - Retrieved chunk ids / tool calls if any (not necessarily full PII-bearing text in the
+            hot path — store references + redacted previews)
+          - Input/output token counts, estimated cost, latency to first token and to completion
+          - Safety filter outcomes, finish reason, schema-validation pass/fail
+          - Optional: offline eval scores attached later on a sample
+
+          **Three complementary views:**
+
+          1. **Operational:** error rate, p95 latency, tokens and $, cache hit rate.
+          2. **Quality sample:** daily draw of N traces scored by rubric, model-as-judge with known
+             bias, or humans on high-risk traffic.
+          3. **Regression suite:** fixed prompts run on every prompt/model change (see eval unit).
+
+          Uptime without (2) and (3) is theatre.
+
+      - type: intermediate
+        markdown: |
+          **Fluent failure modes to instrument for:**
+
+          - Sudden drop in citation rate or retrieval hit rate while the model still answers
+          - Rise in "I don't know" *or* in unsupported claims (both can be regressions)
+          - Schema break rate for structured outputs
+          - Tool-loop step count and repeat-call rate (agents)
+          - Cost per successful task, not only cost per HTTP call
+
+          **Privacy and retention.** Traces often contain user content. Default to redaction,
+          field-level encryption, short retention for raw prompts, and role-gated access. "Log
+          everything forever" is how you create a second production incident.
+
+          **Online eval is sampling, not proof.** A 1% sample with a noisy judge can miss a rare
+          catastrophic failure mode. Pair it with adversarial suites and targeted sampling on
+          high-risk intents (refunds, medical, legal, credentials).
+
+          **Prompt and model versioning in the trace** is what makes canaries possible. Ship vNext
+          to 5% of traffic, compare eval and cost distributions, roll back by version pin — the same
+          muscle as classical ML serving, applied to text.
+
+          **Dashboards that matter on day one:** $/day by feature, p95 latency, eval score on the
+          canary slice, and a queue of traces that failed schema or safety checks. Everything else
+          can wait.
+
+      - type: example
+        markdown: |
+          Docs assistant. After a prompt tweak, HTTP success stays 99.7%. Within 48 hours:
+
+          - Median tokens/call rises 40% (prompt grew; nobody capped it)
+          - Faithfulness score on the 200-trace daily sample falls 0.91 → 0.79
+          - Support tickets: "answers sound right but cite the wrong policy"
+
+          Because traces store `prompt_version`, `retrieval_ids`, and the model reply, the team diffs
+          v12 vs v11, finds an instruction that encouraged answering without quotes, reverts the
+          pin, and adds a canary gate: no full rollout if sampled faithfulness drops >0.05.
+
+          Without versioned traces, the same incident is "the model got worse" — unactionable.
+
+      - type: misconception
+        payload:
+          code: llmops.uptime_equals_healthy
+          claim: "If the LLM endpoint returns 200 and p99 is fine, the feature is healthy."
+          markdown: |
+            **The claim:** classical SRE signals are sufficient because a bad answer is still a
+            successful RPC.
+
+            **Why it feels right:** those signals are what existing runbooks know how to page on.
+
+            **What actually happens:** quality and cost regressions present as normal responses.
+            Users absorb the damage until churn or screenshots arrive. Latency can even improve if a
+            bug truncates context.
+
+            **How to catch yourself:** ask what alert would fire if every answer became confidently
+            wrong while staying under 800ms. If the answer is "none," you are monitoring the socket,
+            not the product.
+
+      - type: common_mistake
+        markdown: |
+          **Logging only the final assistant message** in an agent or RAG stack. You need retrieval
+          and tool rows to debug.
+
+          **Paging on token count without a baseline per prompt version.** Traffic mix shifts will
+          false-alarm you.
+
+          **Shipping prompt edits with no canary and no suite.** You are flying blind on purpose.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write a JSON schema for one RAG call's trace. Mark which fields are PII-sensitive.
+            2. Propose three alerts with thresholds for a billing-assistant feature.
+            3. Design a 5% canary: what you compare, how long you wait, what forces rollback.
+            4. List four fluent failure modes and the metric that would move for each.
+            5. Explain how you would sample traces for human review without reading everyone's data.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why can HTTP 200 hide an LLM outage?"
+              answer: >-
+                Wrong or unsafe answers still return success; quality must be sampled and scored,
+                not inferred from uptime.
+            - question: "What belongs in a minimum LLM trace?"
+              answer: >-
+                Versions (prompt, model), token/cost/latency, retrieval or tool references, safety
+                and schema outcomes, and ids needed to join to user impact.
+            - question: "What are the three complementary quality views?"
+              answer: >-
+                Operational metrics, sampled online quality review, and a fixed offline regression
+                suite on every change.
+            - question: "Why version prompts in production traces?"
+              answer: >-
+                  So canaries and rollbacks attribute behaviour to a specific prompt/model pair
+                  instead of an unidentifiable "the assistant."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Specify a trace schema that makes a quality incident debuggable in one sitting.
+            - Name alerts that catch fluent failure, not only transport failure.
+            - Separate canary, sample review, and golden suites by what each can prove.
+            - Apply retention and redaction appropriate to prompt content.
+    resources:
+      - source: openai-evals
+        purpose: RELATED_READING
+        relevance: 0.65
+        excerpt: "Eval harness thinking carries into production sampling: fixed cases, scored outputs, compare versions."
+      - source: nist-ai-rmf
+        purpose: DEEPER_REFERENCE
+        relevance: 0.55
+        excerpt: "Risk management framing for measuring and monitoring AI system behaviour in operation."

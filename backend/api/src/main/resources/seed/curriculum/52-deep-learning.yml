@@ -1,0 +1,706 @@
+# Wave 2, part 5: from one neuron to a network that trains.
+#
+# Follows 50-neural-networks.yml, which taught a single neuron and one gradient step. These three
+# pages stack neurons into a layer, explain what the nonlinearity is actually for, and then
+# account for the failure that stopped deep networks working for two decades.
+
+units:
+  - slug: multilayer-perceptron
+    title: The Multilayer Perceptron
+    kind: knowledge_unit
+    parent: neural-networks
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 38
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [deep-learning, neural-networks, mlp, architecture]
+    objectives:
+      - Write the forward pass of a two-layer network in matrix form and check the shapes.
+      - Count the parameters of a stated architecture.
+      - Explain what hidden units are for, in terms of representation rather than metaphor.
+      - Say what universal approximation does and does not promise.
+    description: >-
+      Stack neurons into layers, put a nonlinearity between them, and you have the architecture
+      every larger model is built from. Shapes, parameter counts, and what the hidden layer is for.
+    blocks:
+      - type: why
+        markdown: |
+          A transformer block contains a multilayer perceptron. So does nearly every architecture
+          you will meet. If the MLP is clear — its shapes, its parameter count, what its hidden
+          layer represents — then most architecture diagrams become readable rather than decorative.
+
+          It is also the smallest model where the shapes can go wrong, and shape errors are the
+          single most common thing that stops a training script from running.
+
+      - type: eli5
+        markdown: |
+          One neuron can draw a straight line between two groups of dots. That is all it can do.
+
+          Put several neurons side by side and each draws its own line. Put another neuron after
+          them, taking their outputs as its inputs, and it can combine those lines into a shape —
+          a corner, a strip, an enclosed region.
+
+          That is a multilayer perceptron: a row of simple line-drawers, then something that
+          combines what they found. Stack more rows and the shapes get richer.
+
+      - type: beginner
+        markdown: |
+          A layer applies the same operation to a whole row of neurons at once, which makes it a
+          matrix product. For a two-layer network:
+
+          $$
+          \mathbf{h} = \sigma(W_1 \mathbf{x} + \mathbf{b}_1), \qquad
+          \hat{\mathbf{y}} = W_2 \mathbf{h} + \mathbf{b}_2
+          $$
+
+          - $\mathbf{x}$ has $d$ features, $\mathbf{h}$ has $m$ hidden units.
+          - $W_1$ is $m \times d$, $\mathbf{b}_1$ is $m$.
+          - $W_2$ is $k \times m$ for $k$ outputs, $\mathbf{b}_2$ is $k$.
+          - $\sigma$ is the activation, applied element by element.
+
+          **Parameter count**, which you should be able to do in your head:
+
+          $$
+          (m \times d + m) + (k \times m + k)
+          $$
+
+          The **hidden layer** is where the model builds its own features. The input is whatever you
+          measured; $\mathbf{h}$ is a representation the model chose because it made the output
+          easier to predict. Nobody specifies what a hidden unit means, and usually no clean meaning
+          exists.
+
+          Batches change nothing conceptually: stack $B$ examples as rows of $X$ ($B \times d$) and
+          the forward pass is $\sigma(XW_1^{T} + \mathbf{b}_1)$, a single matrix product over the
+          whole batch. That is why GPUs help.
+
+      - type: intermediate
+        markdown: |
+          **Depth versus width.** The universal approximation theorem says a network with one hidden
+          layer and enough units can approximate any continuous function on a bounded domain to any
+          accuracy. It is true and it is far weaker than it sounds:
+
+          - It says such a network *exists*. It does not say gradient descent will find it.
+          - "Enough units" can be exponentially many.
+          - It says nothing about generalisation, only about fitting.
+
+          In practice depth is what pays. Deep networks reuse intermediate representations, so
+          functions that need exponentially many units in one layer often need only polynomially
+          many across several. The empirical answer is a few layers wide enough to matter, then
+          whatever the data supports.
+
+          **Shapes are the debugging skill.** A forward pass through an MLP is a chain of matrix
+          products, so every error is a shape mismatch, and the fix is always to write the shapes
+          down. For an input batch of 32, $d = 10$, $m = 64$, $k = 3$:
+
+          ```
+          X        (32, 10)
+          W1       (64, 10)   ->  X @ W1.T   (32, 64)
+          + b1     (64,)      ->  broadcast  (32, 64)
+          sigma                  (32, 64)
+          W2       (3, 64)    ->  H @ W2.T   (32, 3)
+          + b2     (3,)       ->  broadcast  (32, 3)
+          ```
+
+          Parameters: $64 \times 10 + 64 + 3 \times 64 + 3 = 640 + 64 + 192 + 3 = 899$.
+
+          **The output layer is decided by the task,** not by taste:
+
+          - Regression: $k = 1$, no activation, squared error loss.
+          - Binary classification: $k = 1$, sigmoid, binary cross-entropy.
+          - Multi-class: $k$ = number of classes, softmax, cross-entropy.
+
+          In practice the softmax is folded into the loss function for numerical stability, which
+          is why library APIs so often want raw logits rather than probabilities. Passing
+          probabilities to a loss that expects logits is a quiet, common bug: training still runs,
+          it just learns badly.
+
+      - type: example
+        markdown: |
+          XOR, the problem that a single neuron provably cannot solve. Four points:
+
+          | $x_1$ | $x_2$ | $y$ |
+          |-------|-------|-----|
+          | 0     | 0     | 0   |
+          | 0     | 1     | 1   |
+          | 1     | 0     | 1   |
+          | 1     | 1     | 0   |
+
+          No straight line separates the 1s from the 0s — try it on paper. A single neuron computes
+          a weighted sum and a threshold, which is exactly a straight line, so it cannot represent
+          XOR.
+
+          Two hidden units with ReLU solve it. Take
+
+          $$
+          W_1 = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}, \quad
+          \mathbf{b}_1 = \begin{bmatrix} 0 \\ -1 \end{bmatrix}, \quad
+          W_2 = \begin{bmatrix} 1 & -2 \end{bmatrix}, \quad b_2 = 0
+          $$
+
+          Trace $(1, 1)$ through it:
+
+          - $W_1\mathbf{x} + \mathbf{b}_1 = (2, 1)$, and ReLU leaves it as $(2, 1)$.
+          - $\hat{y} = 1(2) + (-2)(1) = 0$. Correct.
+
+          And $(1, 0)$:
+
+          - $W_1\mathbf{x} + \mathbf{b}_1 = (1, 0)$, ReLU leaves $(1, 0)$.
+          - $\hat{y} = 1(1) + (-2)(0) = 1$. Correct.
+
+          The remaining two rows work the same way. What the hidden layer did is worth naming: unit
+          1 computes "at least one input is on" and unit 2 computes "both are on". XOR is the first
+          minus twice the second — a linearly separable question, asked in coordinates the network
+          invented. That is what a hidden layer is for, and it is the entire idea of representation
+          learning on four rows.
+
+      - type: misconception
+        payload:
+          code: dl.more_layers_always_better
+          claim: "Deeper networks are more powerful, so add layers until it works."
+          markdown: |
+            **The claim:** depth is capability, so a model that is not performing needs more layers.
+
+            **Why it feels right:** the deep learning results of the last decade came with
+            increasing depth, and "deep" is in the name.
+
+            **What actually happens:** depth multiplies more factors into the gradient product, so
+            past a point the early layers receive vanishingly small updates and learn nothing. A
+            plain 56-layer network was measurably *worse* than a 20-layer one on both training and
+            test error — worse on training, which rules out overfitting as the explanation. That
+            observation is what motivated residual connections.
+
+            Depth only pays when something keeps the gradient healthy: residual connections,
+            normalisation, careful initialisation, non-saturating activations. Add layers without
+            those and you get a model that is slower, larger, and less accurate.
+
+            **How to catch yourself:** when a model underperforms, look at the training error first.
+            If training error is also poor, the problem is optimisation, not capacity, and more
+            layers will make it worse. Reach for more data, better features, or a better
+            optimisation setup before reaching for depth.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Count the parameters of an MLP with $d = 784$, one hidden layer of 128, and $k = 10$.
+               Then with two hidden layers of 128.
+            2. Write the shape of every intermediate tensor for a batch of 64 through
+               $784 \to 256 \to 64 \to 10$.
+            3. Verify the XOR network above on the remaining two input rows.
+            4. Explain in two sentences why the universal approximation theorem does not mean one
+               hidden layer is enough in practice.
+            5. For each task, give the output size, output activation, and loss: house prices;
+               spam or not; which of 26 letters; predicting three independent binary tags.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Write the forward pass of a two-layer MLP and name every shape."
+              answer: >-
+                $\mathbf{h} = \sigma(W_1\mathbf{x} + \mathbf{b}_1)$ with $W_1$ of shape $m \times d$,
+                then $\hat{\mathbf{y}} = W_2\mathbf{h} + \mathbf{b}_2$ with $W_2$ of shape
+                $k \times m$.
+            - question: "What is the hidden layer for?"
+              answer: >-
+                It builds a representation of the input chosen by training, in which the output
+                becomes easier to predict. The model invents its own features.
+            - question: "What does universal approximation actually guarantee?"
+              answer: >-
+                That a sufficiently wide one-hidden-layer network can approximate any continuous
+                function on a bounded domain. It promises nothing about finding it, its size, or
+                generalisation.
+            - question: "Why can one neuron not represent XOR?"
+              answer: >-
+                A neuron computes a weighted sum and a threshold, which is a single linear boundary,
+                and XOR's classes are not linearly separable.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Write the matrix form of a multi-layer forward pass and get every shape right first
+              time.
+            - Count parameters for any stated architecture in your head.
+            - Explain the hidden layer as learned representation, with the XOR example to hand.
+            - State what universal approximation promises without overselling it.
+    resources:
+      - source: nielsen-nndl
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Chapter 1 builds the multi-layer network; Chapter 4 gives a visual proof of universal approximation."
+      - source: d2l
+        purpose: DEEPER_REFERENCE
+        relevance: 0.8
+        excerpt: "Chapter 5 covers MLPs with runnable code and the shape bookkeeping used here. CC BY-SA 4.0."
+      - source: numpy-matmul
+        purpose: TOOL_REFERENCE
+        relevance: 0.5
+        excerpt: "The broadcasting rules that make a batched forward pass a single matrix product."
+
+  - slug: activations-and-nonlinearity
+    title: Activations, and What the Nonlinearity Is For
+    kind: knowledge_unit
+    parent: neural-networks
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 32
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [deep-learning, neural-networks, activations, relu]
+    objectives:
+      - Prove that a stack of linear layers collapses to a single linear map.
+      - Compare sigmoid, tanh, and ReLU by their derivatives and what that costs.
+      - Explain saturation and dead units, and how each stops learning.
+      - Choose an activation for a hidden layer and for an output layer, for different reasons.
+    description: >-
+      Without a nonlinearity, depth buys nothing at all. Which nonlinearity you choose then decides
+      whether the network can be trained, and the deciding property is the derivative.
+    blocks:
+      - type: why
+        markdown: |
+          The activation function looks like a detail — one line in a layer definition — and it
+          decided the trajectory of the field. Deep networks did not work with sigmoids and did work
+          with ReLU, and the reason is one number: the size of the derivative.
+
+          Understanding that turns "which activation should I use" from a style question into a
+          question with an argument behind it, and makes dead units and saturation into things you
+          can diagnose from a histogram.
+
+      - type: eli5
+        markdown: |
+          Stacking stretches gives you a stretch. Double something, then triple it, and you have
+          sextupled it — one operation, not two. No matter how many times you stretch, it is still
+          just stretching.
+
+          To get a shape that is not a straight line you need a step that is not a stretch: a bend,
+          a cutoff, a floor. The activation function is that bend.
+
+          Which bend you use matters too. A very gentle bend passes almost no information about
+          change back through a long chain, which is how a network stops learning.
+
+      - type: beginner
+        markdown: |
+          **The collapse argument**, which is the whole reason activations exist. Two linear layers
+          with no activation between them:
+
+          $$
+          \mathbf{y} = W_2(W_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2
+          = (W_2W_1)\mathbf{x} + (W_2\mathbf{b}_1 + \mathbf{b}_2)
+          $$
+
+          $W_2W_1$ is a single matrix and the bias terms collapse to a single vector. A hundred
+          such layers is one layer with extra steps. That is matrix associativity, read as a
+          limitation.
+
+          **The three you need to know:**
+
+          $$
+          \sigma(z) = \frac{1}{1 + e^{-z}}, \qquad
+          \tanh(z) = \frac{e^{z} - e^{-z}}{e^{z} + e^{-z}}, \qquad
+          \text{ReLU}(z) = \max(0, z)
+          $$
+
+          | Function | Range      | Max derivative | Main problem           |
+          |----------|------------|----------------|------------------------|
+          | Sigmoid  | $(0, 1)$   | 0.25           | Saturates; kills gradients |
+          | Tanh     | $(-1, 1)$  | 1.0            | Saturates, but zero-centred |
+          | ReLU     | $[0, \infty)$ | 1.0 for $z > 0$ | Units can die at zero |
+
+          ReLU is the default for hidden layers. It is cheap, its derivative is exactly 1 for
+          positive inputs so it does not shrink gradients, and it makes many activations exactly
+          zero, which is a useful sparsity.
+
+      - type: intermediate
+        markdown: |
+          **Saturation.** A sigmoid at $z = 6$ outputs 0.9975 and has derivative 0.0025. Any
+          gradient arriving at that unit is multiplied by 0.0025 and effectively disappears. The
+          unit is confident and untrainable, and nothing in the loss reports it.
+
+          The maximum sigmoid derivative is 0.25, at $z = 0$. So the *best case* for a sigmoid layer
+          is to quarter the gradient passing through. Ten such layers give at most $0.25^{10}
+          \approx 10^{-6}$. This is the arithmetic that made deep sigmoid networks untrainable, and
+          it is entirely explained by the chain rule unit.
+
+          **Dead ReLUs.** ReLU has derivative exactly 0 for $z < 0$. A unit whose pre-activation is
+          negative for every input in the data receives zero gradient forever and can never recover
+          — the gradient that would move its weights is itself zero. A large learning rate can kill
+          a substantial fraction of a layer in a single step.
+
+          Remedies exist and are cheap: Leaky ReLU uses $\max(0.01z, z)$ so there is always a small
+          gradient; GELU, used in most transformers, is smooth everywhere and never exactly zero.
+          Neither is dramatically better than ReLU in most settings, which is why ReLU is still the
+          sensible default.
+
+          **Initialisation is part of the same problem.** Weights must be scaled so that activations
+          neither saturate nor vanish as depth increases. Glorot initialisation scales by the fan-in
+          and fan-out to keep variance roughly constant layer to layer; He initialisation adjusts
+          the constant for ReLU, which zeroes half its inputs. Framework defaults get this right
+          now, which is why it is invisible — and why initialising everything to zero, or to large
+          random values, still fails instructively.
+
+          **Output activations are a different decision entirely.** Hidden activations are chosen
+          for gradient behaviour; output activations are chosen to make the output mean the right
+          thing. Sigmoid gives a probability for one binary decision; softmax gives a distribution
+          over mutually exclusive classes; no activation is right for unbounded regression. Using a
+          softmax for independent multi-label tags is a modelling error, not a tuning choice: it
+          forces the tags to compete for a fixed budget of probability.
+
+      - type: example
+        markdown: |
+          Take a two-layer network with no activation:
+
+          $$
+          W_1 = \begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix}, \quad
+          W_2 = \begin{bmatrix} 1 & 1 \end{bmatrix}, \quad
+          \mathbf{x} = \begin{bmatrix} 1 \\ 1 \end{bmatrix}
+          $$
+
+          Forward: $W_1\mathbf{x} = (2, 3)$, then $W_2(2, 3) = 5$.
+
+          The single equivalent layer is $W_2W_1 = \begin{bmatrix} 2 & 3 \end{bmatrix}$, and
+          $(2, 3) \cdot (1, 1) = 5$. Same answer, one matrix. The second layer added parameters and
+          no expressive power whatsoever.
+
+          **Now the gradient arithmetic.** A gradient of 1.0 arrives at the output of a five-layer
+          stack, and each layer's activation contributes its derivative.
+
+          | Layer | Sigmoid at $z = 3$ ($\sigma' = 0.045$) | ReLU at $z = 3$ |
+          |-------|-----------------------------|-----------------|
+          | 5     | 0.045                       | 1.0             |
+          | 4     | 0.002                       | 1.0             |
+          | 3     | 0.00009                     | 1.0             |
+          | 2     | 0.000004                    | 1.0             |
+          | 1     | 0.0000002                   | 1.0             |
+
+          The sigmoid network's first layer receives a gradient two ten-millionths of the size — it
+          is, for practical purposes, frozen at its initial random values. The ReLU network passes
+          the gradient through unchanged.
+
+          That table is the entire practical case for ReLU, and note that it required no experiment:
+          it follows from the chain rule and the maximum of $\sigma'$.
+
+      - type: misconception
+        payload:
+          code: dl.activation_adds_capacity
+          claim: "The activation function is what gives a network its power, so a fancier one is better."
+          markdown: |
+            **The claim:** activations are where the nonlinearity — and therefore the capability —
+            comes from, so choosing a more sophisticated one improves the model.
+
+            **Why it feels right:** it is half true. Without an activation the network is linear, so
+            the activation is necessary. And new activations are published regularly with
+            improvement claims.
+
+            **What actually happens:** the activation is a *gate*, not an *engine*. Any non-linear
+            function unlocks the capacity that the weights provide; it does not supply capacity
+            itself. Swapping ReLU for a more elaborate function typically moves accuracy by a
+            fraction of a percent, while the number of parameters, the quality of the data, and the
+            optimisation setup move it by whole points.
+
+            What the choice *does* determine is whether training works at all. Sigmoid versus ReLU
+            is not a capacity difference, it is the difference between a gradient that reaches layer
+            one and a gradient that does not. That is a trainability argument, and it is the only
+            activation argument that has ever mattered much.
+
+            **How to catch yourself:** when tempted to try a new activation, ask what you predict
+            will change and by how much. If the answer is "maybe half a percent", spend the time on
+            data or on the learning rate schedule instead.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Show algebraically that three stacked linear layers equal one, and state the
+               resulting weight matrix and bias.
+            2. Compute $\sigma'(z)$ at $z = 0, 2, 5$. What fraction of a gradient survives ten
+               layers at $z = 2$?
+            3. Explain why a ReLU unit can die permanently, referring to its derivative.
+            4. Choose the output activation and loss for: predicting rainfall in mm; is this email
+               spam; which of five intents; which of twenty tags may apply simultaneously.
+            5. A network trains with tanh and fails to train at all with sigmoid, same architecture.
+               Give the most likely explanation in terms of derivatives.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why does a stack of linear layers collapse?"
+              answer: >-
+                Matrix multiplication is associative, so $W_2(W_1x)$ equals $(W_2W_1)x$ — one matrix.
+                Depth adds parameters but no expressive power.
+            - question: "What is the largest derivative of the sigmoid, and why does it matter?"
+              answer: >-
+                0.25, at zero. Every sigmoid layer therefore shrinks the gradient by at least a
+                factor of four, so deep sigmoid stacks cannot train their early layers.
+            - question: "What is a dead ReLU?"
+              answer: >-
+                A unit whose pre-activation is negative for every input, so its derivative is zero,
+                it receives no gradient, and it can never recover.
+            - question: "Why are hidden and output activations chosen on different grounds?"
+              answer: >-
+                Hidden activations are chosen for gradient behaviour during training; output
+                activations are chosen so the output has the right meaning and range for the loss.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Prove the linear collapse in two lines without looking it up.
+            - Rank sigmoid, tanh, and ReLU by their derivative behaviour and say what each costs.
+            - Recognise saturation and dead units from an activation histogram.
+            - Pick an output activation from the task, and a hidden activation from trainability.
+    resources:
+      - source: he-init-2015
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          Works through what a rectifier does to the variance of a signal, and derives the
+          initialisation that keeps a deep network trainable.
+      - source: d2l
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.8
+        excerpt: "Section 5.1 plots each activation and its derivative, which is the clearest way to see saturation."
+      - source: nielsen-nndl
+        purpose: DEEPER_REFERENCE
+        relevance: 0.7
+        excerpt: "Chapter 5 works through the vanishing gradient problem with sigmoid units in detail."
+
+  - slug: vanishing-gradients-intuition
+    title: Vanishing and Exploding Gradients
+    kind: knowledge_unit
+    parent: deep-learning
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [deep-learning, gradients, training, residual-connections]
+    objectives:
+      - Explain vanishing and exploding gradients as a product of local factors.
+      - Recognise each from training symptoms and from gradient norms.
+      - Describe how residual connections change the gradient path.
+      - Name the standard remedies and say which problem each addresses.
+    description: >-
+      Depth multiplies. A chain of factors slightly below one dies; slightly above one explodes.
+      This page is the practical consequence of the chain rule, and the reason for half of modern
+      architecture design.
+    blocks:
+      - type: why
+        markdown: |
+          Between roughly 1990 and 2010 the field knew deep networks should be more powerful and
+          could not train them. The obstacle was not compute and not data; it was that gradients
+          did not survive the trip back to the early layers.
+
+          Nearly everything in a modern architecture that looks like a technicality — residual
+          connections, layer normalisation, gradient clipping, careful initialisation — is a
+          response to this page. Knowing which problem each one addresses is the difference between
+          copying an architecture and choosing one.
+
+      - type: eli5
+        markdown: |
+          Pass a message down a line of twenty people, where each person repeats only 80% of what
+          they heard. By the end, almost nothing is left. That is a vanishing gradient.
+
+          Now suppose each person exaggerates by 20% instead. By the end the message is nonsense at
+          enormous volume. That is an exploding gradient.
+
+          For a long line to work, each person needs to pass on roughly what they received. Almost
+          every trick in deep learning is about arranging that.
+
+      - type: beginner
+        markdown: |
+          Backpropagation multiplies local derivatives along the chain. For $L$ layers, the gradient
+          reaching layer 1 contains a product of roughly $L$ factors:
+
+          $$
+          \frac{\partial L}{\partial \mathbf{w}_1} \sim \prod_{\ell=1}^{L} (\text{local factor}_\ell)
+          $$
+
+          Exponential behaviour follows immediately:
+
+          | Typical factor | After 10 layers | After 50 layers |
+          |----------------|-----------------|-----------------|
+          | 0.5            | $10^{-3}$       | $10^{-15}$      |
+          | 0.9            | 0.35            | 0.005           |
+          | 1.0            | 1.0             | 1.0             |
+          | 1.1            | 2.6             | 117             |
+          | 1.5            | 58              | $6 \times 10^{8}$ |
+
+          **Vanishing** — factors below 1. Early layers stop updating. Training loss plateaus at a
+          mediocre value and more epochs do not help.
+
+          **Exploding** — factors above 1. Huge updates, then NaN. This one announces itself.
+
+          The knife-edge at 1.0 is why so much effort goes into keeping each layer's contribution
+          close to neutral.
+
+      - type: intermediate
+        markdown: |
+          **Diagnosing, rather than guessing:**
+
+          - Log the gradient norm per layer, not just the total. A healthy network shows norms
+            within an order of magnitude of each other; a vanishing one shows early layers orders
+            of magnitude below the last.
+          - Vanishing looks like a loss that falls quickly then flattens well above where it should,
+            while the final layers' weights move and the first layers' do not.
+          - Exploding looks like a loss spike to NaN, usually within a few hundred steps.
+
+          **The remedies, and what each one actually fixes:**
+
+          - **Non-saturating activations.** ReLU has derivative exactly 1 on the positive side, so
+            it neither shrinks nor grows the gradient. Fixes the activation's contribution.
+          - **Careful initialisation.** Glorot and He scaling keep the variance of activations and
+            gradients roughly constant with depth. Fixes the weight matrix's contribution at the
+            start of training.
+          - **Normalisation layers.** Batch or layer normalisation rescales activations at each
+            layer, so the signal cannot drift into a saturating or shrinking regime as training
+            proceeds. Fixes drift during training.
+          - **Residual connections.** Discussed below. Fixes the path itself.
+          - **Gradient clipping.** Caps the gradient norm. Addresses explosion only, and it is a
+            containment measure rather than a cure — if you need it constantly, something upstream
+            is wrong.
+
+          **Why residual connections work.** A residual block computes
+          $\mathbf{y} = \mathbf{x} + F(\mathbf{x})$ rather than $\mathbf{y} = F(\mathbf{x})$.
+          Differentiating:
+
+          $$
+          \frac{\partial \mathbf{y}}{\partial \mathbf{x}} = I + \frac{\partial F}{\partial \mathbf{x}}
+          $$
+
+          The identity term means the local factor is $1 + \text{something}$ rather than
+          *something*. Even if $F$ contributes almost nothing, the gradient passes through
+          undiminished. The network gains a short path from the loss to every layer, and the depth
+          limit moves from tens of layers to hundreds. This single idea is why transformers can be
+          stacked as deep as they are.
+
+          **The historical evidence is worth knowing** because it rules out the obvious alternative
+          explanation. A plain 56-layer convolutional network had higher *training* error than a
+          20-layer one. Not test error — training error. Overfitting cannot make training error
+          worse, so the deeper network was failing to optimise, not failing to generalise. Adding
+          residual connections made the 56-layer version train properly.
+
+      - type: example
+        markdown: |
+          A 10-layer sigmoid network, weights initialised so that each layer's weight contribution
+          to the gradient is about 1.0, with units operating where $\sigma' \approx 0.2$.
+
+          The gradient reaching layer 1 carries a factor of about
+
+          $$
+          0.2^{10} \approx 1.0 \times 10^{-7}
+          $$
+
+          With learning rate $0.01$ and a loss gradient of order 1, layer 1's weights change by
+          about $10^{-9}$ per step. Over 10,000 steps that is $10^{-5}$ — smaller than the noise in
+          their initialisation. Layer 1 has not been trained; it is a fixed random projection.
+
+          **Swap to ReLU**, where active units contribute a factor of exactly 1. The same product
+          is approximately 1, and layer 1 updates at the same scale as layer 10.
+
+          **Now push to 50 layers with ReLU** and a per-layer weight factor of 1.1 rather than 1.0 —
+          a small initialisation error. The product is $1.1^{50} \approx 117$, so the early layers
+          receive updates two orders of magnitude too large and the loss diverges within a few
+          hundred steps. Clipping stops the NaN without addressing the cause.
+
+          **Add residual connections.** Each factor becomes $1 + \delta$ with $\delta$ small, and
+          the identity path carries the gradient regardless of what $F$ does. The 50-layer network
+          trains, and this is not a story about a better optimiser — it is one term in a derivative.
+
+      - type: misconception
+        payload:
+          code: dl.vanishing_is_a_learning_rate_problem
+          claim: "Gradients vanishing just means the learning rate is too low — turn it up."
+          markdown: |
+            **The claim:** the updates are too small, and the learning rate is the knob that
+            controls update size, so raising it fixes the problem.
+
+            **Why it feels right:** the update is literally $\eta \cdot \text{gradient}$, so a larger
+            $\eta$ does produce larger updates. And a loss plateau is a symptom shared by both
+            problems.
+
+            **What actually happens:** the gradient is not uniformly small — it is small at the
+            early layers and normal at the late ones, differing by many orders of magnitude. A
+            single learning rate cannot fix a ratio. Raise it enough to move layer 1 and the last
+            layers receive updates a million times too large, and training diverges. You have traded
+            a plateau for a NaN.
+
+            Vanishing gradients are a property of the network's structure — its activations, its
+            initialisation, its depth, its lack of shortcut paths. Structure is what has to change:
+            a non-saturating activation, normalisation, or residual connections.
+
+            **How to catch yourself:** log per-layer gradient norms before touching the learning
+            rate. If the last layer's norm is $10^{-2}$ and the first layer's is $10^{-9}$, no
+            scalar multiplier will make both correct, and the diagnosis is structural.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Compute the gradient factor reaching layer 1 for a 20-layer network with per-layer
+               factors of 0.8, 0.95, 1.0, and 1.05. Comment on each.
+            2. Explain why the identity term in $I + \partial F / \partial \mathbf{x}$ prevents the
+               product from collapsing.
+            3. Training loss falls for 200 steps then flattens; last-layer gradient norms are
+               $10^{-2}$ and first-layer norms are $10^{-8}$. Diagnose it and propose two changes.
+            4. Loss goes to NaN at step 340. List what you would check, in order, and say which of
+               your fixes treats the cause rather than the symptom.
+            5. Explain why a plain 56-layer network having worse *training* error than a 20-layer
+               one rules out overfitting as the explanation.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why is the problem exponential in depth?"
+              answer: >-
+                The gradient at an early layer is a product of one local factor per layer, so a
+                factor consistently below or above one shrinks or grows geometrically.
+            - question: "How do vanishing and exploding gradients differ in symptoms?"
+              answer: >-
+                Vanishing gives a loss that plateaus above where it should while early layers barely
+                move. Exploding gives a loss spike to NaN, usually early in training.
+            - question: "Why does a residual connection help?"
+              answer: >-
+                Its derivative is the identity plus the block's Jacobian, so the gradient always has
+                an undiminished path back regardless of what the block learns.
+            - question: "Why will a larger learning rate not fix vanishing gradients?"
+              answer: >-
+                The gradient is small only at the early layers. A single scalar cannot correct a
+                ratio of many orders of magnitude without blowing up the later layers.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Compute the gradient factor for a stated depth and per-layer factor, and say what
+              happens to training.
+            - Tell vanishing from exploding by symptom and confirm it with per-layer gradient norms.
+            - Explain the residual connection's effect from its derivative, not from a diagram.
+            - Match each standard remedy to the specific part of the product it repairs.
+    resources:
+      - source: resnet-2015
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          Reports the degradation of plain deep networks on training error and introduces residual
+          connections as the fix.
+      - source: he-init-2015
+        purpose: PRIMARY_SOURCE
+        relevance: 0.8
+        excerpt: "Traces the problem to variance changing layer by layer, and derives the initialisation that holds it steady."
+      - source: nielsen-nndl
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.8
+        excerpt: "Chapter 5 gives the unstable-gradient argument with worked numbers, in the same style as this page."

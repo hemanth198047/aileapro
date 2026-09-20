@@ -1,0 +1,517 @@
+# Items for the supervised-learning-core chapter.
+
+items:
+  # --- Framing -----------------------------------------------------------------------------
+  - slug: sl-four-parts
+    unit: supervised-learning-framing
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: "Which set of four things should be named before any modelling begins?"
+    choices:
+      - id: a
+        text: "Unit of prediction, features, label, loss."
+        correct: true
+      - id: b
+        text: "Algorithm, library, hardware, deadline."
+      - id: c
+        text: "Train split, validation split, test split, random seed."
+      - id: d
+        text: "Accuracy, precision, recall, F1."
+    explanation: |
+      These four decide everything else. The splits (c) and the metrics (d) both follow from them:
+      you cannot choose a split until you know the unit of prediction, and you cannot choose a
+      metric until you know what decision the prediction supports.
+
+  - slug: sl-leakage-test
+    unit: supervised-learning-framing
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      You are predicting customer churn on the 1st of each month. Which feature leaks?
+    choices:
+      - id: a
+        text: "`cancellation_reason_code`, which is written when a customer cancels."
+        correct: true
+      - id: b
+        text: "Number of logins in the previous 30 days."
+      - id: c
+        text: "Tenure in months."
+      - id: d
+        text: "Plan tier."
+    explanation: |
+      The test is always the same: at what timestamp is this value written, and is that before the
+      prediction moment? A cancellation reason is written *at* cancellation, so it is a consequence
+      of the label rather than a predictor of it.
+
+      Including it gives spectacular offline metrics and a model that does nothing in production,
+      with no warning in between. A suspiciously excellent first result is a leakage alarm.
+
+  - slug: sl-more-features
+    unit: supervised-learning-framing
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A colleague proposes dumping every available column into the model, arguing that
+      regularisation will ignore the useless ones. What is the strongest objection?
+    choices:
+      - id: a
+        text: "The danger is not useless features but leaked ones, which the model will rely on entirely."
+        correct: true
+      - id: b
+        text: "More features always cause overfitting."
+        misconception: ml.more_features_better
+      - id: c
+        text: "Models cannot handle more than a few dozen features."
+      - id: d
+        text: "Extra features slow training down too much to be worth it."
+    explanation: |
+      Regularisation does handle uninformative features reasonably well. What it cannot handle is
+      a column that is *too* useful because it encodes the answer — the model will find it first
+      and depend on it.
+
+      (b) overstates the case in the other direction, which is the misconception this item is
+      built from: parameter count is not the mechanism, and shrinking the feature set for its own
+      sake is the wrong fix. The right rule is the timestamp test, applied per column.
+
+  - slug: sl-right-answer-wrong-question
+    unit: supervised-learning-framing
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 80
+    stem: |
+      A model can be highly accurate and still be useless, if its label or unit of prediction
+      does not match a decision anyone can act on.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True, and it is the most common way a technically competent project fails. Predicting churn
+      "some time in the next year" when the retention team can only act this month is a correct
+      answer to a question nobody asked.
+
+      None of this is visible from the accuracy figure. It is visible from the framing, which is
+      why the framing is written down.
+
+  # --- Linear regression -------------------------------------------------------------------
+  - slug: lr-fit-slope
+    unit: linear-regression-intuition
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 150
+    stem: |
+      Fit $\hat{y} = wx + b$ by least squares to the points $(50, 150)$, $(60, 180)$,
+      $(70, 195)$, $(80, 235)$. What is $w$?
+    answer: 2.7
+    tolerance: 0.01
+    explanation: |
+      $\bar{x} = 65$, $\bar{y} = 190$. The numerator $\sum(x_i - \bar{x})(y_i - \bar{y}) = 1350$
+      and the denominator $\sum(x_i - \bar{x})^2 = 500$, so $w = 2.7$ and $b = 14.5$.
+
+      Read it in the problem's units: each extra square metre is associated with £2,700 more in
+      price. The intercept of £14,500 for a zero-square-metre apartment is not a claim about
+      anything — it is where the line crosses an axis far outside the data.
+
+  - slug: lr-coefficient-meaning
+    unit: linear-regression-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What does a coefficient $w_j$ mean, stated precisely?"
+    choices:
+      - id: a
+        text: "The predicted change in $y$ for a one-unit increase in $x_j$, holding the model's other features fixed."
+        correct: true
+      - id: b
+        text: "The causal effect of $x_j$ on $y$."
+        misconception: ml.coefficient_is_cause
+      - id: c
+        text: "How important $x_j$ is relative to the other features."
+      - id: d
+        text: "The correlation between $x_j$ and $y$."
+    explanation: |
+      The "holding the other features fixed" clause is the whole interpretation, not a caveat. Add
+      a correlated feature and the coefficient can change sign without anything about the world
+      changing — the question it answers changed.
+
+      (c) fails whenever features are on different scales: a coefficient of 0.001 on a feature
+      measured in millions is large. (b) is the misconception: the coefficient is the slope of a
+      hyperplane fitted to observational data, and it confounds every unmeasured common cause.
+
+  - slug: lr-squared-error-outlier
+    unit: linear-regression-intuition
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      In a four-point fit, the residuals are $+0.5$, $+3.5$, $-8.5$, $+4.5$. What fraction of the
+      squared-error loss does the third point contribute?
+    choices:
+      - id: a
+        text: "About three-quarters."
+        correct: true
+      - id: b
+        text: "About one quarter, since it is one of four points."
+      - id: c
+        text: "About half."
+      - id: d
+        text: "It contributes least, because its residual is negative."
+    explanation: |
+      Squares: $0.25 + 12.25 + 72.25 + 20.25 = 105$. The third point contributes $72.25/105
+      \approx 0.69$ — near enough three-quarters, from one of four points.
+
+      That is squared error's outlier sensitivity, visible on four rows. It is a deliberate
+      property rather than a flaw, but it means a single unusual observation can move every
+      coefficient, and it is worth checking residuals before trusting a fit.
+
+  - slug: lr-polynomial-still-linear
+    unit: linear-regression-intuition
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 80
+    stem: |
+      Adding $x^2$ as a feature lets the model fit a curve while remaining a linear model.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. "Linear" refers to linearity in the *parameters*, not in the raw inputs. Polynomial
+      regression, interaction terms, and basis expansions are all still linear regression with
+      different columns.
+
+      This is why feature choice is where the modelling actually happens in a linear model, and
+      why "linear models cannot represent curves or interactions" is only true of a particular
+      feature set.
+
+  # --- Splits ------------------------------------------------------------------------------
+  - slug: tvt-three-jobs
+    unit: train-validation-test
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 80
+    stem: "What is the validation set for?"
+    choices:
+      - id: a
+        text: "Making modelling decisions: which model, which hyperparameters, when to stop."
+        correct: true
+      - id: b
+        text: "Fitting the model's parameters."
+      - id: c
+        text: "Reporting the final result."
+      - id: d
+        text: "Checking that the training data is clean."
+    explanation: |
+      Train fits parameters, validation makes decisions, test estimates performance once. The
+      model does not fit on the validation set, but *you* do — which is exactly why it cannot also
+      serve as (c).
+
+  - slug: tvt-scaler-leak
+    unit: train-validation-test
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      A pipeline standardises the whole dataset and then splits it into train, validation, and
+      test. What is the consequence?
+    choices:
+      - id: a
+        text: "The held-out sets' means and variances leak into training, making every result slightly optimistic."
+        correct: true
+      - id: b
+        text: "Nothing — scaling is not a learned transformation."
+      - id: c
+        text: "The model will underfit, because the scale is wrong for training."
+      - id: d
+        text: "The test set becomes unusable and must be rebuilt."
+    explanation: |
+      A scaler is fitted: it learns a mean and a variance from data. Fitting it before the split
+      means training saw statistics of the held-out rows.
+
+      The effect is usually small and *always* in the optimistic direction, so it is never caught
+      by a result that looks too good. The same applies to encoders, imputers, feature selection,
+      and target encoding. Put every fitted transform inside a pipeline so it cannot happen by
+      hand.
+
+  - slug: tvt-validation-decay
+    unit: train-validation-test
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      You compare 50 configurations on a 2,000-row validation set and report the winner's score.
+      What is wrong with treating it as an estimate of production performance?
+    choices:
+      - id: a
+        text: "Selecting the best of 50 fits that set's noise, so the winner's score is optimistic by an unmeasurable amount."
+        correct: true
+      - id: b
+        text: "Nothing — the model never trained on those rows."
+        misconception: ml.validation_is_unbiased
+      - id: c
+        text: "2,000 rows is always too few for any estimate."
+      - id: d
+        text: "The scores should have been averaged rather than maximised."
+    explanation: |
+      Selection is a form of fitting. Each comparison uses one bit of information from that set, so
+      after 50 comparisons the winning configuration is partly fitted to its noise. An optimism of
+      a point or two is routine — large enough to swamp most claimed improvements.
+
+      This is the entire reason a separate test set exists and is used once. A test set consulted
+      thirty times is a validation set, whatever the variable is called.
+
+  - slug: tvt-time-split
+    unit: train-validation-test
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      You are predicting next month's churn from monthly snapshots over 18 months. How should the
+      data be split?
+    choices:
+      - id: a
+        text: "By time: train on the earliest months, validate and test on the latest."
+        correct: true
+      - id: b
+        text: "Randomly across all rows, with a fixed seed for reproducibility."
+      - id: c
+        text: "Randomly, but stratified by month."
+      - id: d
+        text: "By customer only, ignoring the time ordering."
+    explanation: |
+      Two things go wrong with a random split here. The same subscriber appears on both sides, so
+      the model can learn subscriber identity; and later months are used to predict earlier ones,
+      which cannot happen in production.
+
+      Splitting by time fixes both, provided no subscriber crosses a boundary within the same
+      prediction window. Expect the honest score to be noticeably lower than the leaky one — that
+      drop is the measurement working, not a regression.
+
+  # --- Overfitting -------------------------------------------------------------------------
+  - slug: of-diagnose-gap
+    unit: overfitting-and-regularization
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      Training MSE is 0.02 and validation MSE is 0.90. What is the diagnosis?
+    choices:
+      - id: a
+        text: "Overfitting — the model is fitting something present in training and absent in new data."
+        correct: true
+      - id: b
+        text: "Underfitting — the model is too constrained."
+      - id: c
+        text: "The learning rate is too high."
+      - id: d
+        text: "The validation set is too small to interpret."
+    explanation: |
+      A large gap with low training error is the signature of overfitting. Underfitting looks
+      different: both errors high and close together.
+
+      What to try, in order: more data if it is available, then a penalty or early stopping, then
+      a change of model class. Shrinking the architecture first is common and is usually not the
+      cheapest test.
+
+  - slug: of-l1-vs-l2
+    unit: overfitting-and-regularization
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What distinguishes an L1 penalty from an L2 penalty in effect?"
+    choices:
+      - id: a
+        text: "L1 drives some coefficients exactly to zero; L2 shrinks all of them smoothly without reaching zero."
+        correct: true
+      - id: b
+        text: "L1 is for classification and L2 is for regression."
+      - id: c
+        text: "L2 removes features and L1 keeps them all."
+      - id: d
+        text: "They are equivalent up to a rescaling of $\\lambda$."
+    explanation: |
+      L1 (lasso) performs feature selection as a side effect of its geometry, which is why it suits
+      problems where most features are believed irrelevant and a sparse model is wanted. L2 (ridge,
+      weight decay) handles collinearity well and is the default in neural networks.
+
+      Both require scaled features: an unscaled penalty punishes features measured in small units
+      far more than the same feature measured in large ones, so the selection ends up driven by
+      unit choice.
+
+  - slug: of-lambda-on-validation
+    unit: overfitting-and-regularization
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Why must the regularisation strength $\\lambda$ be chosen on validation data?"
+    choices:
+      - id: a
+        text: "Training error rises monotonically with $\\lambda$, so training data would always choose zero."
+        correct: true
+      - id: b
+        text: "Validation data is larger, so the estimate is more precise."
+      - id: c
+        text: "Training data is used up by fitting the coefficients."
+      - id: d
+        text: "$\\lambda$ has no effect on training error."
+    explanation: |
+      The penalty is *defined* to make the training objective worse in exchange for a better
+      held-out fit. So the training curve is monotone in $\lambda$ and contains no information
+      about where the optimum is. Only the validation curve shows the U-shape, and its bottom is
+      the bias-variance trade-off drawn directly.
+
+  - slug: of-parameter-count
+    unit: overfitting-and-regularization
+    type: mcq
+    bloom: evaluate
+    difficulty: 5
+    estimateSeconds: 150
+    stem: |
+      A model overfits. A colleague says the fix is fewer parameters. What is the most accurate
+      response?
+    choices:
+      - id: a
+        text: "What matters is effective capacity relative to the data; penalties, early stopping, and more data reduce it without removing parameters."
+        correct: true
+      - id: b
+        text: "They are right — parameter count is what causes overfitting."
+        misconception: ml.overfitting_means_too_many_parameters
+      - id: c
+        text: "Overfitting cannot be fixed; it can only be measured."
+      - id: d
+        text: "Large models never overfit, as modern deep learning shows."
+    explanation: |
+      A ridge-penalised degree-9 polynomial has nine parameters and behaves like a much simpler
+      model. Networks with billions of parameters routinely generalise better than smaller ones on
+      the same data.
+
+      (d) overcorrects into a different error. Large models do overfit, and the classical picture
+      does not fully account for when they do not — that is genuinely unsettled, and stating it as
+      settled in either direction is overclaiming.
+
+assessments:
+  - slug: supervised-learning-framing-practice
+    title: "Practice: framing a supervised problem"
+    kind: practice
+    unit: supervised-learning-framing
+    items:
+      - sl-four-parts
+      - sl-leakage-test
+      - sl-right-answer-wrong-question
+
+  - slug: supervised-learning-framing-quiz
+    title: "Quiz: framing a supervised problem"
+    kind: quiz
+    unit: supervised-learning-framing
+    passMark: 0.7
+    timeLimitSeconds: 600
+    items:
+      - sl-leakage-test
+      - sl-more-features
+      - sl-right-answer-wrong-question
+
+  - slug: linear-regression-intuition-practice
+    title: "Practice: linear regression"
+    kind: practice
+    unit: linear-regression-intuition
+    items:
+      - lr-fit-slope
+      - lr-coefficient-meaning
+      - lr-polynomial-still-linear
+
+  - slug: linear-regression-intuition-quiz
+    title: "Quiz: linear regression"
+    kind: quiz
+    unit: linear-regression-intuition
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - lr-fit-slope
+      - lr-coefficient-meaning
+      - lr-squared-error-outlier
+      - lr-polynomial-still-linear
+
+  - slug: train-validation-test-practice
+    title: "Practice: train, validation, and test"
+    kind: practice
+    unit: train-validation-test
+    items:
+      - tvt-three-jobs
+      - tvt-scaler-leak
+      - tvt-time-split
+
+  - slug: train-validation-test-quiz
+    title: "Quiz: train, validation, and test"
+    kind: quiz
+    unit: train-validation-test
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - tvt-scaler-leak
+      - tvt-validation-decay
+      - tvt-time-split
+
+  - slug: overfitting-and-regularization-practice
+    title: "Practice: overfitting and regularisation"
+    kind: practice
+    unit: overfitting-and-regularization
+    items:
+      - of-diagnose-gap
+      - of-l1-vs-l2
+      - of-lambda-on-validation
+
+  - slug: overfitting-and-regularization-quiz
+    title: "Quiz: overfitting and regularisation"
+    kind: quiz
+    unit: overfitting-and-regularization
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - of-diagnose-gap
+      - of-l1-vs-l2
+      - of-lambda-on-validation
+      - of-parameter-count
+
+cards:
+  - slug: card-sl-leakage-test
+    unit: supervised-learning-framing
+    front: "The one-line test for whether a feature leaks."
+    back: |
+      At what timestamp is this value written? If it is at or after the label, it leaks — however
+      predictive it looks.
+
+  - slug: card-lr-coefficient
+    unit: linear-regression-intuition
+    front: "State what a regression coefficient means."
+    back: |
+      The predicted change in $y$ per one-unit increase in that feature, **holding the model's
+      other features fixed**. Conditional on the feature set, and not a causal effect.
+
+  - slug: card-tvt-validation-decay
+    unit: train-validation-test
+    front: "Why does a validation score stop being honest?"
+    back: |
+      Because selecting among options fits that set's noise. After enough comparisons the winner's
+      score is optimistic, which is what the untouched test set is for.

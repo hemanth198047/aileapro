@@ -1,0 +1,284 @@
+# Items for the transformer units. Nothing here tests the attention mechanism itself, because
+# that unit is still a draft and a learner cannot have read it.
+
+items:
+  - slug: tf-block-components
+    unit: transformer-block-overview
+    type: mcq
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 80
+    stem: "Which four components make up a transformer block?"
+    choices:
+      - id: a
+        text: "Self-attention, a position-wise MLP, residual connections, and layer normalisation."
+        correct: true
+      - id: b
+        text: "Self-attention, convolution, pooling, and a softmax."
+      - id: c
+        text: "An encoder, a decoder, an embedding table, and a tokeniser."
+      - id: d
+        text: "Multi-head attention, dropout, batch normalisation, and a recurrent cell."
+    explanation: |
+      The tokeniser and embedding table (c) sit outside the blocks; recurrence and convolution (b,
+      d) are precisely what the architecture removed. Layer normalisation rather than batch
+      normalisation, because it normalises each position across its own features and so is
+      independent of batch size.
+
+  - slug: tf-which-mixes-positions
+    unit: transformer-block-overview
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Which part of a transformer block moves information between positions?"
+    choices:
+      - id: a
+        text: "Only self-attention."
+        correct: true
+      - id: b
+        text: "Self-attention and the MLP."
+      - id: c
+        text: "Only the MLP."
+      - id: d
+        text: "Layer normalisation, which averages across the sequence."
+    explanation: |
+      The MLP is applied to each position independently and identically — the same weights, no
+      looking sideways. Layer normalisation also acts per position, across that position's own
+      features.
+
+      That division of labour is the cleanest way to read the architecture: attention decides what
+      to read, the MLP does the per-position processing.
+
+  - slug: tf-parameter-split
+    unit: transformer-block-overview
+    type: short_text
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 150
+    stem: |
+      For $d = 512$ with an MLP expansion factor of 4, how many parameters are in one block's MLP
+      weight matrices (ignoring biases)?
+    answer: 2097152
+    tolerance: 1
+    explanation: |
+      $2 \times 512 \times 2048 = 2{,}097{,}152$ — up and back down.
+
+      Attention's four projections come to $4 \times 512^2 = 1{,}048{,}576$, so the MLP holds
+      roughly two-thirds of the block. That ratio surprises most people and matters for anyone
+      reasoning about memory or deciding what to quantise.
+
+  - slug: tf-attention-is-everything
+    unit: transformer-block-overview
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      "A transformer is attention; everything else in the block is plumbing." What is the
+      strongest correction?
+    choices:
+      - id: a
+        text: "About two-thirds of the parameters are in the MLP, and without residual connections a deep stack does not train at all."
+        correct: true
+      - id: b
+        text: "It is accurate — the paper title says attention is all you need."
+        misconception: tf.attention_is_the_whole_model
+      - id: c
+        text: "Attention is actually unnecessary; the MLP does all the work."
+      - id: d
+        text: "The correction is only about naming; the components are interchangeable."
+    explanation: |
+      The paper's title was making a point about recurrence and convolution being unnecessary, not
+      a claim that the other components could be deleted.
+
+      (c) is the opposite overcorrection: remove attention and every position is processed in
+      isolation, which destroys the model. Counting parameters is the quickest way to settle this
+      — a component holding two-thirds of the model is not plumbing.
+
+  - slug: tf-cost-crossover
+    unit: transformer-block-overview
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      A model is too slow on 16,000-token inputs at $d = 768$. Which component should you attack
+      first, and why?
+    choices:
+      - id: a
+        text: "Attention, because its cost grows as $L^2 d$ while per-position work grows as $L d^2$, and $L$ is far above $d$ here."
+        correct: true
+      - id: b
+        text: "The MLP, because it holds most of the parameters."
+      - id: c
+        text: "Layer normalisation, which is applied twice per block."
+      - id: d
+        text: "The embedding table, which scales with sequence length."
+    explanation: |
+      The crossover is around $L \approx d$. At $L = 16{,}000$ and $d = 768$, attention dominates
+      by a wide margin, which is why long-context work is full of attention approximations and
+      almost never touches the MLP.
+
+      (b) confuses parameters with compute. They are different questions with different answers,
+      and for short prompts the MLP really does dominate the time.
+
+  - slug: pe-permutation-equivariance
+    unit: positional-encoding-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Why does a transformer need position supplied explicitly?"
+    choices:
+      - id: a
+        text: "Attention is a weighted sum over a set, so permuting the inputs permutes the outputs identically — order carries no information."
+        correct: true
+      - id: b
+        text: "Because tokenisers discard whitespace."
+      - id: c
+        text: "Because the MLP processes positions in a random order."
+      - id: d
+        text: "Because the softmax normalises the scores."
+    explanation: |
+      Permutation equivariance is a property of the operation, not a tendency that training can
+      overcome. With the positional term removed, no amount of data teaches order, because the
+      information is destroyed before any parameter sees it.
+
+      This is the real difference from recurrent networks, which get order from the architecture
+      for free and gave up parallelism to have it.
+
+  - slug: pe-attention-learns-order
+    unit: positional-encoding-intuition
+    type: true_false
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 100
+    stem: |
+      A sufficiently large transformer trained on ordered text would learn word order even with
+      positional encoding removed.
+    choices:
+      - id: "true"
+        text: "True"
+        misconception: tf.attention_knows_order
+      - id: "false"
+        text: "False"
+        correct: true
+    explanation: |
+      False. The positional term is added to the input embeddings *before the first block*. If
+      order were learnable downstream, there would be nothing for training to work with — a
+      weighted sum over a set gives the same result for any ordering of that set.
+
+      Scale does not help, because the information is gone before the first parameter is applied.
+
+  - slug: pe-relative-advantage
+    unit: positional-encoding-intuition
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: "What is the main advantage of relative position encoding over learned absolute encoding?"
+    choices:
+      - id: a
+        text: "Structure depends on distance rather than index, so one learned relationship is reused everywhere and extends past the trained length."
+        correct: true
+      - id: b
+        text: "It uses fewer parameters, so the model is smaller."
+      - id: c
+        text: "It makes attention cost linear rather than quadratic."
+      - id: d
+        text: "It removes the need for layer normalisation."
+    explanation: |
+      An adjective modifies a nearby noun and a closing bracket matches an opening one some
+      distance back. Nothing about either depends on being at index 4,271.
+
+      An absolute scheme has to learn the same relationship separately at every position and has
+      nothing to say about a position it never saw. Rotary embeddings get this behaviour from the
+      geometry — rotating queries and keys by angles proportional to their indices makes the dot
+      product depend only on the difference.
+
+  - slug: pe-context-claim
+    unit: positional-encoding-intuition
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      A vendor states their model "supports 200k tokens of context". What does that claim
+      establish?
+    choices:
+      - id: a
+        text: "That the implementation accepts the input — not that answer quality holds across it."
+        correct: true
+      - id: b
+        text: "That the model was trained on 200k-token sequences."
+      - id: c
+        text: "That retrieval is no longer necessary for corpora under 200k tokens."
+      - id: d
+        text: "That positional encodings are defined up to position 200,000."
+    explanation: |
+      The encoding being *defined* everywhere is not the same as the attention patterns having
+      been *trained* everywhere. Measured retrieval accuracy over long contexts is strongly
+      position-dependent, best near the beginning and end and worst in the middle.
+
+      Before believing a context-length claim, measure retrieval accuracy on your own data with
+      the target passage placed at several depths, and compare against a retrieval baseline.
+
+assessments:
+  - slug: transformer-block-overview-practice
+    title: "Practice: the transformer block"
+    kind: practice
+    unit: transformer-block-overview
+    items:
+      - tf-block-components
+      - tf-which-mixes-positions
+      - tf-parameter-split
+
+  - slug: transformer-block-overview-quiz
+    title: "Quiz: the transformer block"
+    kind: quiz
+    unit: transformer-block-overview
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - tf-which-mixes-positions
+      - tf-parameter-split
+      - tf-attention-is-everything
+      - tf-cost-crossover
+
+  - slug: positional-encoding-practice
+    title: "Practice: positional encoding"
+    kind: practice
+    unit: positional-encoding-intuition
+    items:
+      - pe-permutation-equivariance
+      - pe-attention-learns-order
+      - pe-relative-advantage
+
+  - slug: positional-encoding-quiz
+    title: "Quiz: positional encoding"
+    kind: quiz
+    unit: positional-encoding-intuition
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - pe-permutation-equivariance
+      - pe-attention-learns-order
+      - pe-relative-advantage
+      - pe-context-claim
+
+cards:
+  - slug: card-tf-block-parts
+    unit: transformer-block-overview
+    front: "Name the four parts of a transformer block and what each does."
+    back: |
+      Self-attention (mixes across positions), a position-wise MLP (per-position processing, and
+      about two-thirds of the parameters), residual connections (the gradient path), and layer
+      normalisation (keeps activations in range).
+
+  - slug: card-tf-position
+    unit: positional-encoding-intuition
+    front: "Why must position be added to the embeddings?"
+    back: |
+      Attention is a weighted sum over a set and is permutation-equivariant, so order carries no
+      information unless it is injected before the first block.

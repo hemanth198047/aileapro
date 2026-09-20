@@ -1,0 +1,391 @@
+# Wave 3: optimization for ML — gradient descent and learning-rate / minima intuition.
+#
+# Assumes derivatives-as-rates from the calculus chapter. Focus is the training loop, not
+# convex analysis catalogues.
+
+units:
+  - slug: optimization-for-ml
+    title: Optimization for Machine Learning
+    kind: chapter
+    parent: optimization
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 70
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    tags: [optimization, gradients, training]
+    objectives:
+      - Write the gradient-descent update and say what each symbol does.
+      - Reason about learning-rate failure modes and non-convex landscapes at an intuition level.
+      - Connect hand updates to what autograd computes in a framework.
+    description: >-
+      Training as repeated downhill steps: the update rule, what the learning rate controls, and
+      why "the" minimum is rarely unique in deep models.
+    blocks:
+      - type: why
+        markdown: |
+          Almost every modern model is fit by some cousin of gradient descent. If you cannot read
+          the update rule, the learning-rate knob, and a loss curve, training logs will look like
+          weather — something that happens to you rather than something you steer.
+
+  - slug: gradient-descent-basics
+    title: Gradient Descent Basics
+    kind: knowledge_unit
+    parent: optimization-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 36
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [optimization, gradient-descent, autograd]
+    objectives:
+      - Write the parameter update $w \leftarrow w - \eta \nabla L(w)$ and interpret each term.
+      - Distinguish full-batch, mini-batch, and stochastic gradient descent at a practical level.
+      - Explain what autograd contributes versus what the optimizer step does.
+      - Predict the next loss move from a toy 1-D example with a chosen $\eta$.
+    description: >-
+      Gradient descent is repeated local downhill steps. Autograd supplies the gradient;
+      the optimizer applies the step.
+    blocks:
+      - type: why
+        markdown: |
+          Loss is a function of parameters. You cannot grid-search a million weights. The
+          derivative tells you which way the loss increases locally; stepping the other way is
+          the entire idea.
+
+          Frameworks hide the arithmetic, not the meaning. When training diverges, you are still
+          debugging this update.
+
+      - type: eli5
+        markdown: |
+          You are blindfolded on a hillside and want the valley floor. You feel the slope under
+          your feet and take a small step downhill. Repeat.
+
+          The slope is the gradient. The step length is the learning rate. Too bold a step and
+          you leap onto another ridge; too timid and you shuffle forever.
+
+      - type: beginner
+        markdown: |
+          For parameters $w$ and loss $L(w)$, one gradient-descent step is
+
+          $$
+          w \leftarrow w - \eta \, \nabla L(w)
+          $$
+
+          - $\nabla L(w)$ points uphill (steepest increase).
+          - The minus sign moves downhill.
+          - $\eta > 0$ is the **learning rate** — how far to trust the local linear picture.
+
+          **Full batch** uses $\nabla L$ on the whole training set. **Stochastic** uses one
+          example. **Mini-batch** uses a small batch — the usual compromise for stable-ish
+          gradients and GPU efficiency.
+
+          One **epoch** is one pass over the training data (in whatever batching you chose).
+
+      - type: intermediate
+        markdown: |
+          **What autograd does.** A framework builds a computation graph for the forward loss,
+          then applies the chain rule backwards to get $\partial L / \partial w$ for each
+          parameter. That is the gradient vector. It does *not* choose $\eta$ or apply the step
+          — the optimizer does.
+
+          **Mini-batch noise.** Each batch gradient is a noisy estimate of the full gradient.
+          Noise can help escape sharp bad regions; too much noise (batch size 1 on a jagged loss)
+          makes progress erratic. Learning-rate schedules and larger batches both quiet the path.
+
+          **Scale matters.** If features or parameters live on wild scales, gradients do too.
+          Normalising inputs and careful initialisation are optimization hygiene, not optional
+          polish.
+
+          Pseudocode of one step:
+
+          ```text
+          loss = forward(batch, w)
+          grads = backward(loss)      # autograd
+          w = w - eta * grads         # optimizer
+          ```
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            ```python
+            # Toy 1-D descent on L(w) = (w - 3)**2  → minimum at w=3, L'=2(w-3)
+            w = 0.0
+            eta = 0.1
+            for step in range(5):
+                grad = 2 * (w - 3)
+                w = w - eta * grad
+                print(step, w, (w - 3) ** 2)
+
+            # Conceptual PyTorch-shaped loop (illustrative):
+            # loss = model(batch).sum()          # forward
+            # loss.backward()                    # autograd fills .grad
+            # with torch.no_grad():
+            #     for p in model.parameters():
+            #         p -= eta * p.grad
+            #     model.zero_grad()
+            ```
+
+            After a few steps with $\eta = 0.1$, $w$ climbs from 0 toward 3 and the loss falls.
+            Autograd replaces the hand-written `grad = 2 * (w - 3)` for real graphs.
+
+      - type: misconception
+        payload:
+          code: opt.autograd_is_the_optimizer
+          claim: "Calling loss.backward() updates the weights."
+          markdown: |
+            **The claim:** backpropagation trains the model by itself.
+
+            **Why it feels right:** tutorials emphasise `backward()`, and without it nothing
+            learns — so it feels like the training step.
+
+            **What actually happens:** `backward()` (autograd) *computes* gradients and stores
+            them. Weights move only when an optimizer step (or an explicit `w -= eta * grad`)
+            applies them. Forget the step and you recompute grads forever on frozen weights.
+
+            **How to catch yourself:** print a parameter before `backward()`, after `backward()`,
+            and after `optimizer.step()`. Only the last call should change the value.
+
+      - type: common_mistake
+        markdown: |
+          **Forgetting to zero grads** between steps, so gradients accumulate and the step size
+          silently grows.
+
+          **Using the training loss alone as proof of generalisation.** Descent can memorise.
+
+          **Huge $\eta$ on unnormalised inputs.** The first batch explodes; the bug looks like
+          "PyTorch is broken".
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. For $L(w)=(w-3)^2$, $w=0$, $\eta=0.1$, compute the next two values of $w$ by hand.
+            2. Explain the minus sign in $w \leftarrow w - \eta \nabla L$ using the hill metaphor.
+            3. Contrast full-batch vs mini-batch in one sentence each on noise and cost per step.
+            4. List the three lines of a training step: forward, backward, update — and say which
+               one moves parameters.
+            5. What happens if you call backward twice without zeroing grads, then step once?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Write the basic gradient-descent update and name each symbol."
+              answer: >-
+                w ← w − η ∇L(w): w parameters, η learning rate, ∇L gradient of loss (uphill
+                direction).
+            - question: "What does autograd compute, and what does it not do?"
+              answer: >-
+                It computes gradients via the chain rule. It does not apply the parameter update
+                or choose η.
+            - question: "Why use mini-batches instead of one example or the full set?"
+              answer: >-
+                Compromise: stabler estimates than pure SGD, cheaper/more frequent updates than
+                full batch, and good hardware utilisation.
+            - question: "Which way does ∇L point, and why do we subtract it?"
+              answer: >-
+                Steepest increase of L; subtracting moves toward lower loss locally.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Hand-execute a 1-D descent step and predict whether loss falls for a given $\eta$.
+            - Separate autograd (gradient) from optimizer (update) in a framework loop.
+            - Choose vocabulary: batch, mini-batch, epoch — without mixing them.
+            - Diagnose "backward without step" and "forgot zero_grad" failure modes.
+    resources:
+      - source: pytorch-autograd
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.95
+        excerpt: >-
+          Official gentle introduction to torch.autograd — how gradients are obtained for the
+          update this unit describes.
+      - source: 3b1b-calculus
+        purpose: VISUAL_INTUITION
+        relevance: 0.85
+        excerpt: "Geometric derivative and gradient intuition underlying downhill steps."
+      - source: mml-book
+        purpose: MATHEMATICAL_BACKGROUND
+        relevance: 0.6
+        excerpt: "Vector calculus and gradient notation used in ML optimization chapters."
+
+  - slug: learning-rates-and-local-minima
+    title: Learning Rates, Valleys, and Local Minima
+    kind: knowledge_unit
+    parent: optimization-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 34
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [optimization, learning-rate, nonconvex]
+    objectives:
+      - Diagnose too-large and too-small learning rates from loss-curve symptoms.
+      - Explain why deep losses are non-convex and what "local minimum" means operationally.
+      - Distinguish saddles / plateaus from useful progress stalls at a basic level.
+      - State what learning-rate schedules try to achieve without memorising every schedule name.
+    description: >-
+      The learning rate decides whether a correct gradient becomes progress, noise, or
+      divergence — especially on non-convex deep losses.
+    blocks:
+      - type: why
+        markdown: |
+          The gradient can be right and the run still fails. $\eta$ controls whether each step
+          stays inside the region where the linear approximation of $L$ is trustworthy. Deep
+          networks add another complication: many basins, flat regions, and saddles — so "find
+          the global minimum" is the wrong mental model for most training runs.
+
+      - type: eli5
+        markdown: |
+          Walking downhill with giant strides: you overshoot the valley and bounce between walls
+          (learning rate too big). Ant-sized steps: you eventually arrive, but dinner is cold
+          (too small).
+
+          Mountain ranges have many valleys. Landing in a decent valley can be enough; hunting
+          the single deepest point on Earth is not how hikers travel — or how we usually train
+          nets.
+
+      - type: beginner
+        markdown: |
+          **Too large $\eta$:** loss oscillates, becomes NaN, or climbs. Steps leave the
+          neighbourhood where $\nabla L$ was a good guide.
+
+          **Too small $\eta$:** loss decreases very slowly; training looks "stuck" but gradients
+          are tiny steps, not zero.
+
+          **Rule of thumb workflow:** start with a commonly used default for the optimizer
+          (e.g. something on the order of $10^{-3}$ for many Adam runs — task-dependent), watch
+          the curve, then adjust by factors of 3–10 rather than tiny nudges.
+
+          **Schedules** reduce $\eta$ over time (step decay, cosine, warmup then decay). Early
+          larger steps explore; later smaller steps settle. Warmup avoids huge early updates when
+          gradients are chaotic.
+
+      - type: intermediate
+        markdown: |
+          Deep network losses are typically **non-convex**: many critical points where
+          $\nabla L \approx 0$. A **local minimum** is a point lower than its neighbourhood, not
+          necessarily the global best. Empirically, many "problems" that look like bad minima are
+          **saddles** or **plateaus** where progress is slow until noise or a schedule helps.
+
+          For overparameterised nets, reaching zero training loss is often possible from many
+          initialisations; the practical question is which region generalises. That is why
+          initialization, batch noise, and regularisation matter alongside $\eta$.
+
+          **Loss curve reading:**
+
+          | Pattern | Likely cause |
+          |---------|--------------|
+          | Smooth steady drop | Reasonable $\eta$ |
+          | Spikes / divergence | $\eta$ too large or bad batches |
+          | Flat from step 0 | $\eta$ tiny, dead units, or bug (no update) |
+          | Train ↓ val ↑ | Overfitting, not primarily $\eta$ |
+
+          Learning rate is not a cure for wrong labels or leakage — it only controls step scale.
+
+      - type: example
+        markdown: |
+          On $L(w)=w^2$, start at $w=5$.
+
+          - $\eta = 0.1$: $w \leftarrow 5 - 0.1\cdot 10 = 4$, then $3.2$, … monotonically toward 0.
+          - $\eta = 1$: $w \leftarrow 5 - 10 = -5$, then $+5$, … oscillates; loss never settles.
+          - $\eta = 1.1$: magnitude *grows* each step — classic divergence.
+
+          Same gradient formula; the step size decides success. Non-convex nets add many such
+          bowls glued together, but the local lesson about $\eta$ is unchanged.
+
+      - type: misconception
+        payload:
+          code: opt.must_find_global_min
+          claim: "Training fails unless gradient descent finds the global minimum."
+          markdown: |
+            **The claim:** non-convexity means GD is useless unless it reaches the global min.
+
+            **Why it feels right:** calculus homework treats global minima as the answer, and
+            "stuck in local minima" is popular folklore.
+
+            **What actually happens:** deep models are trained successfully all the time without
+            certifying global optimality. Many regions achieve low training loss; generalisation
+            and stability matter more than global optimality certificates. Plateaus and saddles
+            often explain slowdowns better than "the" bad local min.
+
+            **How to catch yourself:** ask whether train loss is high and stuck with huge
+            gradients (optimization failure) or train loss is low while val is bad
+            (generalisation). Only the first is primarily an $\eta$/architecture optimize issue.
+
+      - type: common_mistake
+        markdown: |
+          **Tuning $\eta$ while the data pipeline is broken.** Fix NaN inputs before grid-searching
+          rates.
+
+          **Comparing runs with different batch sizes without retuning $\eta$.** Effective step
+          scale changes.
+
+          **Reading one noisy batch spike as proof you must halt training.** Look at a smoothed
+          curve and gradient norms.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Sketch loss-vs-step curves for too-small, good, and too-large $\eta$ on a simple
+               bowl-shaped loss.
+            2. For $L(w)=w^2$, $w=5$, show that $\eta=1$ oscillates between 5 and $-5$.
+            3. Give one reason a schedule might decrease $\eta$ late in training.
+            4. Train loss is near zero but val loss is high — is your first suspect "local
+               minimum of the population risk" or overfitting? Why?
+            5. Name two symptoms that look like a bad minimum but may be a too-small $\eta$ or a
+               dead gradient path instead.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does a diverging or violently oscillating loss often indicate?"
+              answer: "Learning rate too large (or unstable batches / bad scaling)."
+            - question: "Why is 'find the global minimum' a poor slogan for deep net training?"
+              answer: >-
+                Losses are non-convex with many good-enough regions; practice optimises for low
+                loss and generalisation, not certified global optimality.
+            - question: "What is a learning-rate schedule trying to do?"
+              answer: >-
+                Use larger steps early for progress/exploration, then smaller steps to settle
+                without overshooting.
+            - question: "Flat loss from step 0 — name two distinct causes to check."
+              answer: >-
+                η far too small, or a bug (no optimizer step / zero gradients / wrong graph).
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Match loss-curve shapes to $\eta$ mistakes.
+            - Explain non-convexity without claiming training is hopeless.
+            - Separate optimization failure from overfitting in a short diagnosis.
+            - Say what schedules change, without treating them as magic.
+    resources:
+      - source: 3b1b-calculus
+        purpose: VISUAL_INTUITION
+        relevance: 0.7
+        excerpt: "Derivative and local linear approximation — the reason oversized steps fail."
+      - source: pytorch-autograd
+        purpose: TOOL_REFERENCE
+        relevance: 0.5
+        excerpt: "Gradient tensors that optimizers scale by η in real training loops."
+      - source: d2l
+        purpose: DEEPER_REFERENCE
+        relevance: 0.65
+        excerpt: "Interactive optimization chapters expanding on GD variants and practical training."

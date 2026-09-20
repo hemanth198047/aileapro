@@ -1,0 +1,268 @@
+# Wave 2, part 10: one responsible-AI unit, written as engineering.
+#
+# Deliberately not a values statement. The claim on this page is narrow and checkable: a model's
+# behaviour is a function of its training data, disparity is measurable, and aggregate metrics
+# hide it. Everything recommended here is something a team can actually do this week.
+
+units:
+  - slug: training-data-and-harm
+    title: Training Data, Disparity, and What You Can Actually Measure
+    kind: knowledge_unit
+    parent: responsible-ai
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 36
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [ethics, evaluation, fairness, data]
+    objectives:
+      - Explain how training data determines model behaviour, including its gaps.
+      - Measure performance disaggregated by group and say why the aggregate hid it.
+      - State why removing a protected attribute does not remove its influence.
+      - Name the documentation and review practices that make harm findable before launch.
+    description: >-
+      A model learns the distribution it was shown, including its absences and its historical
+      decisions. That is a measurable engineering property, and measuring it is the part most teams
+      skip.
+    blocks:
+      - type: why
+        markdown: |
+          Two questions decide whether a deployed model does harm, and neither is philosophical:
+          what was in the training data, and did anyone measure performance for the groups the
+          system acts on.
+
+          Both are answerable with the same skills as the rest of this curriculum. A model that is
+          94% accurate overall and 71% accurate for one group is a fact about a confusion matrix, and
+          the only reason it goes unnoticed is that nobody computed the second number.
+
+      - type: eli5
+        markdown: |
+          You teach someone to recognise dogs using a thousand photographs. Every one is a labrador.
+
+          They become excellent at labradors. Shown a chihuahua, they are confidently wrong — and
+          they do not know they have never seen one, because nothing in their training mentioned
+          what was missing.
+
+          Now suppose you test them on a hundred photos, ninety of which are labradors. They score
+          92% and everyone is pleased. The failure is real, it is in the numbers, and the way the
+          test was averaged hid it.
+
+      - type: beginner
+        markdown: |
+          A model learns the distribution it was trained on. Three consequences, all measurable:
+
+          - **Gaps produce failures.** Groups, dialects, lighting conditions, or phrasings that are
+            rare in training are where errors concentrate. The model has no way to report that it is
+            outside familiar territory.
+          - **Historical decisions are learned as targets.** If the label is "was this applicant
+            hired", the model learns to reproduce past hiring decisions, including whatever
+            influenced them. It is doing its job correctly; the job was specified as imitation.
+          - **Aggregate metrics hide disparity.** A single accuracy figure is dominated by the
+            largest groups.
+
+          **Disaggregated evaluation** is the core practice: compute your metrics separately for
+          each group the system affects, and report the breakdown rather than the average.
+
+          | Group | Examples | Accuracy |
+          |-------|----------|----------|
+          | A     | 8,500    | 0.96     |
+          | B     | 1,200    | 0.88     |
+          | C     | 300      | 0.71     |
+          | **Overall** | **10,000** | **0.94** |
+
+          The 0.94 is true and it describes nobody in group C. Note also that group C's 300 examples
+          give a noisy estimate, which is itself a finding: you do not have enough data about them
+          to know how badly you are doing.
+
+      - type: intermediate
+        markdown: |
+          **Removing the attribute does not remove the effect.** Dropping a protected attribute from
+          the feature set is the most common attempted fix and the least effective, because other
+          features carry the same information. Postcode correlates with ethnicity; purchase history
+          correlates with gender; name and school correlate with both. The model reconstructs the
+          attribute from proxies and you have lost the ability to measure the disparity you caused.
+
+          Keep the attribute for *evaluation* even when you exclude it from the features. You cannot
+          measure a gap you refused to record — and in several jurisdictions, collecting it for
+          monitoring purposes is explicitly permitted while using it for decisions is not.
+
+          **Fairness definitions conflict, provably.** The main ones cannot generally all hold at
+          once when base rates differ between groups:
+
+          - **Demographic parity:** the positive rate is equal across groups.
+          - **Equal opportunity:** the true positive rate is equal across groups.
+          - **Calibration:** a predicted probability means the same thing in every group.
+
+          There is no neutral choice. Which one applies is a decision about what the system does and
+          whom it affects, it should be made explicitly and written down, and anyone claiming a
+          model is simply "fair" without naming the criterion has not made the decision.
+
+          **Generative models add failure modes that classifiers do not have:** reproducing
+          stereotypes present in the training corpus, uneven quality across languages and dialects,
+          fabricated claims about real people, and content that is fluent enough to be believed
+          without checking. Evaluation here is harder because there is no single correct output, so
+          practice is adversarial test suites, rubric-based human review, and sampled monitoring in
+          production.
+
+          **What can actually be done, in order of cost:**
+
+          1. **Disaggregate every metric.** An afternoon's work, and the highest-value thing on this
+             list.
+          2. **Document the data.** What it covers, how it was collected, what it omits, what it
+             should not be used for. This is the datasheet practice, and its value is that it makes
+             the gaps visible to the next person.
+          3. **Document the model.** Intended use, out-of-scope use, performance by group, known
+             limitations. This is the model card practice.
+          4. **Red-team before launch.** A deliberate attempt to produce the bad output, by people
+             who did not build the system.
+          5. **Design the failure path.** Appeal, human review, an off switch. What happens to
+             someone the system was wrong about is a product decision, and defaulting it to "nothing"
+             is also a decision.
+
+          **The refusal case.** Sometimes the right answer is not to ship. A system whose errors fall
+          disproportionately on people who cannot contest them, or a use case where the base rate
+          makes precision impossible, is not fixed by a better model. Recognising that early is
+          cheaper than recognising it publicly.
+
+      - type: example
+        markdown: |
+          A CV screening model, trained on ten years of hiring decisions, predicts "would this
+          candidate be interviewed".
+
+          **What it learns.** Not who is capable — who was interviewed. If certain universities,
+          certain career gaps, or certain phrasings were historically favoured, those are the
+          patterns. The model is accurate about the past and the past is the thing being questioned.
+
+          **Naive mitigation.** Remove name, gender, and age. Accuracy barely moves, which is read as
+          reassuring and is actually the finding: the information was never in those fields. It is in
+          university, postcode, hobbies, career gaps, and the phrasing of the CV itself.
+
+          **Disaggregated evaluation**, measured on a held-out year:
+
+          | Group | Examples | Precision | Recall |
+          |-------|----------|-----------|--------|
+          | A     | 4,000    | 0.82      | 0.79   |
+          | B     | 900      | 0.80      | 0.54   |
+          | Overall | 4,900  | 0.82      | 0.75   |
+
+          Precision is nearly equal, which is why a precision-only report would have looked clean.
+          Recall is not: the model misses 46% of the group B candidates who *were* interviewed,
+          against 21% for group A. In deployment that is qualified people filtered out before any
+          human looks — and because they are filtered out, no feedback ever arrives to reveal the
+          error.
+
+          **What the numbers do and do not settle.** They establish that the disparity exists and
+          how large it is. They do not say whether the cause is the label, the feature set, the
+          sample size for group B, or the historical decisions themselves — that needs
+          investigation. And they do not decide what to do, which is a judgement about what the
+          system is for.
+
+          **A defensible response** looks like: state equal opportunity (equal recall) as the
+          criterion because the harm is being wrongly excluded; measure it every release; use the
+          model to rank for human review rather than to reject; publish the breakdown in the model
+          card; and give every rejected candidate a route to human review. None of that is exotic,
+          and all of it is invisible from an aggregate score.
+
+      - type: misconception
+        payload:
+          code: rai.blind_means_fair
+          claim: "Remove the protected attributes and the model cannot discriminate."
+          markdown: |
+            **The claim:** a model that never sees gender, ethnicity, or age cannot treat people
+            differently on those grounds, so exclusion is the fix.
+
+            **Why it feels right:** it is intuitive, it maps onto how we think about human bias, and
+            it is often what a compliance checklist literally asks for.
+
+            **What actually happens:** the attribute is reconstructable from correlated features.
+            Postcode, purchase history, name, school, phrasing, device type — each carries some of
+            the signal, and a model with enough capacity recovers it without being told. The measured
+            outcome is unchanged, as in the worked example where removing the fields barely moved
+            accuracy.
+
+            The exclusion also does active harm in one specific way: if you did not record the
+            attribute, you cannot compute the disaggregated metrics that would reveal the gap. You
+            have removed the measurement rather than the disparity, and the system now looks clean
+            because nothing is looking.
+
+            **How to catch yourself:** train a small model to predict the protected attribute from
+            your remaining features. If it succeeds — it usually does — the information is present
+            and exclusion achieved nothing. Then keep the attribute for evaluation, exclude it from
+            the features if that is the policy, and report the breakdown.
+
+      - type: common_mistake
+        markdown: |
+          **Reporting one aggregate number.** It is dominated by the largest group and says nothing
+          about the smallest.
+
+          **Treating a fairness metric as a checkbox.** The definitions conflict, so passing one can
+          mean failing another. Name the one that matches the harm and say why.
+
+          **Leaving the appeal path undesigned.** Every classifier is wrong about someone. What
+          happens to that person is part of the system, whether or not anyone designed it.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Overall accuracy is 0.91; group A (n=9,000) is 0.93 and group B (n=1,000) is 0.73.
+               Write the two sentences you would put in the release notes.
+            2. Name four features that could act as proxies for a protected attribute in a lending
+               model, and say what each correlates with.
+            3. For a model that flags benefit claims for review, choose a fairness criterion and
+               justify it from the harm rather than from convenience.
+            4. Write six datasheet questions you would require before using a dataset you did not
+               collect.
+            5. Describe a system you would recommend not shipping, and the argument you would make.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Why does removing a protected attribute not prevent disparate outcomes?"
+              answer: >-
+                Other features act as proxies and the model reconstructs the attribute from them. It
+                also removes your ability to measure the disparity.
+            - question: "What is disaggregated evaluation and why does it matter?"
+              answer: >-
+                Computing metrics separately per affected group. Aggregate figures are dominated by
+                the largest group and can conceal large failures in smaller ones.
+            - question: "Why can a model not simply be 'fair'?"
+              answer: >-
+                The main fairness criteria — demographic parity, equal opportunity, calibration —
+                cannot generally all hold when base rates differ, so one must be chosen and justified.
+            - question: "What does a model trained on historical decisions actually learn?"
+              answer: >-
+                To reproduce those decisions, including whatever influenced them. The label is the
+                past outcome, not the underlying merit.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Produce a disaggregated evaluation table and interpret it honestly, including its noise.
+            - Explain proxy variables well enough to stop an "we removed the field" argument.
+            - Choose a fairness criterion for a stated system and defend it from the harm.
+            - Name the documentation and review steps you would require before launch, and argue for
+              not shipping when that is the answer.
+    resources:
+      - source: model-cards-2018
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          The model documentation practice, including the case for reporting performance broken
+          down by group rather than as one figure.
+      - source: datasheets-2018
+        purpose: PRIMARY_SOURCE
+        relevance: 0.8
+        excerpt: "The dataset documentation practice referenced above, with the question list to work from."
+      - source: nist-ai-rmf
+        purpose: TOOL_REFERENCE
+        relevance: 0.6
+        excerpt: >-
+          A vendor-neutral structure — govern, map, measure, manage — for turning the practices above
+          into a process. US Government work, public domain.

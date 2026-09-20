@@ -1,49 +1,303 @@
-# A genuinely unfinished unit, kept in the seed on purpose.
+# Wave 3: scaled dot-product attention — previously kept as a deliberate draft.
 #
-# It is the next unit in the authoring queue and it is not ready: one explanation level, no
-# example, no misconception, no exercises, no mastery criteria. Because its status is draft,
-# CurriculumQueryService will not return it, /v1/units/scaled-dot-product-attention answers
-# 404, and the path below skips its waypoint. That behaviour is covered by a test rather than
-# by trust — see CatalogApiTest.
+# Filename retained so CatalogApiTest history and references stay findable; content is now
+# published-complete. The √d_k variance argument and a three-token numeric walkthrough are
+# the pieces that were missing.
 
 units:
   - slug: scaled-dot-product-attention
     title: Scaled Dot-Product Attention
     kind: knowledge_unit
     parent: attention
-    status: draft
-    version: 0.2.0
+    status: published
+    version: 1.0.0
     difficulty: 4
     estimateMinutes: 45
     volatility: LOW
     knowledgeClass: STABLE
-    tags: [attention, transformers]
+    lastReviewedAt: 2026-09-19
+    tags: [attention, transformers, deep-learning]
     objectives:
-      - Compute attention weights for a short sequence by hand.
-      - Explain why the scores are divided by the square root of the key dimension.
+      - Compute attention weights for a short sequence by hand from queries, keys, and values.
+      - Explain why scores are divided by the square root of the key dimension, including the variance argument.
+      - Distinguish the roles of Q, K, and V and say what softmax contributes.
+      - Spot when scaling has been omitted and predict what goes wrong.
     description: >-
-      Queries, keys, and values, and why the dot products are scaled. Draft: needs a worked
-      numeric example, a misconception, and exercises before it can be published.
+      Queries, keys, and values; the softmax that turns scores into weights; and why the scores
+      are divided by √d_k before that soft max — with a three-token numeric walkthrough.
     blocks:
       - type: why
         markdown: |
-          Attention is how a model decides what to read. Draft note: this section needs to
-          connect back to the matrix product unit before it is publishable.
+          Every transformer block mixes information across positions with one operation. That
+          operation is scaled dot-product attention. If you cannot compute a tiny case by hand,
+          the diagrams of multi-head stacks, causal masks, and long-context tricks are decoration
+          — you will not know which part of the computation they are changing.
+
+          It also settles a practical question. People drop the $\sqrt{d_k}$ factor, or treat it as
+          "numerical stability", and then wonder why training collapses at larger head sizes. The
+          variance argument below is the reason the paper put it there.
+
+      - type: eli5
+        markdown: |
+          Imagine three sticky notes on a desk, each with a short description written on it. You
+          pick up one note and ask: "how much should I listen to each of the three?"
+
+          You compare your question to every note's label, turn those comparisons into percentages
+          that add to 100%, and then take a blend of the notes' contents — mostly from the ones
+          that matched your question, a little from the others.
+
+          That blend is the answer for that sticky note. Do it for every note and you have mixed
+          the desk without rewriting anyone's original content.
 
       - type: beginner
         markdown: |
-          Each position produces a query, a key, and a value. The query is compared against every
-          key by dot product, the scores are scaled and softmaxed into weights, and the output is
-          the weighted sum of the values:
+          Each position in a sequence produces three vectors:
+
+          - **Query $q$** — what this position is looking for.
+          - **Key $k$** — what this position offers as a label for matching.
+          - **Value $v$** — the content that will be mixed if someone attends here.
+
+          For a sequence of length $L$, stack them into matrices $Q$, $K$, $V$ of shape
+          $L \times d_k$ (values often use the same width; the paper writes $d_v$, frequently equal
+          to $d_k$).
+
+          **Scores.** Compare every query to every key with a matrix multiply:
 
           $$
-          \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^{T}}{\sqrt{d_k}}\right)V
+          S = QK^{\top}
           $$
 
-          Draft note: the $\sqrt{d_k}$ term needs the variance argument written out, plus a
-          numeric example on a three-token sequence.
+          Entry $(i, j)$ is the raw match between position $i$'s query and position $j$'s key.
+
+          **Scale.** Divide by $\sqrt{d_k}$:
+
+          $$
+          S' = \frac{QK^{\top}}{\sqrt{d_k}}
+          $$
+
+          **Weights.** Softmax each row so the weights over keys are positive and sum to 1:
+
+          $$
+          A = \mathrm{softmax}(S')
+          $$
+
+          **Output.** Mix the values with those weights:
+
+          $$
+          \mathrm{Attention}(Q, K, V) = AV = \mathrm{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}}\right)V
+          $$
+
+          One sentence: attention is a soft, content-addressed lookup — the query addresses the
+          keys; the values are what you read.
+
+      - type: intermediate
+        markdown: |
+          **Why three matrices, not one?** Matching and reading are different jobs. Keys decide
+          *who matches*; values decide *what you retrieve*. A position can be easy to match (a
+          distinctive key) while carrying content that should only rarely be copied (a small
+          contribution in $V$), or the reverse. Tying them into one vector removes that freedom.
+
+          **Softmax is not optional decoration.** Without it, scores can be negative, need not sum
+          to one, and do not behave like a mixture. Softmax also sharpens: if one score is clearly
+          larger, its weight approaches 1 and the others approach 0 — attention becomes nearly a
+          hard pointer. If scores are close, the mixture stays diffuse.
+
+          **Causal masking** (for autoregressive decoding) sets future positions' scores to
+          $-\infty$ before softmax so their weights become zero. The formula above is unchanged;
+          only the admissible set of keys shrinks. Multi-head attention runs several of these
+          operations in parallel on sliced subspaces and concatenates — same idea, several
+          independent mixtures.
+
+          **Cost.** For sequence length $L$ and width $d_k$, forming $QK^{\top}$ is $O(L^2 d_k)$.
+          That quadratic term is why long context is expensive and why so much later work
+          approximates or sparsifies attention rather than replacing the idea.
+
+      - type: advanced
+        markdown: |
+          **Why $\sqrt{d_k}$ — the variance argument.**
+
+          Suppose the components of $q$ and $k$ are independent with mean 0 and variance 1. Then
+          the dot product
+
+          $$
+          q \cdot k = \sum_{i=1}^{d_k} q_i k_i
+          $$
+
+          has mean 0 and variance $d_k$ (sum of $d_k$ independent unit-variance terms). So as the
+          head dimension grows, raw scores grow in magnitude like $\sqrt{d_k}$ in root-mean-square
+          sense — they spread out.
+
+          Softmax is a function of *differences* of logits. When magnitudes are large, the largest
+          score dominates: $\mathrm{softmax}$ collapses toward a one-hot vector, gradients through
+          the soft max become tiny, and learning stalls. Dividing by $\sqrt{d_k}$ restores variance
+          roughly 1 regardless of dimension:
+
+          $$
+          \mathrm{Var}\!\left(\frac{q \cdot k}{\sqrt{d_k}}\right) = 1
+          $$
+
+          under the same independence assumptions. That is the argument in *Attention Is All You
+          Need* (section 3.2.1): scaling is not a random constant for "stability" — it keeps the
+          soft max in a regime where gradients remain informative as $d_k$ grows.
+
+          If you omit the scale at $d_k = 64$ (a common head size), you are feeding softmax
+          logits whose typical size is about eight times too large. Training can still limp along
+          with tiny learning rates or careful initialisation, but you have fought the geometry the
+          formula was written to avoid.
+
+      - type: example
+        markdown: |
+          Three tokens, head width $d_k = 2$. Use these matrices (rows are positions 1, 2, 3):
+
+          $$
+          Q = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 & 1 \end{bmatrix}, \quad
+          K = \begin{bmatrix} 1 & 0 \\ 1 & 1 \\ 0 & 1 \end{bmatrix}, \quad
+          V = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 & 1 \end{bmatrix}
+          $$
+
+          **Step 1 — scores.** $QK^{\top}$:
+
+          $$
+          QK^{\top} =
+          \begin{bmatrix}
+          1 & 1 & 0 \\
+          0 & 1 & 1 \\
+          1 & 2 & 1
+          \end{bmatrix}
+          $$
+
+          Check position 1: $q_1 = (1,0)$ against $k_1=(1,0)$, $k_2=(1,1)$, $k_3=(0,1)$ gives
+          $1$, $1$, $0$.
+
+          **Step 2 — scale.** $\sqrt{d_k} = \sqrt{2} \approx 1.414$, so
+
+          $$
+          S' \approx
+          \begin{bmatrix}
+          0.707 & 0.707 & 0.000 \\
+          0.000 & 0.707 & 0.707 \\
+          0.707 & 1.414 & 0.707
+          \end{bmatrix}
+          $$
+
+          **Step 3 — softmax per row.** For row 1, scores $(0.707, 0.707, 0)$:
+
+          $$
+          e^{0.707} \approx 2.028,\quad e^{0.707} \approx 2.028,\quad e^{0} = 1
+          $$
+
+          Sum $\approx 5.056$, so weights $\approx (0.401, 0.401, 0.198)$.
+
+          Row 2 with scores $(0, 0.707, 0.707)$ is symmetric: $\approx (0.198, 0.401, 0.401)$.
+
+          Row 3 with $(0.707, 1.414, 0.707)$: $e^{1.414} \approx 4.113$, sum $\approx 8.169$,
+          weights $\approx (0.248, 0.504, 0.248)$.
+
+          **Step 4 — mix values.** Output row 1:
+
+          $$
+          0.401\,v_1 + 0.401\,v_2 + 0.198\,v_3
+          \approx 0.401(1,0) + 0.401(0,1) + 0.198(1,1)
+          \approx (0.599,\ 0.599)
+          $$
+
+          Position 1 attended almost equally to itself and position 2, and lightly to position 3 —
+          which matches the scores. Repeat for the other rows if you want the full $3 \times 2$
+          output; the arithmetic is the same.
+
+          **Without scaling** the raw scores for row 3 are $(1, 2, 1)$. Softmax already puts about
+          half the mass on the middle key; at larger $d_k$ that peak would be far sharper. The
+          $\sqrt{2}$ factor here is mild because $d_k$ is tiny — the variance argument matters
+          when heads are wide.
+
+      - type: misconception
+        payload:
+          code: attn.scale_is_optional_numerics
+          claim: "Dividing by √d_k is only for numerical stability; you can skip it if training looks fine."
+          markdown: |
+            **The claim:** scaling is a floating-point convenience, not part of the model.
+
+            **Why it feels right:** frameworks mention overflow and underflows near softmax; people
+            lump $\sqrt{d_k}$ with those fixes.
+
+            **What actually happens:** the paper's reason is statistical. Unscaled dot products have
+            variance $d_k$, which pushes softmax into a near-one-hot regime and starves gradients.
+            That is a learning-dynamics failure, not a NaN. You can get lucky at small $d_k$ or with
+            heroic learning-rate tuning; you have still removed the term that keeps score scale
+            independent of head width.
+
+            **How to catch yourself:** ask what the variance of $q\cdot k$ is as $d_k$ grows. If your
+            answer grows with $d_k$ and you still feed those logits to softmax unchanged, you have
+            the bug — even if the run has not NaN'd yet.
+
+      - type: common_mistake
+        markdown: |
+          **Softmax over the wrong axis.** Softmax must run over keys for each query (each row of
+          $QK^{\top}$). Softmax over queries for a fixed key builds a different, usually wrong,
+          mixture.
+
+          **Reusing Q as V.** Then "matching well" and "contributing content" are forced to be the
+          same direction. Prototyping with tied projections hides bugs that appear the moment you
+          untie them.
+
+          **Forgetting that weights sum to one.** Interpreting a single attention weight in
+          isolation without checking the rest of the row leads to stories that the matrix does not
+          support.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. With $d_k = 4$, if each component of $q$ and $k$ is independent with variance 1, what
+               is $\mathrm{Var}(q\cdot k)$ before scaling? After dividing by $\sqrt{d_k}$?
+            2. Using the three-token example above, recompute row-2 weights and the output vector
+               for position 2.
+            3. Set the $(1,3)$ entry of $QK^{\top}$ to $-10$ before scaling and redo row 1's
+               softmax. What happened to attention on position 3, and why?
+            4. Explain in three sentences why keys and values should not be forced to be the same
+               vector.
+            5. A colleague removes $\sqrt{d_k}$ "to make attention sharper." Are they right about
+               the sharpness effect? What else have they changed?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Write the formula for scaled dot-product attention."
+              answer: >-
+                softmax(QKᵀ / √d_k) V — scores from query–key dots, scaled, turned into weights,
+                then mixed into values.
+            - question: "What is the variance argument for √d_k?"
+              answer: >-
+                If components of q and k are independent unit-variance, Var(q·k) = d_k; dividing by
+                √d_k restores variance ≈ 1 so softmax stays well-behaved as width grows.
+            - question: "What does softmax contribute that raw scores do not?"
+              answer: >-
+                Non-negative weights that sum to one per query, i.e. a proper mixture over values,
+                with sharpness controlled by score gaps.
+            - question: "Why separate K from V?"
+              answer: >-
+                Matching (keys) and content retrieved (values) are different roles; tying them
+                removes the ability to be easy to address without always dumping that position's
+                full content.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Compute $QK^{\top}$, scale, softmax, and $AV$ for a three-token toy by hand.
+            - Derive $\mathrm{Var}(q\cdot k)=d_k$ under the independence assumption and say what
+              scaling restores.
+            - Explain a wrong softmax axis or a missing scale as a concrete failure mode, not a
+              slogan.
+            - Point to the PRIMARY_SOURCE section that defines the operation and the scale.
     resources:
       - source: attention-2017
         purpose: PRIMARY_SOURCE
-        relevance: 0.9
-        excerpt: "Section 3.2.1 defines scaled dot-product attention and gives the scaling argument."
+        relevance: 0.95
+        excerpt: "Section 3.2.1 defines scaled dot-product attention and gives the √d_k variance argument."
+      - source: d2l
+        purpose: TOOL_REFERENCE
+        relevance: 0.7
+        excerpt: "Attention chapters implement the same formula with shapes traced in code. CC BY-SA 4.0."

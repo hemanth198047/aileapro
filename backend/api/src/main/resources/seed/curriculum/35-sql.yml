@@ -1,0 +1,233 @@
+# Wave 3: SQL for AI workflows — select, join, aggregate.
+#
+# Enough SQL to pull training frames and evaluation cohorts from a warehouse without pretending
+# to be a DBA course.
+
+units:
+  - slug: sql-for-ai
+    title: SQL for AI Workflows
+    kind: chapter
+    parent: sql
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 45
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [sql, data, analytics]
+    objectives:
+      - Query tabular data with SELECT, filters, joins, and aggregates.
+      - Build simple training/evaluation extracts without loading entire tables into memory.
+      - Read join results carefully enough to spot fan-out duplication.
+    description: >-
+      The SQL you need to pull ML datasets: project columns, filter rows, join entities, and
+      aggregate counts and rates.
+    blocks:
+      - type: why
+        markdown: |
+          Features and labels usually live in databases long before they live in NumPy. If you
+          cannot SELECT, JOIN, and GROUP BY safely, you will export the wrong cohort — and every
+          model metric downstream will be theatre.
+
+  - slug: sql-select-join-aggregate
+    title: SELECT, JOIN, and Aggregate
+    kind: knowledge_unit
+    parent: sql-for-ai
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [sql, joins, aggregation]
+    objectives:
+      - Write SELECT queries with WHERE, ORDER BY, and LIMIT for dataset peeks.
+      - Join two tables on a key and predict when row counts multiply (fan-out).
+      - Use GROUP BY with COUNT/SUM/AVG for cohort summaries and label rates.
+      - Explain INNER vs LEFT join in terms of which rows survive.
+    description: >-
+      Core SQL for ML extracts: project, filter, join entities, and aggregate — including the
+      fan-out bug that silently duplicates training rows.
+    blocks:
+      - type: why
+        markdown: |
+          A training table is almost never one raw dump. You filter a time window, join users to
+          events, and aggregate label rates per segment. Each of those is a SQL clause. Get the
+          join wrong and you duplicate examples; get the filter wrong and you train on the future.
+
+      - type: eli5
+        markdown: |
+          A spreadsheet with many tabs. SELECT picks columns. WHERE picks rows. JOIN lines up
+          matching IDs across tabs. GROUP BY is "summarise per customer" — totals instead of
+          every purchase line.
+
+          If one customer has three purchases and you join carelessly, that customer can appear
+          three times when you meant once — like photocopying their application by accident.
+
+      - type: beginner
+        markdown: |
+          **Project and filter:**
+
+          ```sql
+          SELECT user_id, created_at, label
+          FROM events
+          WHERE created_at >= DATE '2026-01-01'
+            AND label IS NOT NULL
+          ORDER BY created_at
+          LIMIT 100;
+          ```
+
+          `SELECT *` is fine for exploration; name columns in pipelines so schema drift fails
+          loudly.
+
+          **Aggregates** collapse groups:
+
+          ```sql
+          SELECT country, COUNT(*) AS n, AVG(label) AS positive_rate
+          FROM users
+          GROUP BY country
+          HAVING COUNT(*) >= 50;
+          ```
+
+          `WHERE` filters rows before grouping; `HAVING` filters groups after aggregation.
+
+      - type: intermediate
+        markdown: |
+          **Joins.** `INNER JOIN` keeps rows with matches on both sides. `LEFT JOIN` keeps every
+          left row and fills NULLs when the right side is missing — useful for "users with or
+          without a label".
+
+          ```sql
+          SELECT u.user_id, u.country, e.event_type, e.label
+          FROM users AS u
+          INNER JOIN events AS e
+            ON u.user_id = e.user_id
+          WHERE e.created_at >= DATE '2026-01-01';
+          ```
+
+          **Fan-out.** If `events` has many rows per user, joining users→events multiplies user
+          attributes once per event. That is correct for event-level training and catastrophic if
+          you meant one row per user. Fix by aggregating before the join, or by choosing the
+          grain deliberately.
+
+          **Grain checklist** before export:
+
+          1. What is one training example? (user, session, event, day-user…)
+          2. Does every join preserve that grain?
+          3. Did `COUNT(*)` after the join match your expectation?
+
+          **Leakage.** Joining future labels or post-outcome features into a "prediction time"
+          row is a SQL bug with an ML costume. Filter on timestamps as carefully as on keys.
+
+      - type: example
+        markdown: |
+          You want one row per user with a 30-day click count and a binary conversion label.
+
+          Wrong grain (duplicates users):
+
+          ```sql
+          -- Dangerous if clicks has many rows per user and conversions is 1:1
+          SELECT u.user_id, c.ts, v.converted
+          FROM users u
+          JOIN clicks c ON u.user_id = c.user_id
+          JOIN conversions v ON u.user_id = v.user_id;
+          ```
+
+          Safer pattern: aggregate clicks first, then join.
+
+          ```sql
+          WITH click_counts AS (
+            SELECT user_id, COUNT(*) AS clicks_30d
+            FROM clicks
+            WHERE ts >= CURRENT_DATE - INTERVAL '30' DAY
+            GROUP BY user_id
+          )
+          SELECT u.user_id, u.country,
+                 COALESCE(cc.clicks_30d, 0) AS clicks_30d,
+                 COALESCE(v.converted, FALSE) AS converted
+          FROM users AS u
+          LEFT JOIN click_counts AS cc ON u.user_id = cc.user_id
+          LEFT JOIN conversions AS v ON u.user_id = v.user_id;
+          ```
+
+          Check: `SELECT COUNT(*) FROM (...);` should equal `SELECT COUNT(*) FROM users` if the
+          grain is one row per user.
+
+      - type: misconception
+        payload:
+          code: sql.join_never_duplicates
+          claim: "Joining on a key never duplicates rows."
+          markdown: |
+            **The claim:** keys match one-to-one, so JOIN is just "adding columns".
+
+            **Why it feels right:** entity diagrams look 1:1, and SELECT lists look like a wider
+            spreadsheet.
+
+            **What actually happens:** if either side has multiple matches, SQL emits the
+            Cartesian product of matches for that key — fan-out. User attributes repeat once per
+            event; aggregates computed later are wrong; models see duplicated weight on busy keys.
+
+            **How to catch yourself:** compare counts before and after each join. If
+            `COUNT(*)` jumps when you expected equal grains, you duplicated.
+
+      - type: common_mistake
+        markdown: |
+          **SELECT * into training CSV.** Schema changes silently shift columns.
+
+          **INNER JOIN when you needed LEFT JOIN.** Users without events disappear — a selection
+          effect introduced in SQL.
+
+          **Aggregating after a fan-out join** and treating inflated counts as truth.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Write a SELECT that returns the 20 most recent labelled events for one user_id.
+            2. Explain the difference in surviving rows between INNER and LEFT join of users to
+               labels when some users lack labels.
+            3. users (1 row/user) join purchases (many/user). Predict what happens to row count
+               and how to get spend per user instead.
+            4. Write a GROUP BY query for positive_rate by country with a minimum cohort size
+               filter.
+            5. Describe a timestamp join bug that would leak future information into features.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is fan-out in a join, and why does it matter for training data?"
+              answer: >-
+                Multiple matches on a key multiply rows. That duplicates examples or inflates
+                aggregates unless the event-level grain was intentional.
+            - question: "WHEN do you use WHERE vs HAVING?"
+              answer: >-
+                WHERE filters rows before aggregation; HAVING filters groups after GROUP BY.
+            - question: "INNER vs LEFT join for users and optional labels?"
+              answer: >-
+                INNER drops users without labels; LEFT keeps them with NULL labels — often needed
+                to avoid selection bias.
+            - question: "Name one check that a one-row-per-user extract stayed one-row-per-user."
+              answer: >-
+                Compare COUNT(*) of the result to COUNT(*) of users (for an inner grain on all
+                users), or inspect MAX(duplicate counts) grouped by user_id.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Write filtered SELECTs with explicit columns for an extract.
+            - Choose INNER vs LEFT deliberately for labelled cohorts.
+            - Detect and prevent fan-out when the grain should be one row per entity.
+            - Produce a GROUP BY cohort summary with HAVING for minimum n.
+    resources:
+      - source: sql-tutorial-w3
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.95
+        excerpt: >-
+          Practical SQL tutorial covering SELECT, JOIN, and aggregate functions — the reference
+          for syntax details this unit applies to ML extracts.

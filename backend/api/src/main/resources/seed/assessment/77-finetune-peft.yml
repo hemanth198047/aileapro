@@ -1,0 +1,270 @@
+# Items for fine-tuning-vs-prompting and peft-lora-intuition.
+
+items:
+  - slug: ft-weights-vs-prompt
+    unit: fine-tuning-vs-prompting
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "What stays fixed when you rely only on prompting / in-context learning?"
+    choices:
+      - id: a
+        text: "The model weights; only the context conditioning changes."
+        correct: true
+      - id: b
+        text: "The tokenizer vocabulary, which is rebuilt each call."
+      - id: c
+        text: "Nothing — prompting secretly runs a gradient step."
+      - id: d
+        text: "The output layer only; attention weights update online."
+    explanation: |
+      GPT-3-style in-context learning performs tasks from instructions and examples in the
+      window without a gradient update at inference time. Fine-tuning is what moves weights.
+
+  - slug: ft-not-for-changing-facts
+    unit: fine-tuning-vs-prompting
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      A handbook updates weekly and answers must cite the current text. What should you prefer?
+    choices:
+      - id: a
+        text: "RAG (or tools) over the handbook — not baking the text into weights."
+        correct: true
+      - id: b
+        text: "Full fine-tuning every Monday on the new PDF."
+      - id: c
+        text: "Raising temperature so the model explores newer facts."
+      - id: d
+        text: "Fine-tuning always beats prompting for knowledge."
+        misconception: ft.always_beats_prompting
+    explanation: |
+      Weights are a poor CMS. Fresh, citable knowledge belongs in an index you can update without
+      a training run. Fine-tuning targets behaviour/format more than volatile facts.
+
+  - slug: ft-instruct-shift
+    unit: fine-tuning-vs-prompting
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What did InstructGPT-style training primarily change?"
+    choices:
+      - id: a
+        text: "The distribution over continuations — toward instruction-following assistant behaviour."
+        correct: true
+      - id: b
+        text: "The architecture from transformer to LSTM."
+      - id: c
+        text: "The objective from next-token prediction to exact database lookup."
+      - id: d
+        text: "The tokenizer to character-only."
+    explanation: |
+      Instruction and preference tuning still sit on next-token modelling; they shift which
+      continuations are likely. They do not install a verified fact store.
+
+  - slug: ft-regression-risk
+    unit: fine-tuning-vs-prompting
+    type: true_false
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 100
+    stem: |
+      Fine-tuning on a narrow task set can improve that task while degrading unrelated behaviours.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — catastrophic forgetting / narrow overfitting is a central risk. Keep a regression
+      suite broader than the training metric.
+
+  - slug: ft-prompt-baseline
+    unit: fine-tuning-vs-prompting
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A fine-tuned checkpoint beats your few-shot prompt on the training-like eval. What else
+      should you check before shipping?
+    choices:
+      - id: a
+        text: "A broader regression suite — safety, unrelated skills, and a prompt-only baseline on held-out tasks."
+        correct: true
+      - id: b
+        text: "Nothing — fine-tuning always dominates prompting."
+        misconception: ft.always_beats_prompting
+      - id: c
+        text: "Only whether GPU utilisation was above 90% during training."
+      - id: d
+        text: "Whether the learning rate was exactly 1e-5."
+    explanation: |
+      Task-local gains can hide global losses. Keep the prompt baseline and measure behaviours
+      you did not intend to change.
+
+  - slug: lora-frozen
+    unit: peft-lora-intuition
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "In standard LoRA, what is frozen during adaptation?"
+    choices:
+      - id: a
+        text: "The pretrained base weights $W$; low-rank factors train instead."
+        correct: true
+      - id: b
+        text: "Only the tokenizer; all neural weights train."
+      - id: c
+        text: "The low-rank matrices; $W$ is fully updated."
+      - id: d
+        text: "The data loader; gradients are optional."
+    explanation: |
+      LoRA injects trainable $A$ and $B$ such that $\Delta W \approx BA$ (scaled), while $W$ stays
+      fixed — the point of parameter-efficient adaptation.
+
+  - slug: lora-rank
+    unit: peft-lora-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "What does the LoRA rank $r$ control?"
+    choices:
+      - id: a
+        text: "The capacity of the low-rank update — higher $r$ means a richer $\\Delta W$ and more trainable parameters."
+        correct: true
+      - id: b
+        text: "The number of GPUs required, exactly equal to $r$."
+      - id: c
+        text: "The vocabulary size of the tokenizer."
+      - id: d
+        text: "The context window length in tokens."
+    explanation: |
+      Rank is the inner dimension of $A$ and $B$. It is a capacity/memory dial, not a guarantee
+      that quality matches full fine-tuning.
+
+  - slug: lora-not-guaranteed
+    unit: peft-lora-intuition
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A stakeholder says LoRA is always equal to full fine-tuning at lower cost. Best response?
+    choices:
+      - id: a
+        text: "Often strong, but it approximates updates in a low-rank subspace — measure against your task and baselines."
+        correct: true
+      - id: b
+        text: "Agree — LoRA always matches full FT quality."
+        misconception: lora.as_good_as_full_ft
+      - id: c
+        text: "Disagree — LoRA never works for language models."
+      - id: d
+        text: "Agree only if rank is set to 1."
+    explanation: |
+      LoRA is an inductive bias and a systems win. Quality parity is empirical. Rank, modules, and
+      data still decide outcomes.
+
+  - slug: lora-multi-adapter
+    unit: peft-lora-intuition
+    type: true_false
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Many small LoRA adapters can share one frozen base model checkpoint for different tasks.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — that operational pattern is a primary reason PEFT exists: one large base, many cheap
+      behavioural variants (merge or hot-swap depending on serving needs).
+
+  - slug: lora-not-fix-retrieval
+    unit: peft-lora-intuition
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: "Which problem does LoRA alone not solve?"
+    choices:
+      - id: a
+        text: "Needing up-to-date citable facts from a changing corpus."
+        correct: true
+      - id: b
+        text: "Reducing trainable parameter count versus full fine-tuning."
+      - id: c
+        text: "Storing task variants as small adapter files."
+      - id: d
+        text: "Freezing the base weights during adaptation."
+    explanation: |
+      PEFT adapts behaviour efficiently. Volatile knowledge still wants retrieval. LoRA is not a
+      substitute for a document index.
+
+assessments:
+  - slug: fine-tuning-vs-prompting-practice
+    title: "Practice: fine-tuning versus prompting"
+    kind: practice
+    unit: fine-tuning-vs-prompting
+    items:
+      - ft-weights-vs-prompt
+      - ft-not-for-changing-facts
+      - ft-regression-risk
+
+  - slug: fine-tuning-vs-prompting-quiz
+    title: "Quiz: fine-tuning versus prompting"
+    kind: quiz
+    unit: fine-tuning-vs-prompting
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - ft-weights-vs-prompt
+      - ft-not-for-changing-facts
+      - ft-instruct-shift
+      - ft-prompt-baseline
+
+  - slug: peft-lora-intuition-practice
+    title: "Practice: PEFT and LoRA"
+    kind: practice
+    unit: peft-lora-intuition
+    items:
+      - lora-frozen
+      - lora-rank
+      - lora-multi-adapter
+
+  - slug: peft-lora-intuition-quiz
+    title: "Quiz: PEFT and LoRA"
+    kind: quiz
+    unit: peft-lora-intuition
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - lora-frozen
+      - lora-rank
+      - lora-not-guaranteed
+      - lora-not-fix-retrieval
+
+cards:
+  - slug: card-ft-vs-prompt
+    unit: fine-tuning-vs-prompting
+    front: "Prompting vs fine-tuning in one line?"
+    back: |
+      Prompting steers a frozen model via context; fine-tuning changes weights so behaviour
+      persists with shorter prompts — and can regress unrelated skills.
+
+  - slug: card-lora-update
+    unit: peft-lora-intuition
+    front: "What does LoRA train?"
+    back: |
+      Low-rank factors $A$ and $B$ so $\Delta W \approx BA$, while pretrained $W$ stays frozen.

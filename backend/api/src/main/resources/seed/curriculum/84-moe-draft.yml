@@ -1,0 +1,29 @@
+# Intentionally unfinished — kept so CatalogApiTest / GraphApiTest can assert draft invisibility.
+# Do not publish until MoE routing, load balancing, and expert capacity are authored.
+
+units:
+  - slug: mixture-of-experts-draft
+    title: Mixture of Experts (draft)
+    kind: knowledge_unit
+    parent: transformers
+    status: draft
+    version: 0.1.0
+    difficulty: 5
+    estimateMinutes: 40
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    tags: [transformers, moe, draft]
+    objectives:
+      - Explain router → expert selection at a high level.
+    description: >-
+      Sparse MoE layers route tokens to a subset of experts. Draft: needs a worked routing
+      example, load-balance loss, and failure modes before publish.
+    blocks:
+      - type: why
+        markdown: |
+          Dense transformers pay for every parameter on every token. MoE tries to grow capacity
+          without growing per-token compute. Draft note: this page is incomplete on purpose.
+      - type: beginner
+        markdown: |
+          A router scores experts; the top-$k$ run; their outputs are combined. Draft note: write
+          the capacity and load-balancing story before publishing.

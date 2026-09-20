@@ -1,0 +1,272 @@
+# Items for approximate-nearest-neighbors and chunking-and-retrieval-quality.
+
+items:
+  - slug: ann-vs-exact
+    unit: approximate-nearest-neighbors
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "What does approximate nearest-neighbour search trade for lower latency?"
+    choices:
+      - id: a
+        text: "A guarantee of exact top-$k$ neighbours — recall may drop."
+        correct: true
+      - id: b
+        text: "The need for an embedding model."
+      - id: c
+        text: "All use of metadata filters."
+      - id: d
+        text: "Deterministic query planning in SQL."
+    explanation: |
+      ANN examines a subset of candidates via an index structure. Speed comes from not scoring
+      everything; missed true neighbours are the risk you measure.
+
+  - slug: ann-rag-miss
+    unit: approximate-nearest-neighbors
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      Exact search finds a supporting chunk with high similarity, but your IVF index never
+      returns it. What failed?
+    choices:
+      - id: a
+        text: "An ANN miss — the index did not surface a neighbour that exists in the table."
+        correct: true
+      - id: b
+        text: "The generator's temperature was too low."
+      - id: c
+        text: "Approximate search is always identical to exact search."
+        misconception: ann.exact_enough
+      - id: d
+        text: "The chunk was never embedded."
+    explanation: |
+      If exact retrieval succeeds and ANN fails, tune recall parameters (`nprobe` / `efSearch`)
+      or rethink the index — do not start by rewriting the prompt.
+
+  - slug: ann-nprobe
+    unit: approximate-nearest-neighbors
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Raising IVF `nprobe` (or HNSW `efSearch`) typically does what?"
+    choices:
+      - id: a
+        text: "Improves recall at the cost of more query-time work / latency."
+        correct: true
+      - id: b
+        text: "Deletes rare vectors from the index."
+      - id: c
+        text: "Switches the embedding model automatically."
+      - id: d
+        text: "Guarantees perfect generative accuracy."
+    explanation: |
+      More candidate exploration → fewer missed neighbours and more compute. It does not by
+      itself fix chunking or generation faithfulness.
+
+  - slug: ann-tools
+    unit: approximate-nearest-neighbors
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "Which pairing correctly matches common open tools?"
+    choices:
+      - id: a
+        text: "Faiss for large-scale vector indexes; pgvector for vectors inside PostgreSQL."
+        correct: true
+      - id: b
+        text: "Faiss for SQL joins; pgvector for GPU training only."
+      - id: c
+        text: "Both only store keywords, not vectors."
+      - id: d
+        text: "pgvector replaces the need for an embedding model."
+    explanation: |
+      Faiss is a similarity-search library; pgvector adds vector types/indexes to Postgres so
+      vectors sit beside relational filters.
+
+  - slug: ann-remeasure
+    unit: approximate-nearest-neighbors
+    type: true_false
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      You should remeasure retrieval recall on a gold set after changing ANN index parameters.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Defaults that look fine on public datasets can drop supporting chunks on your
+      filtered, domain-specific traffic.
+
+  - slug: chunk-multi-topic
+    unit: chunking-and-retrieval-quality
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Why do large multi-topic chunks hurt dense retrieval?"
+    choices:
+      - id: a
+        text: "One embedding averages several subjects, matching vaguely instead of precisely."
+        correct: true
+      - id: b
+        text: "Bigger chunks are always better because they keep more context."
+        misconception: rag.bigger_chunks_better
+      - id: c
+        text: "Embedders refuse inputs longer than one sentence."
+      - id: d
+        text: "ANN indexes cannot store chunks over 100 characters."
+    explanation: |
+      The vector is a compressed summary of the whole chunk. Mixed topics blur it. Prefer
+      focused, structure-aware splits; expand context after retrieval if needed.
+
+  - slug: chunk-overlap
+    unit: chunking-and-retrieval-quality
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "What is chunk overlap primarily for?"
+    choices:
+      - id: a
+        text: "Keeping boundary sentences intact in at least one chunk."
+        correct: true
+      - id: b
+        text: "Training the embedding model from scratch."
+      - id: c
+        text: "Encrypting vectors at rest."
+      - id: d
+        text: "Forcing exact nearest-neighbour search."
+    explanation: |
+      Overlap is a simple defence against cutting thoughts in half at fixed split points.
+
+  - slug: chunk-caveat-split
+    unit: chunking-and-retrieval-quality
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A policy answer cites a real passage stating the general refund rule but omits the
+      exception that lived one sentence later. Most likely root cause?
+    choices:
+      - id: a
+        text: "Chunking separated the exception from the rule so retrieval never returned both."
+        correct: true
+      - id: b
+        text: "Temperature 0 makes exceptions impossible."
+      - id: c
+        text: "Bigger chunks would always have prevented any error."
+        misconception: rag.bigger_chunks_better
+      - id: d
+        text: "Faiss cannot store policy text."
+    explanation: |
+      Classic structure failure: supporting sentences must travel together (or be expanded via
+      parent-document retrieval) or generation will faithfully cite an incomplete truth.
+
+  - slug: chunk-measure-first
+    unit: chunking-and-retrieval-quality
+    type: mcq
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 120
+    stem: "Answers are wrong. What should you verify before rewriting the generation prompt?"
+    choices:
+      - id: a
+        text: "Whether the supporting span appears in the retrieved top-$k$ at all."
+        correct: true
+      - id: b
+        text: "Only whether the answer sounds fluent."
+      - id: c
+        text: "Whether temperature is an integer."
+      - id: d
+        text: "Whether the ANN index claims 100% recall without measurement."
+        misconception: ann.exact_enough
+    explanation: |
+      Retrieval recall first. If the evidence never entered the prompt, prompt wordsmithing will
+      not reliably fix grounding.
+
+  - slug: chunk-same-embedder
+    unit: chunking-and-retrieval-quality
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Queries and documents must be embedded with the same embedding model for similarity to be
+      meaningful.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Different models define different spaces; comparing their vectors is not a semantic
+      comparison.
+
+assessments:
+  - slug: approximate-nearest-neighbors-practice
+    title: "Practice: approximate nearest neighbours"
+    kind: practice
+    unit: approximate-nearest-neighbors
+    items:
+      - ann-vs-exact
+      - ann-nprobe
+      - ann-tools
+
+  - slug: approximate-nearest-neighbors-quiz
+    title: "Quiz: approximate nearest neighbours"
+    kind: quiz
+    unit: approximate-nearest-neighbors
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - ann-vs-exact
+      - ann-rag-miss
+      - ann-nprobe
+      - ann-remeasure
+
+  - slug: chunking-and-retrieval-quality-practice
+    title: "Practice: chunking and retrieval quality"
+    kind: practice
+    unit: chunking-and-retrieval-quality
+    items:
+      - chunk-multi-topic
+      - chunk-overlap
+      - chunk-same-embedder
+
+  - slug: chunking-and-retrieval-quality-quiz
+    title: "Quiz: chunking and retrieval quality"
+    kind: quiz
+    unit: chunking-and-retrieval-quality
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - chunk-multi-topic
+      - chunk-caveat-split
+      - chunk-measure-first
+      - chunk-same-embedder
+
+cards:
+  - slug: card-ann-tradeoff
+    unit: approximate-nearest-neighbors
+    front: "ANN's core trade-off?"
+    back: |
+      Lower latency by not scanning everything — at the risk of missing true neighbours unless
+      you buy recall back with parameters and measurement.
+
+  - slug: card-chunk-precision
+    unit: chunking-and-retrieval-quality
+    front: "Why not maximise chunk size?"
+    back: |
+      Multi-topic chunks embed to blurred averages. Prefer focused, structure-aware chunks;
+      expand to parent context after retrieval if the reader needs more.

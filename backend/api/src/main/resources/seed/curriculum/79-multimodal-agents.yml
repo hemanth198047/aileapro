@@ -1,0 +1,394 @@
+# Wave 3: multimodal joint embeddings and agent memory patterns.
+#
+# Two domains that Wave 2 left as taxonomy stubs. Written against CLIP-style contrastive
+# alignment and the short-term vs long-term memory split used in agent surveys — not against
+# any one vendor multimodal API.
+
+units:
+  - slug: clip-joint-embeddings
+    title: CLIP and Joint Image–Text Embeddings
+    kind: knowledge_unit
+    parent: multimodal-ai
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 35
+    volatility: HIGH
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [multimodal, clip, embeddings, contrastive, vision]
+    objectives:
+      - Explain contrastive image–text pretraining at an intuitive level.
+      - Describe a shared embedding space where images and captions can be compared.
+      - State what zero-shot classification with text prompts is doing geometrically.
+      - List failure modes of joint embeddings (polysemy, spurious cues, domain shift).
+    description: >-
+      CLIP-style models learn to place matched images and captions near each other in one vector
+      space. Similarity in that space is the API for search and zero-shot recognition.
+    blocks:
+      - type: why
+        markdown: |
+          Multimodal systems need a bridge between pixels and words. Hand-built label sets do not
+          scale to open vocabulary. Contrastive models trained on image–text pairs learn that
+          bridge as geometry: matched pairs close, mismatched pairs far.
+
+          Understanding that geometry — and what it does *not* encode — is the difference between
+          using CLIP-like models well and treating cosine similarity as understanding.
+
+      - type: eli5
+        markdown: |
+          Imagine a huge room where every photo and every caption gets a seat. Training shoves
+          each photo toward the seat of its real caption and away from random captions.
+
+          Afterward, you can take a new photo, find its seat, and see which captions sit nearby —
+          or take a caption and find nearby photos. Nobody translated; they just learned to sit
+          together when they match.
+
+      - type: beginner
+        markdown: |
+          **CLIP (Contrastive Language–Image Pretraining)** trains an image encoder and a text
+          encoder so that embeddings of true pairs have high similarity (often cosine / dot
+          product after normalisation) relative to non-pairs in the batch.
+
+          At a high level, for a batch of $N$ pairs, the model encourages the $N$ correct
+          pairings on the similarity matrix and discourages the $N^2 - N$ incorrect ones. Both
+          encoders move.
+
+          **Shared space.** After training, $\mathrm{sim}(I, T)$ is meaningful across modalities.
+          Applications:
+
+          - **Image search from text** — embed the query string, retrieve nearest image vectors.
+          - **Caption / document search from an image** — embed the image, retrieve text vectors.
+          - **Zero-shot classification** — embed class names as text ("a photo of a golden
+            retriever"), score an image against each class embedding, pick the best.
+
+          No task-specific classification head is required for those setups — the text encoder
+          supplies the "labels" as natural language.
+
+      - type: intermediate
+        markdown: |
+          **What the objective optimises.** Contrastive loss cares about *matching*, not about
+          generating captions or densely labelling pixels. The model can succeed by latching onto
+          shortcuts that correlate with captions in web data (backgrounds, watermarks, co-occurring
+          objects) rather than the concept you meant.
+
+          **Zero-shot is prompt-sensitive.** "A photo of a cat" versus "a medical diagram of a
+          cat skull" are different text points. Prompt templates and class name wording change
+          scores. Treat prompts as part of the system under test.
+
+          **Limits relative to generative multimodal models.** Joint embeddings retrieve and
+          score; they do not by themselves produce free-form grounded answers. Many modern
+          systems combine a CLIP-like encoder with a generative LM. Keep the roles straight when
+          debugging.
+
+          **Domain shift.** Models trained on web image–alt-text pairs transfer unevenly to
+          medical, industrial, or UI screenshots. Evaluate on *your* images; do not assume ImageNet
+          vibes equal deployment vibes.
+
+          **Geometry reminders from the embeddings unit apply.** Proximity ≠ entailment; negation
+          and counts are weakly represented; calibration of similarity scores is not probability
+          of truth.
+
+      - type: example
+        markdown: |
+          Zero-shot label set: `["a photo of a dog", "a photo of a cat", "a photo of a car"]`.
+
+          ```
+          image_vec = image_encoder(photo)
+          text_vecs = [text_encoder(t) for t in labels]
+          scores = cosine(image_vec, text_vecs)
+          predict argmax(scores)
+          ```
+
+          Swap in `"a photo of a husky"` without retraining the image encoder — the text encoder
+          places the new phrase in the same space. That is the open-vocabulary move.
+
+          **Retrieval sketch.** Index millions of product images by `image_encoder`. User types
+          "red running shoe on white background"; embed the query with `text_encoder`; ANN-search
+          the image index (same ANN lessons as the vector-stores unit).
+
+      - type: misconception
+        payload:
+          code: clip.understands_images
+          claim: "CLIP understands images the way a person does."
+          markdown: |
+            **The claim:** high similarity means the model comprehended the scene and the sentence.
+
+            **Why it feels right:** zero-shot demos classify impressively, and "embedding" sounds
+            like a meaning representation.
+
+            **What actually happens:** the model optimises a match score between two encoders on
+            training pair statistics. It can be right for shallow reasons, fail on compositionality,
+            and confuse correlated objects. Similarity is useful geometry, not a guarantee of
+            conceptual understanding.
+
+            **How to catch yourself:** probe with counterfactual captions (wrong colour, missing
+            object, negation). If scores barely move, you are seeing association, not robust
+            understanding.
+
+      - type: common_mistake
+        markdown: |
+          **Comparing image embeddings from one checkpoint to text embeddings from another.**
+          The space is jointly trained; mixing encoders breaks comparability.
+
+          **Using raw similarity as a calibrated confidence for safety-critical decisions.** Rank
+          within a candidate set; do not treat 0.32 as "32% sure" without calibration work.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Explain contrastive image–text training without equations, then with the batch
+               similarity-matrix picture.
+            2. Design three text prompts for zero-shot "defect present vs absent" on factory
+               photos; say what could go wrong.
+            3. Why might a photo of a fridge score high for "kitchen"? Is that success or a shortcut?
+            4. List two product features that need generation beyond CLIP-style similarity.
+            5. How would you evaluate a CLIP-like retriever for your company's screenshot corpus?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does CLIP-style training push together?"
+              answer: "Embeddings of matched image–text pairs, relative to mismatched pairs in the batch."
+            - question: "How can you classify without a trained classification head?"
+              answer: >-
+                Embed class descriptions with the text encoder and pick the class closest to the
+                image embedding.
+            - question: "Why are prompts part of the model behaviour?"
+              answer: >-
+                Different phrasings land at different text points and change similarity rankings.
+            - question: "Name one limitation of joint embeddings alone."
+              answer: >-
+                They score/retrieve matches; they do not by themselves generate grounded answers
+                  or guarantee robust conceptual understanding.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Describe the contrastive objective and the shared space it creates.
+            - Implement the zero-shot scoring pattern and know its prompt sensitivity.
+            - Challenge "understanding" claims with a shortcut or domain-shift example.
+            - Separate embedding retrieval from generative multimodal answering.
+    resources:
+      - source: clip-2021
+        purpose: PRIMARY_SOURCE
+        relevance: 0.95
+        excerpt: >-
+          Contrastive pretraining of image and text encoders from natural language supervision,
+          enabling zero-shot transfer via text prompts.
+      - source: sbert-2019
+        purpose: DEEPER_REFERENCE
+        relevance: 0.45
+        excerpt: "Sentence embedding geometry — useful background for thinking about text poles in a joint space."
+      - source: sentence-transformers
+        purpose: TOOL_REFERENCE
+        relevance: 0.4
+        excerpt: "Practical tooling culture around embedding similarity and retrieval evaluation."
+
+  - slug: agent-memory-patterns
+    title: Agent Memory Patterns
+    kind: knowledge_unit
+    parent: agent-memory
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: HIGH
+    knowledgeClass: EMERGING
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [agents, memory, context, rag, architecture]
+    objectives:
+      - Distinguish short-term (working) memory from long-term durable memory for agents.
+      - "Map common patterns: scratchpad, rolling summary, vector recall, structured state."
+      - Explain how ReAct-style traces interact with what must be stored outside the window.
+      - Choose a memory design that fails safely when the context window is exceeded.
+    description: >-
+      Agents need state across steps and sessions. Short-term memory lives in the context window;
+      long-term memory lives in stores you control. Mixing them up recreates the "context is
+      memory" failure from the LLM units.
+    blocks:
+      - type: why
+        markdown: |
+          Agent surveys consistently list memory as a core module beside planning and action.
+          Without an explicit design, teams accidentally use the prompt as an infinite notebook —
+          until the window fills, cost explodes, or a summariser drops the constraint that kept
+          the system safe.
+
+          Memory is an engineering subsystem: what is written, what is retrieved, what is forgotten,
+          and who is allowed to read it.
+
+      - type: eli5
+        markdown: |
+          Cooking from a recipe with a friend on the phone:
+
+          - **Short-term:** the last few instructions you are holding in your head right now.
+          - **Long-term:** the cookbook on the shelf, and the note on the fridge that says
+            "Sam is allergic to peanuts."
+
+          If you try to keep the whole cookbook in your head, you drop something. If you never
+          write the allergy down, next week's cook will not know. Agents need both kinds of places
+          on purpose.
+
+      - type: beginner
+        markdown: |
+          **Short-term / working memory.** Whatever sits in the context for this loop: system
+          instructions, recent messages, current ReAct-style thoughts/actions/observations, tool
+          results. It is rebuilt every call (stateless model). Bounded by the context window and
+          by cost.
+
+          **Long-term memory.** Anything durable outside the window:
+
+          - User preferences and profile facts
+          - Prior session summaries
+          - Episode logs ("last time refund tool failed with X")
+          - Knowledge bases retrieved on demand (RAG)
+          - Structured state machines / databases the agent updates
+
+          Patterns you will see in designs and surveys:
+
+          | Pattern | Role |
+          |---------|------|
+          | Scratchpad / trace | Short-term reasoning + tool I/O in-context |
+          | Rolling summary | Compress older turns into a shorter short-term blob |
+          | Vector memory | Embed past notes; retrieve relevant ones into context |
+          | Structured store | Typed fields (order_id, budget_left) with clear writes |
+
+          ReAct interleaves reasoning and acts in the short-term trace; it does not replace a
+          durable store for facts that must survive across sessions.
+
+      - type: intermediate
+        markdown: |
+          **Write policies matter as much as read policies.** If every tool observation is
+          appended forever, the window dies. If every observation is discarded, the agent
+          repeats work and lies about what it already knows. Prefer:
+
+          - Append raw traces to an offline log for debugging.
+          - Promote *selected* facts into structured state or summarised memory with schema.
+          - Retrieve long-term notes by relevance + recency + permission, not by dumping all.
+
+          **Summarisation loss.** Rolling summaries are lossy compression. Safety constraints,
+          exact IDs, and "user said stop" must be protected — pin them in structured state or a
+          never-summarised prefix rather than hoping the summary keeps them.
+
+          **Memory poisoning.** Anything retrieved into context becomes conditioning. Untrusted
+          long-term notes (user-editable memory, scraped pages) are an injection surface — the
+          same lesson as tool-calling failure modes. Separate trusted system state from untrusted
+          recalled text; cite and scepticism-check.
+
+          **Multi-session identity.** "Remember my project codename" is a database write with
+          consent and retention rules, not a longer prompt. Treat memory as product data.
+
+          **Volatility.** Frameworks rename memory modules often. The durable questions are:
+          what is in-window, what is durable, what is retrieved, what is forgotten, and how you
+          evaluate incorrect recall.
+
+      - type: example
+        markdown: |
+          Travel-booking agent across three sessions:
+
+          - **Structured long-term:** `home_airport=LHR`, `loyalty_id=…`, `dietary=vegetarian`
+            stored in your DB after explicit user confirmation.
+          - **Vector long-term:** free-text notes like "prefers aisle seats on long-haul" embedded
+            and retrieved when planning flights.
+          - **Short-term:** current ReAct trace for this booking — search results, chosen flight
+            id, payment tool result — truncated or summarised when nearing the window limit.
+          - **Pinned prefix:** "Never purchase without confirmation" stays in the system prompt,
+            not in the rolling summary.
+
+          Failure mode without this split: session 2's summary drops the confirmation rule;
+          session 3 auto-buys. The bug is memory design, not "the model got worse."
+
+      - type: misconception
+        payload:
+          code: agent.context_is_long_term_memory
+          claim: "Keeping the full transcript in context is long-term memory."
+          markdown: |
+            **The claim:** as long as the chat history is resent, the agent "remembers," so no
+            external memory subsystem is needed.
+
+            **Why it feels right:** demos fit in one session; the model refers back correctly;
+            adding a database feels like over-engineering.
+
+            **What actually happens:** the transcript is short-term working context with a hard
+            size and cost bound. When it is truncated or summarised, information is gone from the
+            model's view. Cross-session persistence, authorised sharing, and searchable recall
+            require stores you operate.
+
+            **How to catch yourself:** ask what happens at turn 40, after a crash, or tomorrow
+            morning. If the answer is "the transcript still has it," you do not have long-term
+            memory yet.
+
+      - type: common_mistake
+        markdown: |
+          **Summarising away hard constraints.** Budget caps, refusals, and user "do not email
+          anyone" instructions must live in structured or pinned form.
+
+          **Retrieving memories without tenancy checks.** User A's notes in user B's context is a
+          privacy incident dressed as helpful recall.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Classify each as short-term or long-term: tool result from this step; user's
+               preferred language; ReAct thought; handbook chunk via RAG.
+            2. Design write/read/forget rules for a coding agent that must not lose the failing
+               test output.
+            3. Why does ReAct alone not solve cross-session preference memory?
+            4. Give two attacks or failure modes enabled by writable long-term memory.
+            5. Sketch what you would log to debug "the agent forgot the order id" in production.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Where does short-term agent memory live?"
+              answer: "In the context window for the current loop — rebuilt each call, size-bounded."
+            - question: "Name two long-term memory patterns."
+              answer: >-
+                Examples: structured profile/state stores, vector-retrieved notes, durable session
+                summaries kept outside the live window.
+            - question: "What risk does rolling summarisation introduce?"
+              answer: >-
+                Lossy compression can drop constraints, IDs, and safety-critical instructions.
+            - question: "How does ReAct relate to memory?"
+              answer: >-
+                It structures short-term traces of thought/action/observation; durable facts still
+                need an external store.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Draw a clear boundary between in-context working memory and durable stores.
+            - Pick patterns (summary, vector, structured) for a described product and justify.
+            - Protect hard constraints from summarisation loss.
+            - Treat retrieved memory as untrusted conditioning until proven otherwise.
+    resources:
+      - source: agent-survey-2023
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          Surveys LLM agent architectures with memory as a first-class module beside planning
+          and action.
+      - source: react-2022
+        purpose: PRIMARY_SOURCE
+        relevance: 0.85
+        excerpt: >-
+          Interleaved reasoning and acting — the short-term trace pattern agents extend with
+          external memory.
+      - source: rag-2020
+        purpose: DEEPER_REFERENCE
+        relevance: 0.55
+        excerpt: "Retrieval into context as one implementation of long-term knowledge memory."
+      - source: lost-in-the-middle-2023
+        purpose: DEEPER_REFERENCE
+        relevance: 0.45
+        excerpt: "Why dumping ever more recalled text into the window is not a free upgrade."

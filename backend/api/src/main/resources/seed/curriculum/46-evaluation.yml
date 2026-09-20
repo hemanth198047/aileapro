@@ -1,0 +1,476 @@
+# Wave 2, part 4: measuring whether a model is any good.
+#
+# Two units, both directly under the model-evaluation domain — there is no chapter here because
+# two pages do not need one, and inventing a container to look tidy is the kind of padding this
+# seed refuses to do.
+
+units:
+  - slug: precision-recall-and-f1
+    title: Precision, Recall, and the Cost of Choosing One
+    kind: knowledge_unit
+    parent: model-evaluation
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [machine-learning, evaluation, metrics, classification]
+    objectives:
+      - Build a confusion matrix and compute precision, recall, and F1 from it.
+      - Say which of them each business decision cares about, and why.
+      - Explain what moving the decision threshold does to each metric.
+      - Argue against accuracy as a metric on imbalanced data, with numbers.
+    description: >-
+      Two numbers that answer different questions, one number that averages them, and the
+      threshold that trades them off. Choosing badly here is how a working model gets switched off.
+    blocks:
+      - type: why
+        markdown: |
+          "The model is 94% accurate" is the most common sentence in applied machine learning and
+          almost always the least informative. On a problem where 94% of examples are negative, it
+          describes a model that predicts "no" every time.
+
+          Precision and recall ask different questions, and which one matters is a property of what
+          happens after a prediction — who gets called, what gets blocked, what it costs to be
+          wrong in each direction. That is a product decision dressed as a metric choice, and it
+          should be made deliberately.
+
+      - type: eli5
+        markdown: |
+          A metal detector on a beach.
+
+          - **Precision:** of the things it beeped at, how many were actually treasure? Low
+            precision means a lot of bottle caps.
+          - **Recall:** of all the treasure on the beach, how much did it find? Low recall means
+            you walked past the good stuff.
+
+          Turn the sensitivity up and you find more treasure *and* dig up more bottle caps. Turn it
+          down and you dig less and miss more. There is no setting that is best; there is only the
+          setting that matches how much your time is worth against how much treasure is worth.
+
+      - type: beginner
+        markdown: |
+          Every binary prediction lands in one of four boxes:
+
+          |                     | Actually positive   | Actually negative   |
+          |---------------------|---------------------|---------------------|
+          | **Predicted positive** | True positive (TP)  | False positive (FP) |
+          | **Predicted negative** | False negative (FN) | True negative (TN)  |
+
+          From those four counts:
+
+          $$
+          \text{Precision} = \frac{TP}{TP + FP}, \qquad
+          \text{Recall} = \frac{TP}{TP + FN}
+          $$
+
+          In words:
+
+          - **Precision** — when the model says yes, how often is it right? Conditioned on the
+            *prediction*.
+          - **Recall** (sensitivity) — of the real positives, how many did it catch? Conditioned on
+            the *truth*.
+
+          They are the two conditional probabilities from the Bayes unit, in their machine learning
+          clothes. **F1** is their harmonic mean, used when you want one number:
+
+          $$
+          F_1 = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}
+          $$
+
+          Harmonic rather than arithmetic, deliberately: it punishes imbalance. Precision 1.0 with
+          recall 0.0 gives an arithmetic mean of 0.5 and an F1 of 0.0, which is the honest score for
+          a model that finds nothing.
+
+      - type: intermediate
+        markdown: |
+          **The threshold is the dial.** A classifier outputs a score; a prediction requires a
+          threshold. Lowering it predicts positive more often, which can only increase TP and FP —
+          so recall rises (weakly) and precision usually falls. There is no threshold that improves
+          both, which is why a single operating point is a choice rather than a result.
+
+          **Which one matters depends on the cost of each error.**
+
+          - **Recall-first:** cancer screening, safety-critical faults, legal discovery. A missed
+            positive is catastrophic, a false positive is a follow-up check.
+          - **Precision-first:** automated account suspension, sending a costly intervention,
+            surfacing content as authoritative. A false positive harms a real user; a miss is a
+            missed opportunity.
+          - **Capacity-bounded:** the team can review 500 cases a day, so the metric is precision
+            within the top 500 scores — precision@k. This is far more common in practice than the
+            textbook framing and is usually the honest metric.
+
+          **F1 hides the trade-off it averages.** Precision 0.9/recall 0.5 and precision 0.62/recall
+          0.62 both give F1 ≈ 0.64, and they are completely different systems to operate. Report F1
+          only alongside its two components, and never let it be the only number in a summary.
+
+          **Threshold-free summaries and their traps.** ROC-AUC integrates over all thresholds, but
+          its x-axis is the false positive rate, whose denominator is the enormous negative class.
+          On a 0.1% positive rate, a model can have ROC-AUC 0.95 and precision 0.05, because a false
+          positive rate of 2% is still twenty times more false positives than there are true ones.
+          For rare positives, **PR-AUC** (precision against recall) is the more honest summary, and
+          its baseline is the base rate rather than 0.5.
+
+          **Multi-class** needs an averaging choice, and the choice changes the number:
+          macro-averaging weights every class equally and exposes failure on rare ones; micro
+          (equivalently, accuracy for single-label problems) is dominated by the common classes.
+          Reporting one without saying which is a reporting bug.
+
+      - type: example
+        markdown: |
+          A fraud model on 10,000 transactions, 100 of which are fraud. At its default threshold:
+
+          |                     | Actually fraud | Actually legit |
+          |---------------------|----------------|----------------|
+          | **Predicted fraud** | 80             | 920            |
+          | **Predicted legit** | 20             | 8,980          |
+
+          $$
+          \text{Precision} = \frac{80}{80 + 920} = 0.08, \qquad
+          \text{Recall} = \frac{80}{80 + 20} = 0.80
+          $$
+
+          $$
+          F_1 = 2 \cdot \frac{0.08 \times 0.80}{0.08 + 0.80} = 0.145
+          $$
+
+          **Accuracy**, for contrast, is $(80 + 8980)/10000 = 0.906$. A model that predicts "legit"
+          always scores 0.99. Accuracy ranks the useless model higher than the useful one, which is
+          the whole argument against it in one line.
+
+          **Now raise the threshold** so the model flags only its most confident 200:
+
+          |                     | Actually fraud | Actually legit |
+          |---------------------|----------------|----------------|
+          | **Predicted fraud** | 60             | 140            |
+          | **Predicted legit** | 40             | 8,860          |
+
+          Precision rises to $60/200 = 0.30$, recall falls to $0.60$, F1 rises to $0.40$.
+
+          **Which is better?** The question is unanswerable without the costs. If a reviewer takes
+          10 minutes per case, the first setting costs 1,000 reviews to catch 80 frauds; the second
+          costs 200 reviews to catch 60. If the average fraud is £500 and a review costs £8, the
+          first nets $80 \times 500 - 1000 \times 8 = £32{,}000$ and the second
+          $60 \times 500 - 200 \times 8 = £28{,}400$. The lower-F1 setting makes more money — which
+          is why F1 is a diagnostic and the cost model is the decision.
+
+      - type: misconception
+        payload:
+          code: eval.accuracy_is_enough
+          claim: "Accuracy is the headline metric; the others are refinements."
+          markdown: |
+            **The claim:** accuracy measures how often the model is right, which is the thing
+            everybody actually wants to know.
+
+            **Why it feels right:** on a balanced problem it is a perfectly good metric, it is the
+            default in every tutorial, and it is the one figure non-technical stakeholders
+            understand immediately.
+
+            **What actually happens:** accuracy weights every error equally and every example
+            equally, so on imbalanced data it is dominated by the majority class. The worked example
+            above has a useless constant model scoring 0.99 and a genuinely useful model scoring
+            0.906. Optimising accuracy there actively selects against the model you want.
+
+            It also hides *which* errors are being made. Two models with identical accuracy can have
+            opposite precision and recall profiles, and therefore completely different consequences
+            for the people the system acts on. Disaggregated reporting exists because aggregate
+            accuracy conceals exactly this.
+
+            **How to catch yourself:** before quoting accuracy, compute what a constant "predict the
+            majority class" model would score. If that number is close to yours, accuracy is
+            measuring the base rate, not your model. Report the confusion matrix — four numbers, no
+            interpretation required.
+
+      - type: common_mistake
+        markdown: |
+          **Reporting F1 alone.** It compresses two numbers into one and the two are not
+          recoverable. Always show the pair.
+
+          **Comparing F1 across datasets with different base rates.** F1 depends on the base rate
+          through precision, so the comparison is not measuring model quality.
+
+          **Tuning the threshold on the test set.** The threshold is a hyperparameter. Choose it on
+          validation like any other.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. TP 45, FP 15, FN 30, TN 910. Compute precision, recall, F1, and accuracy. Which
+               number would you lead with, and to whom?
+            2. For each, say whether precision or recall matters more and why: spam filtering into a
+               hidden folder; screening chest X-rays for referral; auto-suspending accounts;
+               recommending a next article.
+            3. Give precision and recall values that yield F1 ≈ 0.5 in two very different ways, and
+               describe how the two systems would feel to a user.
+            4. A model has ROC-AUC 0.97 on a dataset with 0.3% positives and precision 0.06 at its
+               operating point. Explain how both numbers can be true.
+            5. Reviewers can handle 100 cases a day. Define the metric you would report, and say why
+               it is not F1.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Define precision and recall by what each is conditioned on."
+              answer: >-
+                Precision is conditioned on the prediction — of predicted positives, how many are
+                truly positive. Recall is conditioned on the truth — of true positives, how many were
+                predicted positive.
+            - question: "Why is F1 a harmonic mean rather than an arithmetic one?"
+              answer: >-
+                To punish imbalance. Perfect precision with zero recall gives F1 zero, whereas an
+                arithmetic mean would reward it with 0.5.
+            - question: "What does lowering the decision threshold do?"
+              answer: >-
+                It predicts positive more often, so recall rises or stays the same and precision
+                usually falls. Both cannot improve at once by moving the threshold.
+            - question: "When is ROC-AUC misleading, and what should replace it?"
+              answer: >-
+                When positives are rare, because the false positive rate has a huge denominator.
+                Precision-recall AUC is the more honest summary there.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Build a confusion matrix from a description and compute all four metrics from it.
+            - Name the metric a given decision actually cares about and defend it in one sentence.
+            - Predict the direction each metric moves when the threshold changes.
+            - Turn a capacity constraint into a metric instead of reaching for F1 by default.
+    resources:
+      - source: sklearn-model-evaluation
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: >-
+          The classification metrics section defines all of these, with the multi-class averaging
+          options and their caveats.
+      - source: esl-book
+        purpose: DEEPER_REFERENCE
+        relevance: 0.6
+        excerpt: "Chapter 9 discusses ROC curves and the effect of unequal misclassification costs."
+
+  - slug: holdout-vs-cross-validation
+    title: Holdout or Cross-Validation
+    kind: knowledge_unit
+    parent: model-evaluation
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 32
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [machine-learning, evaluation, cross-validation]
+    objectives:
+      - Describe k-fold cross-validation and what its spread across folds tells you.
+      - Choose between a single holdout and cross-validation for a given dataset size.
+      - Select a variant that respects grouping, class imbalance, or time ordering.
+      - Explain why the fold standard deviation matters as much as the mean.
+    description: >-
+      One split gives one noisy number. Cross-validation gives several, and the spread between
+      them is often more informative than the average of them.
+    blocks:
+      - type: why
+        markdown: |
+          A single validation score is an estimate from one sample, and on a few hundred rows that
+          estimate moves by several points depending on which rows landed in it. Teams routinely
+          choose between models on differences smaller than that noise.
+
+          Cross-validation costs $k$ times the compute and buys two things: a less noisy estimate,
+          and a measure of how much the estimate varies. The second is the part people throw away,
+          and it is the part that tells you whether the comparison you are about to make is real.
+
+      - type: eli5
+        markdown: |
+          You want to know how good a cook someone is. You could taste one dish.
+
+          Or you could taste five different dishes and see both how good they are on average and how
+          consistent they are. A cook who is excellent once and terrible four times is not the same
+          as a cook who is reliably decent, even if the averages match.
+
+          Cross-validation is tasting five dishes. The spread is the consistency.
+
+      - type: beginner
+        markdown: |
+          **Holdout:** split once into train and test. One model fit, one number. Fast, simple, and
+          noisy on small data.
+
+          **k-fold cross-validation:** split the data into $k$ equal folds. Train on $k-1$ of them,
+          evaluate on the one held out, and repeat so each fold is held out exactly once. Report the
+          mean and standard deviation of the $k$ scores.
+
+          ```
+          k = 5, folds A B C D E
+
+          fit on B C D E -> score on A
+          fit on A C D E -> score on B
+          fit on A B D E -> score on C
+          fit on A B C E -> score on D
+          fit on A B C D -> score on E
+          ```
+
+          Every example is used for evaluation exactly once and for training $k-1$ times, which is
+          why the estimate is more stable than a single holdout of the same size.
+
+          Rules of thumb:
+
+          - Under a few thousand rows: cross-validate. The noise in a single holdout is larger than
+            most differences you will be judging.
+          - Tens of thousands of rows and an expensive model: a single holdout is fine.
+          - $k = 5$ or $k = 10$ are the conventional choices. Larger $k$ means less bias and more
+            compute; $k = n$ is leave-one-out, which is expensive and has high variance.
+
+      - type: intermediate
+        markdown: |
+          **The standard deviation is a result, not a footnote.** Folds scoring 0.81, 0.79, 0.83,
+          0.80, 0.82 (mean 0.81, sd 0.015) and folds scoring 0.95, 0.62, 0.88, 0.71, 0.89 (mean
+          0.81, sd 0.13) report the same average. The first model is understood; the second is
+          telling you that performance depends heavily on which rows it trained on, which means a
+          subgroup, an outlier cluster, or a data problem. Investigating the second-worst fold is
+          often the highest-value hour in a modelling project.
+
+          The spread also settles comparisons. Model A at 0.84 ± 0.04 and model B at 0.82 ± 0.05 are
+          not distinguishable, and reporting A as the winner is reporting noise.
+
+          **Variants, each fixing a specific failure:**
+
+          - **Stratified k-fold.** Preserves class proportions in every fold. Essential for
+            imbalanced problems, where a plain split can produce a fold with almost no positives.
+          - **Group k-fold.** Keeps all rows from the same entity — patient, user, document — in one
+            fold. Without it, the model recognises the entity and every fold is optimistic.
+          - **Time series split.** Expanding or rolling windows that always train on the past and
+            test on the future. Standard k-fold is invalid on time-ordered data because it trains on
+            the future.
+
+          **Nested cross-validation** is needed when you both tune hyperparameters and estimate
+          performance. An inner loop selects, an outer loop measures. Tuning inside a single
+          cross-validation and then reporting that same cross-validated score is the validation
+          optimism from the splits unit, reappearing with more folds — the selection happened
+          against the very scores being quoted.
+
+          **Cost.** $k$-fold means $k$ fits. For a large neural network that is often unaffordable,
+          which is why deep learning usually uses a single large holdout and spends the compute on
+          training instead. That is a defensible trade, not an oversight, and the right way to say
+          it is "one holdout of 50,000 examples", not "we cross-validated".
+
+      - type: example
+        markdown: |
+          600 labelled support tickets, predicting escalation. Two candidate models.
+
+          **Single holdout**, 480 train / 120 test:
+
+          - Logistic regression: F1 = 0.71
+          - Gradient boosting: F1 = 0.74
+
+          Gradient boosting wins by 0.03. Ship it?
+
+          **Five-fold cross-validation on the same data:**
+
+          | Fold | Logistic | Boosting |
+          |------|----------|----------|
+          | 1    | 0.69     | 0.74     |
+          | 2    | 0.73     | 0.61     |
+          | 3    | 0.70     | 0.79     |
+          | 4    | 0.72     | 0.66     |
+          | 5    | 0.71     | 0.76     |
+          | **Mean** | **0.71** | **0.71** |
+          | **SD**   | **0.014** | **0.068** |
+
+          Identical means. The holdout had simply landed on a fold where boosting did well, and a
+          0.03 difference was well inside a spread of 0.068.
+
+          The spread itself is the finding: boosting's performance swings by 18 points across folds
+          on 600 rows, which says it is fitting whatever happens to be in each training sample. On
+          this dataset the logistic model is the better choice — same accuracy, far more
+          predictable, and cheaper to explain to the people whose tickets it routes.
+
+          Then look at fold 2. If its tickets are disproportionately from one product line, that is
+          a real and actionable finding about where the model fails, and no single holdout would
+          have surfaced it.
+
+      - type: misconception
+        payload:
+          code: eval.cv_removes_the_need_for_a_test_set
+          claim: "Cross-validation uses all the data, so no separate test set is needed."
+          markdown: |
+            **The claim:** every example gets used for evaluation, so the cross-validated score is
+            already an honest estimate of performance on new data.
+
+            **Why it feels right:** each fold's score genuinely comes from data that fold's model did
+            not see. Run once, on a fixed configuration, the claim holds.
+
+            **What actually happens:** cross-validation protects against the noise of a single split.
+            It does nothing about selection. Once you use cross-validated scores to choose a model,
+            tune hyperparameters, or pick features, the winning score is optimistic for the same
+            reason a repeatedly consulted validation set is — the choice was made against those very
+            numbers. With a broad hyperparameter search this optimism is easily larger than the
+            improvement being claimed.
+
+            The remedy is nested cross-validation, or a final holdout that was never involved in any
+            decision. Both are more work, and both are the difference between a number that survives
+            deployment and one that does not.
+
+            **How to catch yourself:** ask whether any choice in the pipeline was informed by the
+            scores you are about to report. If yes, that score is a selection result, not an
+            estimate, and it needs to be labelled as one.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Choose holdout or k-fold and name the variant: 400 rows, 15% positive; 2 million
+               rows, deep network; 5,000 rows with 10 visits per patient; 3 years of daily sales.
+            2. Model A scores 0.84 ± 0.04 and model B 0.82 ± 0.05 over five folds. Write the
+               conclusion you would put in a report.
+            3. One fold scores 0.55 while the rest score around 0.82. List three things you would
+               check, in order.
+            4. Explain why standard k-fold is invalid on time series, in terms of what the model is
+               allowed to know.
+            5. Describe nested cross-validation in four lines, and say exactly which loop produces
+               the number you would publish.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does k-fold cross-validation give you that a single holdout does not?"
+              answer: >-
+                A less noisy estimate, because every example is evaluated once, plus a measure of how
+                much performance varies with the training sample.
+            - question: "What does a large standard deviation across folds mean?"
+              answer: >-
+                The model is sensitive to which rows it trained on — usually a small dataset, an
+                influential subgroup, or an unstable model class.
+            - question: "Why is stratification needed on imbalanced data?"
+              answer: >-
+                Without it a fold can contain very few or no positive examples, making its metric
+                meaningless and the average unstable.
+            - question: "Does cross-validation remove the need for a final untouched test set?"
+              answer: >-
+                No. It controls split noise, not selection optimism. Any score used to choose between
+                options is no longer an unbiased estimate.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Explain k-fold clearly enough that someone could implement it from your description.
+            - Pick the right variant from the structure of a dataset without being told.
+            - Refuse to declare a winner when the difference is inside the fold spread.
+            - Say when a single holdout is the right call and defend it on cost grounds.
+    resources:
+      - source: sklearn-cross-validation
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: >-
+          Covers k-fold and every variant named here — stratified, grouped, and time series — plus
+          nested cross-validation.
+      - source: esl-book
+        purpose: DEEPER_REFERENCE
+        relevance: 0.7
+        excerpt: "Section 7.10 analyses cross-validation, the choice of k, and the bias it carries."

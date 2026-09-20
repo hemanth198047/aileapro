@@ -1,0 +1,414 @@
+# Items for the LLM and prompting units.
+#
+# Written against properties that follow from the objective and the architecture, so they do not
+# date with the next model release. No item depends on a specific vendor, price, or limit.
+
+items:
+  - slug: llm-objective
+    unit: next-token-prediction
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "What is an autoregressive language model trained to do?"
+    choices:
+      - id: a
+        text: "Predict a probability distribution over the next token, given everything before it."
+        correct: true
+      - id: b
+        text: "Retrieve the most relevant fact from its training corpus."
+      - id: c
+        text: "Classify the user's intent and select a stored response."
+      - id: d
+        text: "Maximise the truthfulness of its output."
+    explanation: |
+      Cross-entropy against the token that actually followed. There is no fact store, no retrieval
+      step, and nothing in the loss that mentions truth.
+
+      Almost everything surprising about these systems — fluency, hallucination, sensitivity to
+      phrasing, the value of retrieval — is a consequence of that one sentence.
+
+  - slug: llm-hallucination-cause
+    unit: next-token-prediction
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A model invents a plausible-looking citation that does not exist. What best explains it?
+    choices:
+      - id: a
+        text: "A well-formed fabrication is as likely a continuation as a well-formed truth where the model has no specific memory."
+        correct: true
+      - id: b
+        text: "The lookup failed and returned a corrupted record."
+        misconception: llm.model_looks_things_up
+      - id: c
+        text: "The temperature was set too high."
+      - id: d
+        text: "The citation was in the training data and has since been retracted."
+    explanation: |
+      Citation strings have a recognisable shape: plausible authors, plausible journal, plausible
+      year. Nothing in the objective penalises a well-formed invention more than a well-formed
+      truth.
+
+      (c) is a partial factor at best — temperature 0 gives a deterministic fabrication rather than
+      no fabrication. The mechanism is the objective, not the sampling, which is why the fix is to
+      change the conditioning with retrieval.
+
+  - slug: llm-temperature
+    unit: next-token-prediction
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 110
+    stem: |
+      You are extracting a date from an invoice and need consistent, deterministic output. What
+      sampling setting is appropriate, and why?
+    choices:
+      - id: a
+        text: "Low temperature, because it sharpens the distribution toward the highest-probability token."
+        correct: true
+      - id: b
+        text: "High temperature, because it explores more candidate answers."
+      - id: c
+        text: "Temperature has no effect on extraction tasks."
+      - id: d
+        text: "Low temperature, because it makes the model more accurate."
+    explanation: |
+      Temperature divides the logits before the softmax: below 1 sharpens, above 1 flattens.
+
+      (d) is the trap and is worth being precise about. Low temperature removes *variability*, not
+      *error*. A deterministic wrong answer is still wrong — it is now reproducibly wrong, which is
+      useful for debugging and is not the same as accuracy.
+
+  - slug: llm-tokenisation-effect
+    unit: next-token-prediction
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Why do language models struggle with tasks like counting the letters in a word?"
+    choices:
+      - id: a
+        text: "The model sees tokens, not characters, so the letters inside a token are not directly available to it."
+        correct: true
+      - id: b
+        text: "Counting requires a separate arithmetic module that models lack."
+      - id: c
+        text: "The context window is too small for spelling tasks."
+      - id: d
+        text: "Tokenisers deliberately remove repeated letters."
+    explanation: |
+      Text is split into subword pieces and each arrives as an index. Reasoning about the
+      characters inside one means reasoning about something the model only knows indirectly.
+
+      The same cause explains why arithmetic is affected by how numbers happen to split, and why
+      rare words and non-English text cost more tokens — so they consume context faster.
+
+  - slug: llm-retrieval-why
+    unit: next-token-prediction
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Retrieval reduces fabrication by changing what generation is conditioned on, not by changing
+      the training objective.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. With the relevant passage in the context, the true continuation becomes the
+      high-probability one. Nothing about the model or its loss changes.
+
+      That is the argument for RAG stated at the level of the objective, and it is also why
+      retrieval reduces rather than eliminates unsupported claims: it shifts probabilities, it
+      does not install a truth constraint.
+
+  - slug: ctx-what-it-contains
+    unit: context-window-limits
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "What shares the context window's token budget?"
+    choices:
+      - id: a
+        text: "System prompt, conversation history, retrieved material, and the generated output."
+        correct: true
+      - id: b
+        text: "Only the user's most recent message."
+      - id: c
+        text: "The input only; output is budgeted separately."
+      - id: d
+        text: "The model's weights and the input together."
+    explanation: |
+      All of it, including the response. A 4,000-token prompt in an 8,192-token window leaves at
+      most 4,192 tokens for the answer, which is a constraint people meet by surprise when a long
+      prompt produces a truncated response.
+
+  - slug: ctx-not-memory
+    unit: context-window-limits
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A chat feature's cost per message grows steadily over a long conversation. Why?
+    choices:
+      - id: a
+        text: "The whole history is re-sent on every call, because the model holds no state between calls."
+        correct: true
+      - id: b
+        text: "The model accumulates memory that has to be maintained."
+        misconception: llm.context_is_memory
+      - id: c
+        text: "Longer conversations use a larger model."
+      - id: d
+        text: "The provider raises the price for long sessions."
+    explanation: |
+      Each call is stateless. Continuity comes from the client re-sending the transcript, so the
+      model appears to remember because it is re-reading.
+
+      The design consequences are concrete: cost grows with conversation length; when the history
+      exceeds the window something must be dropped and is genuinely gone; and anything that must
+      persist has to be stored by you and re-injected.
+
+  - slug: ctx-usable-length
+    unit: context-window-limits
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      Your retrieval system currently passes 5 chunks. Someone proposes passing 20, reasoning
+      that more context cannot hurt. What is the strongest objection?
+    choices:
+      - id: a
+        text: "Extra passages act as distractors and push the correct one toward the middle, where measured accuracy is lowest."
+        correct: true
+      - id: b
+        text: "It will exceed the context window, which is a hard error."
+      - id: c
+        text: "Retrieval quality is fixed, so the extra chunks change nothing."
+      - id: d
+        text: "Longer inputs are always rejected by the tokeniser."
+    explanation: |
+      More retrieved context is not monotonically better. Accuracy over long contexts is
+      position-dependent — highest near the beginning and end, worst in the middle — so burying
+      the right passage among fifteen others measurably degrades the answer.
+
+      (b) might also be true and is a weaker objection, because it can be fixed by a bigger window
+      while the distractor problem cannot. This is a good reason to tune $k$ rather than maximise
+      it.
+
+  - slug: ctx-cost-scaling
+    unit: context-window-limits
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Doubling the length of a prompt more than doubles the compute needed to process it.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Attention's score matrix is $L \times L$, so its cost grows quadratically in sequence
+      length while per-position work grows linearly.
+
+      This is why input tokens dominate the bill in most retrieval applications even when they are
+      cheaper per token than output, and why prompt caching — reusing a long, stable prefix — is
+      worth structuring prompts around.
+
+  - slug: pr-five-parts
+    unit: prompting-as-specification
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 80
+    stem: "Which five parts make up a specified prompt?"
+    choices:
+      - id: a
+        text: "Role or context, task, constraints, output format, examples."
+        correct: true
+      - id: b
+        text: "Greeting, question, politeness, urgency, thanks."
+      - id: c
+        text: "System message, user message, temperature, top-p, max tokens."
+      - id: d
+        text: "Persona, tip offer, emphasis, repetition, deadline."
+    explanation: |
+      (c) lists API parameters rather than prompt content; (d) is the folklore list. Leaving one
+      of the five out is fine — it should just be a decision rather than an omission, and the one
+      most often missing is the policy for the awkward input.
+
+  - slug: pr-examples-beat-prose
+    unit: prompting-as-specification
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Why do a few worked examples often outperform several paragraphs of instruction?"
+    choices:
+      - id: a
+        text: "An example is the output rather than a description of it, and it pins down edge cases that prose leaves ambiguous."
+        correct: true
+      - id: b
+        text: "Examples are cheaper in tokens than instructions."
+      - id: c
+        text: "The model ignores instructions and only reads examples."
+      - id: d
+        text: "Examples are stored in the model's memory between calls."
+    explanation: |
+      Models were trained to continue patterns, so a demonstration sets the pattern far more
+      precisely than a paragraph describing one.
+
+      The selection matters: examples that are all straightforward teach the easy case, which the
+      model would have handled anyway. Include an empty field, an ambiguous input, and the case
+      where the right answer is to refuse.
+
+  - slug: pr-magic-words
+    unit: prompting-as-specification
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 140
+    stem: |
+      A colleague says adding "you are a world-class expert and this is very important" improved
+      their classifier. What should you do?
+    choices:
+      - id: a
+        text: "Run the prompt with and without the phrase on an evaluation set and keep it only if the numbers move."
+        correct: true
+      - id: b
+        text: "Adopt it everywhere — these phrases reliably improve output."
+        misconception: llm.prompt_magic_words
+      - id: c
+        text: "Reject it outright; wording never affects model output."
+      - id: d
+        text: "Add it and also raise the temperature to reinforce the effect."
+    explanation: |
+      Where phrase effects exist they are small, model-specific, and unstable across versions. The
+      way to find out is ten minutes of measurement, which retires most of the folklore.
+
+      (c) overcorrects: wording clearly matters — specification, constraints, and examples all
+      change results substantially. The claim being tested is about incantations, not about
+      wording in general.
+
+  - slug: pr-eval-set
+    unit: prompting-as-specification
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: |
+      What is the minimum artefact that turns prompt tweaking into engineering? Answer in a few
+      words.
+    accepted:
+      - "an evaluation set"
+      - "evaluation set"
+      - "eval set"
+      - "a set of test inputs with expected outputs"
+      - "test cases with expected outputs"
+      - "a labelled eval set"
+    explanation: |
+      Twenty to fifty real inputs, including the awkward ones, with the correct or acceptable
+      output for each. Score every prompt version against it and change one thing at a time.
+
+      Without it, "the new prompt is better" means "the three examples I tried looked better" — a
+      sample of three, chosen by the person hoping for an improvement.
+
+assessments:
+  - slug: next-token-prediction-practice
+    title: "Practice: next-token prediction"
+    kind: practice
+    unit: next-token-prediction
+    items:
+      - llm-objective
+      - llm-temperature
+      - llm-tokenisation-effect
+      - llm-retrieval-why
+
+  - slug: next-token-prediction-quiz
+    title: "Quiz: next-token prediction"
+    kind: quiz
+    unit: next-token-prediction
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - llm-objective
+      - llm-hallucination-cause
+      - llm-temperature
+      - llm-retrieval-why
+
+  - slug: context-window-limits-practice
+    title: "Practice: the context window"
+    kind: practice
+    unit: context-window-limits
+    items:
+      - ctx-what-it-contains
+      - ctx-cost-scaling
+      - ctx-not-memory
+
+  - slug: context-window-limits-quiz
+    title: "Quiz: the context window"
+    kind: quiz
+    unit: context-window-limits
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - ctx-what-it-contains
+      - ctx-not-memory
+      - ctx-usable-length
+      - ctx-cost-scaling
+
+  - slug: prompting-as-specification-practice
+    title: "Practice: prompting as specification"
+    kind: practice
+    unit: prompting-as-specification
+    items:
+      - pr-five-parts
+      - pr-examples-beat-prose
+      - pr-eval-set
+
+  - slug: prompting-as-specification-quiz
+    title: "Quiz: prompting as specification"
+    kind: quiz
+    unit: prompting-as-specification
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - pr-five-parts
+      - pr-examples-beat-prose
+      - pr-magic-words
+      - pr-eval-set
+
+cards:
+  - slug: card-llm-objective
+    unit: next-token-prediction
+    front: "State the LLM training objective, and one thing it does not contain."
+    back: |
+      Minimise cross-entropy against the actual next token, given everything before it. It contains
+      no notion of truth, which is why fluent fabrication is expected rather than anomalous.
+
+  - slug: card-llm-context-memory
+    unit: context-window-limits
+    front: "Does the model remember the conversation?"
+    back: |
+      No. Each call is stateless and the client re-sends the whole history, which is why cost grows
+      with conversation length and why anything that must persist is your job to store.
+
+  - slug: card-llm-prompt-spec
+    unit: prompting-as-specification
+    front: "The five parts of a specified prompt."
+    back: |
+      Role or context, task, constraints, output format, examples. Plus the artefact that makes it
+      engineering: an evaluation set of 20-50 real inputs.

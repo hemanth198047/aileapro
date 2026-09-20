@@ -1,0 +1,277 @@
+# Wave 3: tokenisation as the first NLP boundary a language model cannot see past.
+#
+# Written against BPE intuition and vocabulary trade-offs that outlast any particular
+# tokenizer library release. Numbers that will date are labelled as examples.
+
+units:
+  - slug: nlp-foundations
+    title: NLP Foundations
+    kind: chapter
+    parent: natural-language-processing
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [nlp, tokenization, foundations]
+    objectives:
+      - Explain why text must be turned into discrete tokens before a model can process it.
+      - State what a vocabulary size buys and what it costs.
+      - Connect tokenisation choices to cost, context use, and behavioural quirks downstream.
+    description: >-
+      The first step that turns language into something a neural model can consume: discrete
+      tokens, a fixed vocabulary, and the engineering trade-offs that choice creates.
+    blocks:
+      - type: why
+        markdown: |
+          Every LLM application inherits its tokenizer. Cost, context limits, multilingual
+          quality, and odd failures like "count the letters in strawberry" are not mysterious
+          model bugs — they are consequences of how text was split before the first layer.
+
+          This chapter puts that boundary in view before embeddings, prompting, or generation.
+
+  - slug: tokenization-and-vocab
+    title: Tokenisation and Vocabulary Size
+    kind: knowledge_unit
+    parent: nlp-foundations
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [nlp, tokenization, bpe, vocabulary, llm]
+    objectives:
+      - Describe what a tokenizer does and why models never see raw characters by default.
+      - Explain BPE as merging frequent pairs until a vocabulary budget is filled.
+      - State the trade-offs of a larger versus smaller vocabulary.
+      - Predict how tokenisation affects cost, rare words, and character-level tasks.
+    description: >-
+      Text becomes a sequence of integer IDs from a fixed vocabulary. Byte-pair encoding is the
+      common algorithm; vocabulary size is the dial that trades compression against coverage.
+    blocks:
+      - type: why
+        markdown: |
+          Teams treat tokenisation as plumbing. Then billing surprises them, non-English text
+          burns context twice as fast, and a model that "cannot spell" is treated as a reasoning
+          failure.
+
+          Tokenisation is the interface between human text and model input. Understanding it
+          turns those surprises into predictable engineering consequences.
+
+      - type: eli5
+        markdown: |
+          Imagine packing a suitcase with Lego bricks of different sizes. Whole common words are
+          big bricks. Rare or weird words get broken into smaller bricks. You have a fixed set of
+          brick shapes you are allowed to use — that set is the vocabulary.
+
+          Byte-pair encoding learns which bricks to keep by repeatedly gluing together pieces that
+          appear together often. "ing" sticks; "qx" does not.
+
+          The model only ever sees the brick IDs, not the letters painted on them. Asking it to
+          count letters inside one brick is like asking someone who only received a barcode.
+
+      - type: beginner
+        markdown: |
+          A **tokenizer** maps a string to a list of token IDs and back. The model receives those
+          IDs (then embeddings). It does not receive Unicode code points unless the tokenizer
+          happens to emit single-character tokens.
+
+          **Byte-pair encoding (BPE)** in outline:
+
+          1. Start from a base alphabet (often bytes or characters).
+          2. Count adjacent pairs in a training corpus.
+          3. Merge the most frequent pair into a new symbol; add it to the vocabulary.
+          4. Repeat until you hit a target vocabulary size.
+
+          Common words and endings become single tokens. Rare words stay fragmented into several
+          tokens. Spaces and punctuation are part of the learned pieces, not an afterthought —
+          so `" hello"` and `"hello"` can be different IDs.
+
+          **Vocabulary size** is a hard budget. GPT-3-class models used vocabularies on the order
+          of tens of thousands of tokens; modern chat models often sit higher. Exact numbers move;
+          the trade-offs do not.
+
+      - type: intermediate
+        markdown: |
+          **What a larger vocabulary buys.** More whole words and multi-character pieces fit in
+          one ID, so typical English compresses into fewer tokens. That means more words per
+          context window and lower token cost for the same prose. Multilingual models often need
+          larger vocabularies (or carefully designed ones) so that non-English text is not
+          pathologically fragmented.
+
+          **What a larger vocabulary costs.** Embedding and output layers grow with $|\mathcal{V}|$.
+          Rare tokens get less training signal. Extremely large vocabularies can waste capacity on
+          nearly unused IDs. Softmax over the vocabulary is also larger, though practical systems
+          optimise that path.
+
+          **What a smaller vocabulary costs.** Text fragments more. The same paragraph uses more
+          tokens → hits the context window sooner and costs more. Character-level tasks look
+          "harder" because the model never sees letters as first-class inputs.
+
+          **Behavioural leaks** (the same ones named in the next-token unit, now with a cause):
+
+          - Spelling and letter counting require reasoning about the *contents* of a subword.
+          - Numbers split inconsistently (`"380"` vs `"38"` + `"0"`), which affects arithmetic.
+          - Code and identifiers often tokenise awkwardly; whitespace and punctuation matter.
+          - A word unseen in tokenizer training still encodes — as a sequence of pieces — but
+            those pieces may not carry the meaning you hoped.
+
+          Production practice: **always use the tokenizer that belongs to the model**. Mixing
+          tokenizers silently misaligns IDs with embeddings. Libraries such as Hugging Face
+          Tokenizers exist so encode/decode stay fast and consistent with how the model was
+          trained.
+
+      - type: example
+        markdown: |
+          Rough illustration (not a claim about any one production tokenizer):
+
+          | Text              | Possible tokens                         | Count |
+          |-------------------|-----------------------------------------|-------|
+          | `hello`           | `hello`                                 | 1     |
+          | `tokenization`    | `token` + `ization`                     | 2     |
+          | `strawberry`      | `straw` + `berry` (or similar)          | 2+    |
+          | `你好`            | often several byte/character pieces     | 2–4+  |
+
+          Cost sketch: if English averages ~0.75 words/token and another language averages ~0.4,
+          the same 1,000-word document may consume ~1,300 tokens in English and ~2,500 elsewhere —
+          same model, same price per token, very different bill and context use.
+
+          **Decode check.** Always round-trip a few strings:
+
+          ```
+          text → encode → ids → decode → text'
+          ```
+
+          If `text' != text` for cases you care about (leading spaces, special tokens, truncated
+          surrogates), fix that before you blame the model.
+
+      - type: code
+        payload:
+          language: python
+          markdown: |
+            Conceptual BPE merge step — enough to see the algorithm, not a production trainer.
+
+            ```python
+            from collections import Counter
+
+            def get_stats(words: list[list[str]]) -> Counter:
+                pairs = Counter()
+                for symbols in words:
+                    for a, b in zip(symbols, symbols[1:]):
+                        pairs[(a, b)] += 1
+                return pairs
+
+            def merge_pair(words, pair):
+                a, b = pair
+                merged = a + b
+                out = []
+                for symbols in words:
+                    i, row = 0, []
+                    while i < len(symbols):
+                        if i + 1 < len(symbols) and symbols[i] == a and symbols[i + 1] == b:
+                            row.append(merged)
+                            i += 2
+                        else:
+                            row.append(symbols[i])
+                            i += 1
+                    out.append(row)
+                return out
+
+            # Start from characters; merge the most frequent pair once.
+            corpus = [list(w) for w in ["low", "lowest", "newer", "wider"]]
+            best = get_stats(corpus).most_common(1)[0][0]
+            corpus = merge_pair(corpus, best)
+            # Repeat until vocabulary size target is reached.
+            ```
+
+            In production you load a pretrained tokenizer that already finished this process for
+            the model's training corpus — you do not retrain BPE for every app.
+
+      - type: misconception
+        payload:
+          code: tok.tokens_are_words
+          claim: "Tokens are just words."
+          markdown: |
+            **The claim:** each token is a whole word, so token count ≈ word count.
+
+            **Why it feels right:** demos often show tidy English words, and APIs talk about
+            "tokens" as if they were readable units.
+
+            **What actually happens:** tokens are subword pieces (and sometimes punctuation or
+            byte fragments). Common words may be one token; rare words, code, and many non-English
+            strings become several. Whitespace can be glued to a word. Special tokens mark
+            boundaries the model was trained with.
+
+            **How to catch yourself:** encode a sentence and print the pieces. If you assumed
+            1 word = 1 token for budgeting, remeasure on your real traffic languages and formats.
+
+      - type: common_mistake
+        markdown: |
+          **Budgeting context from word counts.** Word count is a weak proxy. Measure tokens with
+          the model's own tokenizer on representative prompts, especially for code and non-English.
+
+          **Swapping tokenizers across models.** IDs are not a universal encoding. Wrong tokenizer
+          → garbage embeddings → confident nonsense.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. In one paragraph, explain BPE to someone who has never heard of it. Include what
+               "vocabulary size" controls.
+            2. Give two reasons a larger vocabulary can help and two reasons it can hurt.
+            3. Predict whether `"unhappiness"` is likely fewer tokens than a random 11-letter
+               string, and why.
+            4. A product supports English and a language that tokenises ~2× denser. How does that
+               change context budgeting and cost estimates?
+            5. Why does letter-counting remain hard even for a strong model, if the tokenizer
+               emits multi-character tokens?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What does a tokenizer produce for the model?"
+              answer: >-
+                A sequence of integer IDs from a fixed vocabulary (plus special tokens), not raw
+                characters unless those happen to be the pieces.
+            - question: "What does BPE repeatedly do?"
+              answer: >-
+                Merge the most frequent adjacent pair in the training data into a new vocabulary
+                symbol until a size budget is reached.
+            - question: "Name one cost of a small vocabulary."
+              answer: >-
+                Text fragments into more tokens, so the same document uses more of the context
+                window and costs more per request.
+            - question: "Why must you use the model's own tokenizer?"
+              answer: >-
+                Token IDs are tied to that model's embedding table; another tokenizer's IDs do not
+                mean the same pieces.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Explain BPE and vocabulary size without equating tokens with words.
+            - Forecast cost and context impact for a second language or for code-heavy prompts.
+            - Trace at least two "weird model behaviours" to tokenisation rather than to reasoning.
+            - Refuse to mix tokenizers across models and say what would break if you did.
+    resources:
+      - source: huggingface-tokenizers
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: >-
+          Practical encode/decode APIs and the algorithms (including BPE) used to train and run
+          tokenizers aligned with pretrained models.
+      - source: gpt3-2020
+        purpose: PRIMARY_SOURCE
+        relevance: 0.7
+        excerpt: >-
+          Places large-scale autoregressive modelling in a tokenised setting and shows why token
+          budgets matter for in-context learning.

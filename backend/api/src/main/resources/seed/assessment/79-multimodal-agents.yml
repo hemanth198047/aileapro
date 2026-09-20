@@ -1,0 +1,271 @@
+# Items for clip-joint-embeddings and agent-memory-patterns.
+
+items:
+  - slug: clip-contrastive
+    unit: clip-joint-embeddings
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "What does CLIP-style training push together in embedding space?"
+    choices:
+      - id: a
+        text: "Matched image–text pairs, relative to mismatched pairs in the batch."
+        correct: true
+      - id: b
+        text: "Every pixel and every character into one shared discrete token."
+      - id: c
+        text: "ImageNet labels and WordNet synsets only."
+      - id: d
+        text: "Audio spectrograms and SQL schemas."
+    explanation: |
+      Contrastive pretraining aligns encoders so true pairs score higher than non-pairs. That
+      shared geometry enables cross-modal retrieval and zero-shot scoring.
+
+  - slug: clip-zero-shot
+    unit: clip-joint-embeddings
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "How can CLIP classify without a trained classification head?"
+    choices:
+      - id: a
+        text: "Embed class name prompts with the text encoder and pick the closest to the image embedding."
+        correct: true
+      - id: b
+        text: "Average all training labels into a single bias term."
+      - id: c
+        text: "Replace the image encoder with a decision tree at inference."
+      - id: d
+        text: "It cannot — zero-shot requires fine-tuning."
+    explanation: |
+      Natural-language class descriptions become points in the joint space. Prompt wording is
+      part of the system under test.
+
+  - slug: clip-not-understanding
+    unit: clip-joint-embeddings
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      High cosine similarity between an image and a caption is taken as proof the model
+      "understood" the scene. Strongest objection?
+    choices:
+      - id: a
+        text: "Similarity reflects training-pair statistics and shortcuts — not guaranteed conceptual understanding."
+        correct: true
+      - id: b
+        text: "CLIP understands images exactly as humans do."
+        misconception: clip.understands_images
+      - id: c
+        text: "Cosine similarity is only defined for text–text pairs."
+      - id: d
+        text: "Joint embeddings cannot be used for retrieval."
+    explanation: |
+      Useful geometry ≠ comprehension. Probe with counterfactual captions and domain-shifted
+      images before trusting the score in hard settings.
+
+  - slug: clip-same-checkpoint
+    unit: clip-joint-embeddings
+    type: true_false
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Image and text encoders used for comparison must come from the same jointly trained
+      checkpoint pair.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Mixing encoders from different trainings breaks comparability of the spaces.
+
+  - slug: clip-prompt-sensitive
+    unit: clip-joint-embeddings
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "Why does zero-shot CLIP performance depend on prompt templates?"
+    choices:
+      - id: a
+        text: "Different phrasings land at different text embedding points and change rankings."
+        correct: true
+      - id: b
+        text: "Prompts retrain the image encoder on each call."
+      - id: c
+        text: "Templates are ignored; only class ids matter."
+      - id: d
+        text: "Prompts only affect generative models, never embedding models."
+    explanation: |
+      The text encoder maps strings to vectors. "A photo of X" versus a terse label can move
+      scores materially — treat prompts as configuration.
+
+  - slug: mem-short-vs-long
+    unit: agent-memory-patterns
+    type: mcq
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 90
+    stem: "Where does an agent's short-term / working memory live?"
+    choices:
+      - id: a
+        text: "In the context window for the current loop — rebuilt each call and size-bounded."
+        correct: true
+      - id: b
+        text: "Only in GPU VRAM as permanent weights."
+      - id: c
+        text: "In a separate legal entity's database by definition."
+      - id: d
+        text: "Nowhere — agents cannot condition on prior tool results."
+    explanation: |
+      Working memory is whatever you place in context this step. Durable cross-session facts need
+      stores you operate.
+
+  - slug: mem-not-transcript
+    unit: agent-memory-patterns
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A team claims the full chat transcript is long-term memory because it is resent each turn.
+      Best critique?
+    choices:
+      - id: a
+        text: "The transcript is short-term working context with hard size/cost limits — truncation loses it."
+        correct: true
+      - id: b
+        text: "Keeping the full transcript is genuine durable long-term memory."
+        misconception: agent.context_is_long_term_memory
+      - id: c
+        text: "Transcripts automatically sync to every user's device."
+      - id: d
+        text: "Models store transcripts inside the tokenizer."
+    explanation: |
+      Resent history is still a bounded prompt. Cross-session persistence, search, and tenancy
+      require external memory designs.
+
+  - slug: mem-react-role
+    unit: agent-memory-patterns
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 110
+    stem: "How does ReAct relate to agent memory?"
+    choices:
+      - id: a
+        text: "It structures short-term thought/action/observation traces; durable facts still need external stores."
+        correct: true
+      - id: b
+        text: "It replaces all databases with chain-of-thought alone."
+      - id: c
+        text: "It freezes LoRA adapters between sessions."
+      - id: d
+        text: "It trains CLIP encoders online."
+    explanation: |
+      ReAct is a short-term control/trace pattern. Preferences and knowledge that must survive
+      sessions are a different subsystem.
+
+  - slug: mem-summary-risk
+    unit: agent-memory-patterns
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 120
+    stem: "What should not rely only on a rolling conversation summary?"
+    choices:
+      - id: a
+        text: "Hard safety constraints and exact identifiers that must not be dropped."
+        correct: true
+      - id: b
+        text: "Optional stylistic preferences that are cheap to rediscover."
+      - id: c
+        text: "Debug logs stored offline."
+      - id: d
+        text: "Public documentation retrieved via RAG on demand."
+    explanation: |
+      Summaries are lossy. Pin constraints and critical IDs in structured state or a
+      never-summarised prefix.
+
+  - slug: mem-patterns
+    unit: agent-memory-patterns
+    type: true_false
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 80
+    stem: |
+      Vector-retrieved notes and structured profile fields are both forms of long-term agent
+      memory outside the live context window.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — surveys group durable stores (vector, structured, logged episodes) separately from
+      in-window working memory.
+
+assessments:
+  - slug: clip-joint-embeddings-practice
+    title: "Practice: CLIP joint embeddings"
+    kind: practice
+    unit: clip-joint-embeddings
+    items:
+      - clip-contrastive
+      - clip-zero-shot
+      - clip-same-checkpoint
+
+  - slug: clip-joint-embeddings-quiz
+    title: "Quiz: CLIP joint embeddings"
+    kind: quiz
+    unit: clip-joint-embeddings
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - clip-contrastive
+      - clip-zero-shot
+      - clip-not-understanding
+      - clip-prompt-sensitive
+
+  - slug: agent-memory-patterns-practice
+    title: "Practice: agent memory patterns"
+    kind: practice
+    unit: agent-memory-patterns
+    items:
+      - mem-short-vs-long
+      - mem-react-role
+      - mem-patterns
+
+  - slug: agent-memory-patterns-quiz
+    title: "Quiz: agent memory patterns"
+    kind: quiz
+    unit: agent-memory-patterns
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - mem-short-vs-long
+      - mem-not-transcript
+      - mem-summary-risk
+      - mem-react-role
+
+cards:
+  - slug: card-clip-space
+    unit: clip-joint-embeddings
+    front: "What does CLIP learn?"
+    back: |
+      A joint embedding space where matched images and captions sit closer than mismatched
+      pairs — enabling retrieval and zero-shot text-prompt classification.
+
+  - slug: card-agent-memory-split
+    unit: agent-memory-patterns
+    front: "Short-term vs long-term agent memory?"
+    back: |
+      Short-term lives in the context window for this loop. Long-term lives in durable stores
+      (structured state, vector notes, logs) you read back on purpose.

@@ -79,9 +79,9 @@ class GraphApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nodes[*].unit.slug").value(hasItem("matrices")))
                 .andExpect(jsonPath("$.nodes[*].unit.slug").value(hasItem("how-a-neuron-learns")))
-                // The seed authors two edges into the draft attention unit on purpose.
+                // The seed authors an edge into the draft MoE unit; learners must not see it.
                 .andExpect(jsonPath("$.nodes[*].unit.slug")
-                        .value(everyItem(not("scaled-dot-product-attention"))));
+                        .value(everyItem(not("mixture-of-experts-draft"))));
 
         Neighborhood neighborhood = neighborhood("/v1/units/matrix-multiplication/graph?hops=1");
         Set<UUID> nodeIds = neighborhood.nodes().stream()
@@ -102,9 +102,13 @@ class GraphApiTest {
         assertThat(wide.maxHops()).isEqualTo(GraphQueryService.MAX_HOPS);
         assertThat(wide.nodeBudget()).isEqualTo(GraphQueryService.NODE_BUDGET);
         assertThat(wide.nodes()).hasSizeLessThanOrEqualTo(GraphQueryService.NODE_BUDGET);
-        assertThat(wide.nodes().size())
-                .as("a neighbourhood is a slice, not the 71 seeded units")
-                .isLessThan(20);
+
+        // The slice is defined by the radius, not by a node count that drifts as the seed
+        // grows: nothing further out than the clamped hop count may appear.
+        assertThat(wide.nodes())
+                .as("a neighbourhood is a slice, not the whole graph")
+                .isNotEmpty()
+                .allSatisfy(node -> assertThat(node.hops()).isBetween(0, GraphQueryService.MAX_HOPS));
     }
 
     @Test
@@ -136,9 +140,9 @@ class GraphApiTest {
 
     @Test
     void draftUnitHasNoGraphOfItsOwn() throws Exception {
-        mockMvc.perform(get("/v1/units/scaled-dot-product-attention/graph").session(session))
+        mockMvc.perform(get("/v1/units/mixture-of-experts-draft/graph").session(session))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/v1/units/scaled-dot-product-attention/prerequisites").session(session))
+        mockMvc.perform(get("/v1/units/mixture-of-experts-draft/prerequisites").session(session))
                 .andExpect(status().isNotFound());
     }
 

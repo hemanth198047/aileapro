@@ -1,0 +1,586 @@
+# Wave 3: classical ML toolbox — logistic regression, trees/ensembles, and feature hygiene.
+#
+# Parent domains: classical-ml for the chapter and model units; feature-engineering for the
+# leakage/scaling unit (that domain already exists in 10-domains.yml).
+
+units:
+  - slug: classical-ml-toolbox
+    title: Classical ML Toolbox
+    kind: chapter
+    parent: classical-ml
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 120
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [machine-learning, classical-ml]
+    objectives:
+      - Choose between linear classifiers and tree ensembles for a stated tabular problem.
+      - Explain logistic regression as a linear score passed through a sigmoid, not as "deep learning lite".
+      - Prevent leakage and apply scaling only where the model family requires it.
+    description: >-
+      The workhorse models for tabular data after linear regression: logistic regression for
+      probabilities, trees and ensembles for flexible decision boundaries, and the feature
+      mistakes that fake good metrics.
+    blocks:
+      - type: why
+        markdown: |
+          Most production tabular problems are still solved with linear models and tree ensembles,
+          not with neural nets. These pages are the minimum toolbox: a calibrated linear classifier,
+          the tree/ensemble family that dominates benchmarks, and the feature-engineering failures
+          that make either look brilliant offline and useless online.
+
+  - slug: logistic-regression-intuition
+    title: Logistic Regression as a Probability Model
+    kind: knowledge_unit
+    parent: classical-ml-toolbox
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [machine-learning, classification, logistic-regression]
+    objectives:
+      - Write the logistic model as a linear score passed through a sigmoid.
+      - Interpret a coefficient as a change in log-odds, holding other features fixed.
+      - Choose a decision threshold from costs, not from the default 0.5 habit.
+      - Say why the model is linear in features even though the probability curve is not.
+    description: >-
+      Binary classification with a linear score mapped to a probability. The geometry is a
+      hyperplane; the output is a calibrated-looking probability you still have to check.
+    blocks:
+      - type: why
+        markdown: |
+          When the label is yes/no and you need a score that behaves like a probability — fraud,
+          click, disease flag — logistic regression is still the first model worth fitting. It is
+          fast, inspectable, and honest about being a linear separator. If it fails, you know the
+          problem needs interactions or nonlinearity, not that you "needed deep learning".
+
+      - type: eli5
+        markdown: |
+          Draw a line through a cloud of points labelled yes and no. Points far on the yes side get
+          a high "probably yes"; points far on the no side get a low one; points near the line get
+          something near fifty-fifty.
+
+          Logistic regression is that line, plus a smooth curve that turns distance-from-the-line
+          into a percentage.
+
+      - type: beginner
+        markdown: |
+          Start with a linear score, exactly as in linear regression:
+
+          $$
+          z = w^{\top}x + b
+          $$
+
+          Map it to a probability with the sigmoid:
+
+          $$
+          p(y=1 \mid x) = \sigma(z) = \frac{1}{1+e^{-z}}
+          $$
+
+          Training maximises likelihood (equivalently minimises log loss) so predicted probabilities
+          match the labels as well as a linear score can. Prediction for a hard label needs a
+          **threshold** $t$: predict 1 when $p \ge t$. The default $t = 0.5$ is a convention, not a
+          law — change it when false positives and false negatives have different costs.
+
+          **Linearity.** The decision boundary $\sigma(z)=0.5$ is the plane $z=0$. Curves in
+          probability space do not make the model nonlinear in $x$; nonlinearity requires new
+          features (interactions, bins) or a different model family.
+
+      - type: intermediate
+        markdown: |
+          **Log-odds.** The logit is linear:
+
+          $$
+          \log\frac{p}{1-p} = w^{\top}x + b
+          $$
+
+          So $w_j$ is the change in log-odds for a one-unit increase in feature $j$, holding other
+          features in the model fixed — the same conditional caveat as in linear regression. For
+          small probabilities people paraphrase in odds ratios ($e^{w_j}$); say that carefully and
+          only when the audience wants odds, not probabilities.
+
+          **Regularisation.** With many features, $L_2$ (ridge) keeps weights small; $L_1$ (lasso)
+          drives some to zero. scikit-learn's `LogisticRegression` applies regularisation by
+          default — read the `penalty` and `C` knobs before comparing to a textbook MLE.
+
+          **Calibration.** Minimising log loss pushes probabilities toward being well calibrated,
+          but class imbalance, wrong features, and shift all break that. A reliability diagram on
+          held-out data is part of shipping, not an optional extra.
+
+          **Multiclass.** One-vs-rest or multinomial (softmax) extensions reuse the same idea:
+          linear scores, normalised into a distribution. The binary case is enough to understand
+          both.
+
+      - type: example
+        markdown: |
+          Two features: `income` (in tens of thousands) and `late_payments`. Suppose fitted
+          weights $w = (0.4, -0.8)$, bias $b = -1.0$.
+
+          Applicant A: income $5$, late payments $1$:
+
+          $$
+          z = 0.4\cdot 5 + (-0.8)\cdot 1 - 1.0 = 0.2, \quad
+          p = \sigma(0.2) \approx 0.55
+          $$
+
+          Applicant B: income $3$, late payments $3$:
+
+          $$
+          z = 0.4\cdot 3 - 0.8\cdot 3 - 1.0 = -2.2, \quad
+          p = \sigma(-2.2) \approx 0.10
+          $$
+
+          If false approvals are expensive, you might approve only when $p \ge 0.7$, rejecting A
+          despite $p>0.5$. The model did not change — the threshold did.
+
+          ```python
+          from sklearn.linear_model import LogisticRegression
+          clf = LogisticRegression(penalty="l2", C=1.0, max_iter=1000)
+          clf.fit(X_train, y_train)
+          proba = clf.predict_proba(X_test)[:, 1]
+          ```
+
+      - type: misconception
+        payload:
+          code: ml.logistic_is_nonlinear
+          claim: "Logistic regression is a nonlinear model because the sigmoid curves."
+          markdown: |
+            **The claim:** the S-shaped sigmoid makes the classifier nonlinear.
+
+            **Why it feels right:** plots of $p$ against one feature look curved.
+
+            **What actually happens:** the score $z$ is linear in $x$. The sigmoid only squashes
+            that score into $(0,1)$. The set $\{x : p(x) \ge 0.5\}$ is still a half-space. If you
+            need XOR-like boundaries, logistic regression on raw features will not invent them.
+
+            **How to catch yourself:** ask whether the decision boundary is a hyperplane in the
+            feature space you trained on. If yes, the model is linear in those features.
+
+      - type: common_mistake
+        markdown: |
+          **Reporting accuracy at 0.5 on an imbalanced set.** A 1% positive class yields 99%
+          accuracy by always predicting no. Use recall, precision, PR curves, or cost-weighted
+          thresholds.
+
+          **Skipping scaling with regularisation.** $L_1$/$L_2$ penalties treat weight magnitude
+          as comparable across features; unscaled inputs make the penalty arbitrary. Scale (or use
+          a tree model).
+
+          **Reading $w_j$ as "effect on probability".** It is an effect on log-odds; the change in
+          $p$ depends on the starting $p$.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Compute $\sigma(0)$, $\sigma(2)$, and $\sigma(-2)$. What probabilities do you get?
+            2. For $w=(1,-1)$, $b=0$, sketch the line $z=0$ in the $(x_1,x_2)$ plane and mark the
+               positive side.
+            3. A threshold moves from 0.5 to 0.8. What typically happens to precision and recall for
+               the positive class?
+            4. Why does `LogisticRegression` in scikit-learn want scaled features when `penalty`
+               is not `None`?
+            5. Give a one-sentence correction to "logistic regression is nonlinear because of the
+               sigmoid."
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is the logistic model, in one formula?"
+              answer: "p = σ(wᵀx + b), with σ the sigmoid; training fits w, b by log loss / likelihood."
+            - question: "What does a coefficient mean?"
+              answer: >-
+                Change in log-odds for a one-unit increase in that feature, holding other modelled
+                features fixed.
+            - question: "Is the decision boundary linear?"
+              answer: "Yes — {x : wᵀx + b = 0} is a hyperplane in feature space."
+            - question: "Why might you not use threshold 0.5?"
+              answer: >-
+                Because false positives and false negatives have different costs; choose t from
+                validation utility, not habit.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Fit and interpret a small logistic model, including a non-default threshold.
+            - Translate a coefficient into log-odds language without calling it a probability shift.
+            - Explain linearity versus the sigmoid curve without conflating them.
+            - Point to the scikit-learn linear-models guide for the estimator you would call.
+    resources:
+      - source: sklearn-linear-model
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: "Logistic regression section: estimators, penalties, and the multiclass options."
+      - source: esl-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.85
+        excerpt: "Chapter 4 develops logistic regression and discriminant views for classification."
+
+  - slug: decision-trees-and-ensembles
+    title: Decision Trees and Why Ensembles Win
+    kind: knowledge_unit
+    parent: classical-ml-toolbox
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 40
+    volatility: LOW
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [machine-learning, trees, ensembles]
+    objectives:
+      - Describe how a decision tree partitions the feature space with axis-aligned splits.
+      - Contrast bagging (random forests) with boosting as two ways to build an ensemble.
+      - Say why single deep trees overfit and why ensembles usually beat them on tabular data.
+      - Know what trees do not need (scaling) and what they still need (honest splits, no leakage).
+    description: >-
+      Trees carve the space into rectangles; forests and boosted trees average or sequence many
+      shallow trees so variance drops without giving up the interactions trees express easily.
+    blocks:
+      - type: why
+        markdown: |
+          On heterogeneous tabular data — mixed types, missingness, nonlinear interactions —
+          gradient-boosted trees and random forests remain the models to beat. Understanding one
+          tree is enough to see what ensembles buy you, and enough to know when a linear model was
+          the wrong first try.
+
+      - type: eli5
+        markdown: |
+          Play twenty questions with the data. "Is income above 50k?" then "Were there late
+          payments?" Each answer sends you down a branch until a leaf says yes or no (or a number).
+
+          One long interrogation memorises quirks. Asking many slightly different interrogations
+          and combining their answers — that is an ensemble — usually generalises better.
+
+      - type: beginner
+        markdown: |
+          A **decision tree** repeatedly picks a feature and a threshold that best separate the
+          labels (classification) or reduce variance (regression), using criteria such as Gini
+          impurity or entropy. Each split is axis-aligned: $x_j \le t$. The result is a partition
+          of the space into rectangles, each with a constant prediction.
+
+          **Depth** controls capacity. A very deep tree can isolate individual training points —
+          low bias, high variance. Pruning, minimum leaf size, and max depth are the usual brakes.
+
+          **Ensembles:**
+
+          - **Bagging / random forest.** Train many trees on bootstrap samples (and random feature
+            subsets at splits); average their votes. Cuts variance; trees are noisy but uncorrelated
+            enough that the average stabilises.
+          - **Boosting.** Train trees sequentially; each focuses on examples the current ensemble
+            gets wrong (or on residuals). Gradient boosting is the dominant practical form.
+
+          Trees do **not** require feature scaling: splits only care about orderings of a single
+          feature. They still require leakage-free features and honest validation.
+
+      - type: intermediate
+        markdown: |
+          **Why trees express interactions easily.** A split on $x_1$ followed by a split on $x_2$
+          in one branch implements an interaction without you multiplying columns by hand. Linear
+          models need those products (or kernels) spelled out.
+
+          **Why one tree is rarely enough.** Greedy splits plus high depth fit noise. Forests reduce
+          variance by averaging; boosting reduces bias by spending capacity where the loss is still
+          high. In practice, well-tuned gradient boosting usually edges forests on clean tabular
+          benchmarks; forests are simpler to parallelise and harder to misuse on small data.
+
+          **Feature importance** from split counts or impurity decrease is a diagnostic, not a
+          causal claim. Correlated features share credit arbitrarily; use it to sanity-check, not
+          to write policy.
+
+          **Extrapolation.** A tree's prediction outside the training range of a feature is still
+          a leaf value from the edge — it does not continue a trend the way a linear model does.
+          That is safer for some applications and worse for others; know which you are in.
+
+      - type: example
+        markdown: |
+          Tiny loan data: approve if `credit_score ≥ 700` and `debt_ratio ≤ 0.4`, else reject.
+          A depth-2 tree can recover exactly those two splits. A logistic regression on the raw
+          two features needs the boundary to be a single line — it can approximate but will smear
+          the corner of the AND region.
+
+          ```python
+          from sklearn.tree import DecisionTreeClassifier
+          from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+
+          tree = DecisionTreeClassifier(max_depth=3, min_samples_leaf=20)
+          forest = RandomForestClassifier(n_estimators=200, max_features="sqrt")
+          boost = GradientBoostingClassifier(max_depth=2, n_estimators=100)
+          ```
+
+          Compare validation metrics; do not crown a winner on training accuracy. A depth-20 single
+          tree will often crush training and lose on validation — that gap is the lesson.
+
+      - type: misconception
+        payload:
+          code: ml.trees_need_scaling
+          claim: "You must standardise features before fitting a random forest or boosted trees."
+          markdown: |
+            **The claim:** tree ensembles want zero-mean unit-variance inputs like regularised linear
+            models.
+
+            **Why it feels right:** every tutorial pipeline starts with `StandardScaler`, and people
+            copy it onto every estimator.
+
+            **What actually happens:** a split $x_j \le t$ is invariant to monotonic rescaling of
+            $x_j$. Standardising does not change the tree (up to equivalent thresholds). Wasting
+            effort on scaling is harmless; believing trees failed "because you forgot to scale" hides
+            the real issue — usually leakage, target encoding done wrong, or a bad split strategy.
+
+            **How to catch yourself:** ask whether the model compares features *across* coordinates
+            with a distance or a penalty on weight size. Trees do not; k-NN and regularised linear
+            models do.
+
+      - type: common_mistake
+        markdown: |
+          **Tuning on the test set.** Forests and boosters have many knobs; burning the test set
+          while chasing them is still overfitting, just slower.
+
+          **One-hot exploding categoricals then deep trees.** High-cardinality categories need
+          target/ordinal encodings done *inside* CV folds, or hashing — not a naive get_dummies on
+          the full dataset.
+
+          **Reading feature importance as "this causes the label".** Association inside the model's
+          splits is not causation.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Draw the rectangular partition for a tree that splits $x_1 \le 0$ then, on the right
+               child only, $x_2 \le 1$.
+            2. In one sentence each, contrast bagging and boosting.
+            3. Why can a depth-1 tree not represent XOR on two binary features, while a depth-2 tree
+               can?
+            4. Name two hyperparameters that limit overfitting for a single tree.
+            5. A colleague standardises all columns before a random forest "for best practice."
+               What do you tell them?
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What shape are a tree's decision regions?"
+              answer: "Axis-aligned rectangles (products of threshold rules on single features)."
+            - question: "What does a random forest mainly reduce?"
+              answer: "Variance — by averaging many decorrelated high-variance trees."
+            - question: "Do tree ensembles require feature scaling?"
+              answer: "No. Splits depend on per-feature orderings, not comparable units across features."
+            - question: "What is the main practical risk of a single deep tree?"
+              answer: "Overfitting — memorising training idiosyncrasies with high variance predictions."
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Sketch how a small tree partitions a 2D feature space.
+            - Choose forest versus boosting at the level of variance-versus-bias intuition.
+            - Refuse unnecessary scaling for trees and still insist on leakage-free validation.
+            - Find the scikit-learn tree and ensemble guides for the estimators you would fit.
+    resources:
+      - source: sklearn-tree
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: "Decision tree algorithms, criteria, and the overfitting controls."
+      - source: sklearn-ensemble
+        purpose: TOOL_REFERENCE
+        relevance: 0.9
+        excerpt: "Forests, boosting, and the ensemble API used in practice."
+      - source: esl-book
+        purpose: DEEPER_REFERENCE
+        relevance: 0.7
+        excerpt: "Chapters on trees, bagging, random forests, and boosting."
+
+  - slug: feature-leakage-and-scaling
+    title: Feature Leakage and When Scaling Matters
+    kind: knowledge_unit
+    parent: feature-engineering
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 35
+    volatility: MEDIUM
+    knowledgeClass: STABLE
+    lastReviewedAt: 2026-09-19
+    tags: [feature-engineering, leakage, preprocessing]
+    objectives:
+      - Apply the timestamp test to catch target leakage in proposed features.
+      - Fit scalers and encoders only on training folds.
+      - Know which model families require comparable feature scales and which do not.
+      - Separate "useful correlation" from "illegal foresight".
+    description: >-
+      Features that accidentally encode the label, and preprocessing that peeks at held-out data,
+      are the fastest ways to fake a great model. Scaling is required for some learners and
+      irrelevant for others.
+    blocks:
+      - type: why
+        markdown: |
+          Spectacular offline metrics with catastrophic production performance almost always trace
+          to leakage or to preprocessing fitted on the full dataset. This page is the checklist
+          that should run before you celebrate an AUC.
+
+      - type: eli5
+        markdown: |
+          Imagine a test where the answer key was accidentally stapled to the worksheet. Everyone
+          scores 100%. Nobody learned the subject.
+
+          Leakage is the answer key in your columns. Scaling mistakes are subtler: you peek at the
+          test worksheet's average height before "normalising" the training sheet, so the test is
+          no longer unseen.
+
+      - type: beginner
+        markdown: |
+          **Target leakage.** A feature is illegal if its value is only knowable after the label's
+          moment, or if it is a proxy that restates the label. Classic examples: `discharge_status`
+          when predicting in-hospital mortality; `cancellation_reason` when predicting churn;
+          future aggregates computed with a window that secretly includes the label period.
+
+          **The timestamp test.** For every feature, ask: at the prediction moment, is this value
+          already written? If not, drop it.
+
+          **Scaling.** Maps features to comparable numeric ranges — e.g. standardise to mean 0
+          variance 1, or min-max to $[0,1]$. Required when the model uses distances or penalises
+          weight magnitude across features (k-NN, regularised linear/logistic, SVM, PCA, neural
+          nets). Not required for tree ensembles.
+
+          **Fit on train only.** Compute mean/variance (or min/max, or target-encoding statistics)
+          on the training split; apply those frozen numbers to validation and test. Fitting on all
+          rows leaks held-out information into the transform.
+
+      - type: intermediate
+        markdown: |
+          **Leakage through preprocessing.** Even "innocent" steps leak: imputing with the global
+          median; TF–IDF vocabulary built on all documents; PCA fitted on train+test; oversampling
+          before the split so synthetic neighbours of test points appear in train. Pipelines that
+          bind the transform to each CV fold exist because this bug is common.
+
+          **Group and time structure.** Random splits leak when multiple rows share a customer or
+          when time order matters. Scale and encode inside the same split discipline you use for
+          the model — by time, by group ID — not with an i.i.d. fantasy.
+
+          **Legitimate strong features versus leakage.** Prior spending history can be extremely
+          predictive of future spending *and* legal if it uses only past data. The difference is
+          foresight, not strength. A feature that jumps AUC from 0.7 to 0.99 deserves a timestamp
+          audit, not a celebration.
+
+          **Sparse one-hots and regularisation.** After scaling dense numeric columns, do not
+          blindly standardise huge sparse one-hot blocks the same way without thinking — the
+          interaction with `C` / `alpha` changes. Prefer pipelines documented for your estimator.
+
+      - type: example
+        markdown: |
+          **Bad:**
+
+          ```python
+          scaler = StandardScaler().fit(X_all)   # includes test rows
+          X_all_s = scaler.transform(X_all)
+          X_train, X_test, y_train, y_test = train_test_split(X_all_s, y)
+          ```
+
+          **Good:**
+
+          ```python
+          X_train, X_test, y_train, y_test = train_test_split(X, y)
+          scaler = StandardScaler().fit(X_train)
+          X_train_s = scaler.transform(X_train)
+          X_test_s = scaler.transform(X_test)
+          ```
+
+          Better still: a `Pipeline` so CV refits the scaler on each training fold.
+
+          **Leakage example.** Predicting no-show at appointment time with a feature
+          `rescheduled_after_miss` set only when a miss already occurred. Offline AUC near 1.0;
+          at scoring time the field is always false for open appointments. Timestamp test fails
+          immediately.
+
+      - type: misconception
+        payload:
+          code: ml.scaling_always_required
+          claim: "Every machine learning pipeline must standardise all features."
+          markdown: |
+            **The claim:** scaling is universal best practice.
+
+            **Why it feels right:** many tutorials lead with `StandardScaler`, and neural-net and
+            regularised-linear advice correctly insists on it.
+
+            **What actually happens:** tree-based models ignore absolute scale. Scaling them is
+            optional cosmetics. Conversely, *failing* to scale for k-NN or ridge is a real bug.
+            Blanket rules hide both mistakes: unnecessary work on forests, and skipped work on
+            linear models.
+
+            **How to catch yourself:** name the mechanism — distance, penalty on $\|w\|$, or
+            gradient conditioning — that makes scale matter for *this* estimator. If you cannot,
+            look it up before adding a scaler.
+
+      - type: common_mistake
+        markdown: |
+          **Target encoding on the full dataset** before splitting. The encoding of rare categories
+          absorbs label noise from rows that later appear in the test fold.
+
+          **Dropping "too good" features without checking why.** Sometimes they are legitimate
+          history; sometimes they are leakage. Audit timestamps before deleting signal.
+
+          **Min-max scaling with outliers.** A single extreme train value crushes everyone else into
+          a tiny band; robust scaling or clipping may be more appropriate.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Apply the timestamp test to: predicting default at loan *application* using a feature
+               "months in collections during the loan." Legal or leak?
+            2. Which of logistic regression with $L_2$, random forest, and k-NN need comparable
+               feature scales? Why?
+            3. Rewrite a pseudo-pipeline that fits PCA on all data so that it is valid under a
+               train/test split.
+            4. Why does oversampling before the split leak?
+            5. Correct the misconception "always standardise everything" in two sentences.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is the timestamp test for a feature?"
+              answer: >-
+                At the prediction moment, is this value already written? If not, it leaks.
+            - question: "Where must a scaler be fitted?"
+              answer: "Only on training data (per CV fold), then applied frozen to held-out data."
+            - question: "Name a model family that does not need feature scaling."
+              answer: "Decision trees and their ensembles (forests, most boosted trees)."
+            - question: "Why can a 0.99 AUC be a bad sign?"
+              answer: >-
+                It often indicates leakage or label restatement rather than genuine foresight —
+                audit feature timestamps before celebrating.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Kill a leaking feature with a timestamp argument in one minute.
+            - Spot preprocessing leakage in someone else's notebook by finding where transforms fit.
+            - Choose scaling based on the estimator's mechanism, not habit.
+            - Explain why trees skip the scaler that ridge requires.
+    resources:
+      - source: sklearn-linear-model
+        purpose: TOOL_REFERENCE
+        relevance: 0.6
+        excerpt: "Notes that regularised linear models expect reasonably scaled inputs."
+      - source: esl-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.6
+        excerpt: "Model assessment chapters stress honest separation of train and test information."
+      - source: sklearn-tree
+        purpose: TOOL_REFERENCE
+        relevance: 0.5
+        excerpt: "Tree models split on per-feature thresholds — no scale normalisation step."

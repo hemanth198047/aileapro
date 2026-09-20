@@ -1,0 +1,482 @@
+# Wave 2, part 2: the probability that loss functions and evaluation are built on.
+#
+# Again narrow on purpose. Expectation explains where a loss comes from; conditioning and Bayes
+# explain why a 99%-accurate test can still be wrong most of the time, which is the single most
+# expensive misreading in applied machine learning.
+
+units:
+  - slug: probability-for-ml
+    title: Probability for Machine Learning
+    kind: chapter
+    parent: probability
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 70
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    tags: [mathematics, probability]
+    objectives:
+      - Treat a model's output as a distribution rather than as a single number.
+      - Compute an expectation and recognise it inside a loss function.
+      - Update a belief with evidence and explain why the base rate dominates rare events.
+    description: >-
+      Two pages: what a random variable and an expectation are, and how a belief changes when
+      evidence arrives. Between them they account for most loss functions and most evaluation
+      arguments in the rest of this curriculum.
+    blocks:
+      - type: why
+        markdown: |
+          Every model in this curriculum outputs a distribution, not an answer. A classifier emits
+          probabilities; a language model emits a probability for each possible next token. The
+          loss that trains them is an expectation, and the metrics that judge them are conditional
+          probabilities wearing different names.
+
+          Skip this and you can still run the code. You will not be able to say why a rare-event
+          detector with excellent accuracy is worthless, which is a conversation that happens on
+          real projects, usually too late.
+
+  - slug: random-variables-and-expectation
+    title: Random Variables and Expectation
+    kind: knowledge_unit
+    parent: probability-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 2
+    estimateMinutes: 32
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    tags: [mathematics, probability, expectation, loss]
+    objectives:
+      - Distinguish a random variable from the value it happens to take.
+      - Compute an expectation and a variance for a small discrete distribution.
+      - Identify the expectation hiding inside an average loss over a training set.
+      - Explain why an expectation alone can be a misleading summary.
+    description: >-
+      A random variable is a number whose value is uncertain. Expectation is its long-run average.
+      Nearly every loss function in machine learning is an expectation over your data.
+    blocks:
+      - type: why
+        markdown: |
+          When training code reports `loss: 0.412`, that number is an average over a batch — an
+          estimate of an expectation over the data distribution. Knowing that changes how you read
+          it: it is a sample statistic, it has noise, and it can be dominated by a few large terms.
+
+          Expectation is also the bridge between "the model outputs probabilities" and "training
+          minimises a single number". You cannot see that bridge without this page.
+
+      - type: eli5
+        markdown: |
+          A carnival game costs £1 to play. You win £10 one time in twenty.
+
+          What do you make per play on average? One time in twenty you gain £9; nineteen times in
+          twenty you lose £1. Average: $(9 \times 1 + (-1) \times 19) / 20 = -0.50$. You lose 50p
+          per play, on average, forever.
+
+          That average is the expectation. Note that you never actually win or lose 50p on any
+          single play — the expectation is a property of the game, not of any one round.
+
+      - type: beginner
+        markdown: |
+          A **random variable** $X$ assigns a number to each outcome of an uncertain process. A
+          die roll, a customer's spend, a model's error on the next example. It is not a fixed
+          number; it is a number-valued quantity with a **distribution** saying how likely each
+          value is.
+
+          The **expectation** of a discrete random variable is the probability-weighted average of
+          its values:
+
+          $$
+          \mathbb{E}[X] = \sum_{i} x_i \, P(X = x_i)
+          $$
+
+          The **variance** says how spread out it is around that average:
+
+          $$
+          \operatorname{Var}(X) = \mathbb{E}\big[(X - \mathbb{E}[X])^2\big]
+          $$
+
+          Two properties carry most of the weight in practice:
+
+          - **Linearity.** $\mathbb{E}[aX + bY] = a\mathbb{E}[X] + b\mathbb{E}[Y]$, whether or not
+            $X$ and $Y$ are independent. This is why an average loss over a batch is an unbiased
+            estimate of the average loss over the dataset.
+          - **Variance is not linear.** $\operatorname{Var}(X + Y)$ equals
+            $\operatorname{Var}(X) + \operatorname{Var}(Y)$ only when the two are uncorrelated.
+            Much of why ensembles help comes from this line.
+
+      - type: intermediate
+        markdown: |
+          Almost every training objective is an expectation. Written honestly, supervised learning
+          minimises the expected loss over the data distribution $\mathcal{D}$:
+
+          $$
+          \min_{\theta} \; \mathbb{E}_{(x, y) \sim \mathcal{D}} \big[ \ell(f_\theta(x), y) \big]
+          $$
+
+          You cannot compute that, because $\mathcal{D}$ is not available — only a sample from it
+          is. So training minimises the **empirical** average over $n$ examples instead:
+
+          $$
+          \hat{L}(\theta) = \frac{1}{n} \sum_{i=1}^{n} \ell(f_\theta(x_i), y_i)
+          $$
+
+          The gap between those two lines is the entire subject of generalisation. Minimising the
+          second does not guarantee anything about the first, and the further you push the
+          empirical average down, the less the two have to do with each other. That is overfitting,
+          stated in probability rather than in metaphor.
+
+          Stochastic gradient descent leans on linearity of expectation: the gradient of a
+          mini-batch average is an unbiased estimate of the gradient of the full-dataset average.
+          The estimate is noisy — variance falls roughly as $1/B$ in the batch size $B$ — which is
+          why small batches give a jagged loss curve, and why that noise is sometimes useful rather
+          than merely tolerated.
+
+          Finally, an expectation is a lossy summary. Two models with the same mean error can be
+          entirely different products: one wrong by a little everywhere, one nearly perfect except
+          for occasional catastrophic errors. Reporting only the mean hides the second, which is
+          usually the one that gets you called at night.
+
+      - type: example
+        markdown: |
+          A model outputs probabilities for three classes. On one example the true class is B, and
+          the model says:
+
+          | Class | Probability |
+          |-------|-------------|
+          | A     | 0.2         |
+          | B     | 0.5         |
+          | C     | 0.3         |
+
+          **Cross-entropy loss on this example** is $-\ln P(\text{true class}) = -\ln 0.5 = 0.693$.
+
+          Now a second example, true class A, where the model says $P(A) = 0.9$. Its loss is
+          $-\ln 0.9 = 0.105$.
+
+          **The reported loss** is the average: $(0.693 + 0.105)/2 = 0.399$. That is the empirical
+          expectation over a two-example batch.
+
+          Now the part worth remembering. Add a third example where the model gives the true class
+          $P = 0.01$. Its loss is $-\ln 0.01 = 4.605$, and the batch average jumps to
+          $(0.693 + 0.105 + 4.605)/3 = 1.801$. One confident mistake moved the average more than
+          the two correct predictions combined, because $-\ln p$ grows without bound as $p \to 0$.
+
+          This is not a flaw. It is cross-entropy deliberately punishing confident wrongness. But
+          it does mean a spiking loss curve often reflects a handful of examples, not a broken
+          model — check the distribution of per-example losses before changing the architecture.
+
+      - type: misconception
+        payload:
+          code: prob.expectation_is_typical
+          claim: "The expected value is the value you should expect to see."
+          markdown: |
+            **The claim:** the expectation tells you what a typical draw looks like, so a model with
+            expected error 0.4 is typically off by about 0.4.
+
+            **Why it feels right:** the word "expected", and the fact that for a symmetric,
+            low-variance distribution it is roughly true.
+
+            **What actually happens:** the expectation is an average, and an average need not be a
+            possible value at all, let alone a typical one. A fair die has expectation 3.5, which it
+            never rolls. A latency distribution can have a mean of 200 ms where most requests take
+            50 ms and a few take 8 seconds — and it is the 8-second requests users complain about.
+
+            In machine learning this shows up constantly:
+
+            - Mean squared error 0.4 could be everything off by 0.63, or 95% perfect and 5% wildly
+              wrong. Different products, same number.
+            - A mean loss that "looks fine" while a subgroup is systematically failed. Aggregate
+              metrics hide disaggregated failure, which is why model cards ask for the breakdown.
+
+            **How to catch yourself:** never report a mean without a spread and a tail. Median, 95th
+            percentile, worst case, and per-group means cost nothing and answer the question the
+            mean cannot.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. $X$ takes value 0 with probability 0.7 and 10 with probability 0.3. Compute
+               $\mathbb{E}[X]$ and $\operatorname{Var}(X)$. Is the expectation a value $X$ can take?
+            2. A model assigns the true class probabilities 0.9, 0.8, and 0.1 on three examples.
+               Compute the average cross-entropy loss, then recompute it with the third changed to
+               0.4. How much of the change came from that one example?
+            3. Using linearity, show that the average loss over a batch of 32 has the same
+               expectation as the average loss over a batch of 128. What differs between them?
+            4. Give two error distributions with the same mean absolute error but very different
+               worst cases, and say which you would rather deploy and why.
+            5. A fraud detector flags 0.1% of transactions. Explain in one sentence why its mean
+               loss is dominated by the 99.9% it does not flag.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "What is the difference between a random variable and one of its values?"
+              answer: >-
+                The random variable is the uncertain quantity together with its distribution; a value
+                is one realisation of it. The expectation is a property of the former, not the latter.
+            - question: "Where is an expectation hiding in a training loop?"
+              answer: >-
+                The reported loss is an empirical average over a batch, which estimates the expected
+                loss over the data distribution.
+            - question: "Why is a mean loss an incomplete report?"
+              answer: >-
+                It hides the spread. Very different error distributions — uniformly small errors
+                versus rare catastrophic ones — can share a mean.
+            - question: "Why does a smaller batch give a noisier loss curve?"
+              answer: >-
+                The batch average is an estimate whose variance falls roughly as one over the batch
+                size, so fewer examples means a noisier estimate of the same quantity.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Compute an expectation and a variance for a small discrete distribution without
+              looking up the formulas.
+            - Point at the expectation inside a reported training loss and say what it estimates.
+            - Explain why minimising an empirical average is not the same as minimising the true
+              expected loss.
+            - Refuse to accept a mean as a complete summary, and name what else you would ask for.
+    resources:
+      - source: mml-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Chapter 6 develops random variables, expectation, and variance in ML notation."
+      - source: seeing-theory
+        purpose: VISUAL_INTUITION
+        relevance: 0.7
+        excerpt: >-
+          The Basic Probability and Probability Distributions chapters are interactive and free;
+          useful if the algebra on this page reads as symbol-pushing.
+
+  - slug: conditioning-and-bayes
+    title: Conditioning, Base Rates, and Bayes
+    kind: knowledge_unit
+    parent: probability-for-ml
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 38
+    volatility: LOW
+    knowledgeClass: FOUNDATIONAL
+    lastReviewedAt: 2026-09-19
+    tags: [mathematics, probability, bayes, evaluation]
+    objectives:
+      - Compute a conditional probability and state what it is conditioned on.
+      - Apply Bayes' rule to update a belief given evidence.
+      - Explain why a highly accurate test for a rare condition produces mostly false positives.
+      - Distinguish $P(A \mid B)$ from $P(B \mid A)$ in a real claim.
+    description: >-
+      Conditioning is what "given that" means in mathematics. Bayes' rule turns a test result into
+      a belief, and shows why the rarity of what you are looking for matters more than the test.
+    blocks:
+      - type: why
+        markdown: |
+          Most of the damage done by misread machine learning results comes from one confusion:
+          swapping $P(\text{alarm} \mid \text{fraud})$ for $P(\text{fraud} \mid \text{alarm})$.
+          They are different numbers, and for rare events they differ by orders of magnitude.
+
+          Every precision and recall argument, every "our model is 99% accurate" claim, and every
+          retrieval threshold decision is this page applied. It is also the honest answer to a
+          stakeholder who wants to know what a positive prediction actually means.
+
+      - type: eli5
+        markdown: |
+          A town of 10,000 people has 10 spies. There is a spy detector that is right 99% of the
+          time. It beeps at you.
+
+          Are you a spy? Almost certainly not. The detector beeps at about 10 of the 10 real spies
+          — and at about 100 of the 9,990 innocent people, because 1% of a big number is a big
+          number. So about 110 people get beeped at and only 10 are spies: roughly 1 in 11.
+
+          A very accurate test for a very rare thing mostly finds the thing it is wrong about.
+          There are simply so many more chances to be wrong.
+
+      - type: beginner
+        markdown: |
+          The **conditional probability** of $A$ given $B$ is the probability of $A$ within the
+          world where $B$ has happened:
+
+          $$
+          P(A \mid B) = \frac{P(A \cap B)}{P(B)}
+          $$
+
+          Conditioning shrinks the universe of possibilities to $B$ and renormalises. That is all
+          it does, and it is why order matters: $P(A \mid B)$ and $P(B \mid A)$ divide the same
+          numerator by different denominators.
+
+          **Bayes' rule** relates them:
+
+          $$
+          P(A \mid B) = \frac{P(B \mid A) \, P(A)}{P(B)}
+          $$
+
+          The pieces have names worth knowing, because people use them in argument:
+
+          - $P(A)$ is the **prior** — what you believed before, often just the base rate.
+          - $P(B \mid A)$ is the **likelihood** — how expected this evidence is if $A$ is true.
+          - $P(A \mid B)$ is the **posterior** — the updated belief.
+
+          Two events are **independent** when $P(A \mid B) = P(A)$: learning $B$ tells you nothing
+          about $A$. This is an assumption people make constantly and check almost never.
+
+      - type: intermediate
+        markdown: |
+          Expand the denominator with the law of total probability and Bayes' rule becomes usable:
+
+          $$
+          P(A \mid B) = \frac{P(B \mid A)P(A)}{P(B \mid A)P(A) + P(B \mid \neg A)P(\neg A)}
+          $$
+
+          The structure of that fraction is the lesson. When $P(A)$ is small, $P(\neg A)$ is close
+          to 1, so the second term in the denominator is $P(B \mid \neg A)$ multiplied by something
+          near 1, while the first is multiplied by something tiny. Even a small false-positive rate
+          therefore dominates unless it is smaller than the base rate itself.
+
+          This is not an exotic case. It is the normal case in every valuable detection problem:
+          fraud, disease, security incidents, equipment failure. All of them are rare, which is
+          precisely why detecting them is worth money.
+
+          Three consequences to carry into the evaluation units:
+
+          - **Accuracy is close to useless on imbalanced data.** Predicting "not fraud" always
+            gives 99.9% accuracy and catches nothing.
+          - **Precision is a posterior.** $P(\text{positive class} \mid \text{predicted positive})$
+            is exactly the quantity Bayes computes, which is why precision depends on the base rate
+            while recall does not.
+          - **A model evaluated on a rebalanced test set reports a precision that will not survive
+            deployment,** because the prior changed. Recall and the false-positive rate transfer;
+            precision does not.
+
+      - type: example
+        markdown: |
+          A fraud model flags transactions. On a held-out set it catches 95% of fraud
+          ($P(\text{flag} \mid \text{fraud}) = 0.95$) with a 2% false-positive rate
+          ($P(\text{flag} \mid \text{legit}) = 0.02$). Fraud is 0.5% of transactions.
+
+          A transaction is flagged. What is the probability it is fraud?
+
+          Work in counts over 100,000 transactions, which is easier to check than the algebra:
+
+          - Fraud: $0.005 \times 100{,}000 = 500$. Flagged: $0.95 \times 500 = 475$.
+          - Legit: $99{,}500$. Flagged: $0.02 \times 99{,}500 = 1{,}990$.
+          - Total flagged: $475 + 1{,}990 = 2{,}465$.
+
+          $$
+          P(\text{fraud} \mid \text{flag}) = \frac{475}{2465} \approx 0.193
+          $$
+
+          So four out of five flags are false alarms, from a model that catches 95% of fraud with
+          only a 2% false-positive rate. Nothing is wrong with the model; the base rate is doing
+          the work.
+
+          **What actually helps.** Halving the false-positive rate to 1% gives $475 / (475 + 995)
+          \approx 0.32$ — a much larger improvement than pushing recall from 95% to 99%, which
+          would give only $495/2485 \approx 0.199$. When positives are rare, precision is bought by
+          reducing false positives, not by catching more true ones. That is a design decision this
+          calculation makes for you.
+
+      - type: misconception
+        payload:
+          code: prob.base_rate_neglect
+          claim: "The test is 99% accurate, so a positive result is 99% likely to be right."
+          markdown: |
+            **The claim:** a test's accuracy transfers directly to its results, so a 99%-accurate
+            detector that fires is 99% likely to have found something real.
+
+            **Why it feels right:** it is the only number anyone quotes, and $P(\text{flag} \mid
+            \text{fraud})$ and $P(\text{fraud} \mid \text{flag})$ sound like the same sentence read
+            in either direction.
+
+            **What actually happens:** they are different conditional probabilities with different
+            denominators, and Bayes' rule converts between them using the base rate. When the thing
+            you are looking for is rare, the pool of possible false positives is enormous compared
+            with the pool of possible true positives, so most positives are false — as the worked
+            example shows, an excellent fraud model can still be wrong four times out of five when
+            it fires.
+
+            The cost of holding this belief is concrete. Teams ship detection systems whose alerts
+            are ignored within a month because analysts learn, empirically, that flags mean nothing.
+            The model was fine; the threshold was chosen without a base rate.
+
+            **How to catch yourself:** before quoting any accuracy figure, write down the
+            two-by-two count table over a realistic population. If you cannot state the base rate,
+            you cannot state what a positive result means.
+
+      - type: common_mistake
+        markdown: |
+          **Evaluating on a balanced sample and quoting the precision.** Rebalancing changes the
+          prior, so the precision you measure is the precision for a world that does not exist.
+          Measure on the deployment distribution, or state the base rate you assumed.
+
+          **Assuming independence to make the arithmetic work.** Naive Bayes multiplies
+          likelihoods as if features were independent given the class. They usually are not, which
+          is why its probabilities are badly calibrated even when its rankings are useful.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. A disease affects 1 in 1,000. A test has 99% sensitivity and 95% specificity. Build
+               the count table over 100,000 people and compute $P(\text{disease} \mid \text{positive})$.
+            2. Repeat with a base rate of 1 in 10. State in one sentence what changed and why.
+            3. In the fraud example, what false-positive rate is needed to make half of all flags
+               genuine, holding recall at 95%?
+            4. Write down two sentences from a news story or a product page that confuse
+               $P(A \mid B)$ with $P(B \mid A)$, and correct them.
+            5. Explain why recall transfers from a rebalanced test set to production but precision
+               does not.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "State Bayes' rule and name each of the three quantities in it."
+              answer: >-
+                $P(A \mid B) = P(B \mid A)P(A)/P(B)$: prior $P(A)$, likelihood $P(B \mid A)$, and
+                posterior $P(A \mid B)$.
+            - question: "Why does a rare target make precision hard even for an accurate model?"
+              answer: >-
+                The negative class is so much larger that even a small false-positive rate produces
+                more false positives than there are true positives to find.
+            - question: "Which of precision and recall depends on the base rate, and why?"
+              answer: >-
+                Precision. It is conditioned on the prediction, so it mixes in how common the
+                positive class is; recall is conditioned on the true class and does not.
+            - question: "What does independence of $A$ and $B$ mean in one sentence?"
+              answer: >-
+                Learning that $B$ happened does not change the probability of $A$, so
+                $P(A \mid B) = P(A)$.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Build the two-by-two count table for a detection problem from a base rate and two
+              error rates, without reaching for the formula.
+            - Compute a posterior from a prior and a likelihood and sanity-check it against the
+              counts.
+            - Explain to a non-technical stakeholder why most alerts are false without sounding
+              like you are excusing the model.
+            - Spot the $P(A \mid B)$ versus $P(B \mid A)$ swap in someone else's claim.
+    resources:
+      - source: mml-book
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.8
+        excerpt: "Section 6.3 covers conditioning, Bayes' theorem, and independence."
+      - source: seeing-theory
+        purpose: VISUAL_INTUITION
+        relevance: 0.7
+        excerpt: "The Compound Probability chapter animates conditioning and Bayes' rule on the same example."
+      - source: sklearn-model-evaluation
+        purpose: TOOL_REFERENCE
+        relevance: 0.6
+        excerpt: >-
+          The precision, recall, and confusion-matrix sections show these same conditionals under
+          their machine learning names.

@@ -1,0 +1,263 @@
+# Wave 2, part 8: what a similarity score actually means.
+#
+# One unit, sitting between the vectors unit (which gives the geometry) and the RAG unit (which
+# uses it). It exists because "embeddings capture meaning" is the vaguest sentence in applied AI,
+# and every retrieval failure people cannot explain is hiding inside it.
+
+units:
+  - slug: what-embeddings-capture
+    title: What an Embedding Actually Captures
+    kind: knowledge_unit
+    parent: embeddings
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 34
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [embeddings, retrieval, similarity, nlp]
+    objectives:
+      - Explain where an embedding's geometry comes from and what training objective shaped it.
+      - Say what "similar" means for a given embedding model, and what it does not mean.
+      - Predict retrieval failures caused by a mismatch between similarity and relevance.
+      - Choose between embedding similarity and keyword matching for a stated problem.
+    description: >-
+      An embedding places text in a space where distance means something specific — determined by
+      the training objective, not by intuition. Knowing which "something" is the whole skill.
+    blocks:
+      - type: why
+        markdown: |
+          Every semantic search and every RAG pipeline ranks by embedding similarity, and when the
+          top result is irrelevant the explanation is almost never "the model is bad". It is that
+          the model's notion of similar is not the notion the application needed.
+
+          Negation, opposites, and topical-but-useless matches are the usual suspects, and all three
+          are predictable from what the embedding was trained to do. Predicting them beforehand is
+          much cheaper than debugging them afterwards.
+
+      - type: eli5
+        markdown: |
+          Imagine arranging every book in a library on one enormous floor, so that books about
+          similar things end up near each other. Cookbooks in one region, physics in another,
+          cookbooks about physics somewhere in between.
+
+          An embedding is a position on that floor, written as a list of numbers. "Find me something
+          similar" becomes "find me what is nearby".
+
+          But somebody had to decide what "similar" meant when the arrangement was made. If they
+          arranged by topic, then a glowing review and a furious review of the same restaurant sit
+          side by side — they are about the same thing, even though they say opposite things.
+
+      - type: beginner
+        markdown: |
+          An **embedding** is a fixed-length vector representing a piece of text — commonly 384 to
+          3,072 numbers. Similar texts get nearby vectors, measured by **cosine similarity**:
+
+          $$
+          \cos(\mathbf{a}, \mathbf{b}) = \frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{a}\| \, \|\mathbf{b}\|}
+          $$
+
+          That is the dot product from the vectors unit, normalised so length does not matter —
+          only direction. A long document and a short one about the same subject can score highly.
+
+          **Where the geometry comes from.** The arrangement is not discovered; it is trained. A
+          sentence embedding model is typically trained on pairs that *should* be close — a question
+          and its answer, two paraphrases, a query and a clicked result — and pushed apart from pairs
+          that should not be. So the space encodes exactly the notion of relatedness present in that
+          training data.
+
+          Two consequences follow immediately:
+
+          - **"Similar" is model-specific.** A model trained on question-answer pairs puts a question
+            near its answer. A model trained on paraphrases puts a question near a rephrasing of the
+            question. These are different spaces and they are good at different jobs.
+          - **You cannot compare vectors across models.** Cosine similarity between an embedding
+            from one model and an embedding from another is meaningless, and mixing them in one index
+            silently produces nonsense.
+
+      - type: intermediate
+        markdown: |
+          **What embeddings reliably capture:** topic, register, broad semantic field, and — because
+          modern models are contextual — word sense. `bank` in a sentence about rivers and `bank` in
+          a sentence about loans land in different places, which is the main advance over static word
+          vectors.
+
+          **What they capture unreliably, and this is the practical list:**
+
+          - **Negation.** "The drug is effective" and "the drug is not effective" are close. They
+            share almost every token and the same topic, and cosine similarity is not a logic engine.
+          - **Sentiment and stance**, unless the model was trained for it. Opposing reviews of the
+            same product are neighbours.
+          - **Specific identifiers.** Order numbers, SKUs, error codes, version numbers. These carry
+            little semantic signal and are exactly what users search for.
+          - **Numeric and temporal relations.** "Revenue over £5m" and "revenue over £50m" are close;
+            "before 2020" and "after 2020" are close.
+          - **Direction of a relationship.** "A acquired B" and "B acquired A" are near-identical
+            vectors.
+
+          Every item on that list is a real retrieval bug in a real system, and every one is
+          foreseeable from the fact that the objective rewarded topical proximity.
+
+          **Similarity is not relevance.** They coincide often enough to be confusing and diverge in
+          two predictable ways. A document can be highly similar and useless — a policy from the
+          wrong region, a superseded version, the same question asked by someone else with no answer
+          attached. And a document can be highly relevant and dissimilar, when the answer uses
+          entirely different vocabulary from the question. The second is why hybrid search exists.
+
+          **Hybrid search** combines dense embedding similarity with sparse keyword scoring (BM25),
+          and it is close to a default rather than an optimisation. Keyword matching handles exactly
+          what embeddings do not: exact identifiers, rare terms, and precise numbers. Embeddings
+          handle what keywords do not: paraphrase and synonymy. Combining them covers both classes
+          of failure, and the usual reason a team has not is that nobody measured the identifier
+          queries.
+
+          **Chunking decides what a vector means.** An embedding of a 2,000-token chunk is an average
+          of everything in it, so a specific fact is diluted by the surrounding text and may not be
+          retrievable at all. Smaller chunks give sharper vectors and lose the context needed to
+          interpret them. There is no universally correct size; there is a measurement on your
+          queries.
+
+          **A volatility note.** Which embedding models lead changes every few months, and any
+          specific recommendation here would be wrong within a year. The failure modes above follow
+          from the training objective rather than from any particular model, and have held across
+          several generations.
+
+      - type: example
+        markdown: |
+          A support knowledge base. The user asks: `My order hasn't arrived`.
+
+          Cosine similarity against four candidate chunks, with plausible scores:
+
+          | Chunk                                               | Similarity | Actually useful? |
+          |-----------------------------------------------------|------------|------------------|
+          | "Track a delayed order: go to Orders > Track"       | 0.81       | Yes              |
+          | "Orders usually arrive within 3–5 days"             | 0.79       | Partly           |
+          | "My order arrived damaged — how do I return it?"    | 0.77       | No               |
+          | "Order #A4419 was delivered on 12 March"            | 0.41       | Only for that user |
+
+          Read the failures:
+
+          - The damaged-order chunk scores 0.77 because it is about orders, arrival, and problems.
+            It shares nearly all of the query's topical content and answers a different question.
+            Topic is not intent.
+          - The specific order record scores 0.41 despite being the only chunk that could actually
+            resolve this user's issue, because an order number carries almost no semantic signal.
+
+          **Now the negation case.** Query: `Which products are not eligible for free shipping?`
+
+          | Chunk                                        | Similarity |
+          |----------------------------------------------|------------|
+          | "Products eligible for free shipping"        | 0.88       |
+          | "Products not eligible for free shipping"    | 0.86       |
+
+          The wrong chunk wins. The two sentences differ by one token, share a topic entirely, and
+          cosine similarity has no mechanism for treating `not` as an operator that inverts meaning.
+
+          **What fixes each.** The identifier problem is fixed by hybrid search — BM25 will match
+          `A4419` exactly. The negation problem is not fixed by a better embedding model; it needs
+          the retrieval step to return both chunks and the generation step to be asked to read them,
+          or a reranker that scores query-document pairs jointly rather than comparing two
+          independently computed vectors.
+
+      - type: misconception
+        payload:
+          code: emb.similarity_is_relevance
+          claim: "High cosine similarity means the document answers the question."
+          markdown: |
+            **The claim:** the embedding space encodes meaning, so the nearest chunk is the most
+            useful chunk, and retrieval quality is a matter of picking a better model.
+
+            **Why it feels right:** it works most of the time. The top result is usually reasonable,
+            and the failures are individually easy to dismiss as noise.
+
+            **What actually happens:** cosine similarity measures proximity in a space trained on a
+            particular notion of relatedness — usually topical. Relevance is a property of the
+            *question*, and the two come apart in both directions. The worked example shows both: a
+            chunk about damaged orders outranking the tracking instructions, and the negated
+            statement scoring nearly as high as its opposite.
+
+            The costly version of this belief is architectural. Teams treat retrieval as solved and
+            spend their effort on the generation prompt, when most of their wrong answers are the
+            generator faithfully summarising the wrong passage. In a RAG system, retrieval quality
+            usually caps end-to-end quality.
+
+            **How to catch yourself:** take 30 real queries and read the top 5 retrieved chunks for
+            each by hand. Not the answers — the chunks. Teams that do this are routinely surprised,
+            and it is the fastest diagnostic available.
+
+      - type: common_mistake
+        markdown: |
+          **Mixing embeddings from two models in one index.** The vectors live in unrelated spaces
+          and the similarities are meaningless. Re-embed everything when you change model.
+
+          **Chunking by a fixed character count.** It cuts mid-sentence and mid-table, producing
+          vectors for fragments that mean nothing. Chunk on structure, then check the length.
+
+          **Skipping keyword search because embeddings are "smarter".** Users search for order
+          numbers and error codes, and those are exactly the queries embeddings handle worst.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Give three pairs of sentences that are semantically opposite but would embed close
+               together, and say what each would break in a real system.
+            2. For each query, say whether embeddings, keywords, or both: "how do I reset my
+               password"; "error E4012"; "something about billing I think"; "invoice INV-2024-0031".
+            3. Explain why cosine similarity ignores vector magnitude, and when that is a problem.
+            4. You retrieve a chunk at 0.91 similarity and the answer is still wrong. List four
+               possible causes, in the order you would check them.
+            5. Describe how you would choose a chunk size for a corpus of technical manuals, with
+               the measurement you would use.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "Where does an embedding space's notion of similarity come from?"
+              answer: >-
+                From the training objective — the pairs the model was taught to place close together.
+                It is model-specific, not a universal notion of meaning.
+            - question: "Why do embeddings handle negation badly?"
+              answer: >-
+                A negated sentence shares nearly all tokens and the whole topic with its opposite, and
+                cosine similarity has no mechanism for treating negation as inverting meaning.
+            - question: "Why is hybrid search close to a default?"
+              answer: >-
+                Keyword scoring catches exact identifiers and rare terms that embeddings miss, while
+                embeddings catch paraphrase that keywords miss. The failure modes are complementary.
+            - question: "Can you compare embeddings from two different models?"
+              answer: >-
+                No. The spaces are unrelated, so the similarity is meaningless. Changing model means
+                re-embedding the whole corpus.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Say what a specific embedding model was trained to consider similar, and check it.
+            - Predict which queries will fail before building the index.
+            - Explain a bad retrieval result by naming the mismatch rather than blaming the model.
+            - Decide between dense, sparse, and hybrid retrieval with a reason and a measurement.
+    resources:
+      - source: sbert-2019
+        purpose: PRIMARY_SOURCE
+        relevance: 0.9
+        excerpt: >-
+          Shows how a sentence embedding is trained so that cosine similarity tracks the intended
+          notion of similarity — which is the argument that the objective defines the space.
+      - source: word2vec-2013
+        purpose: HISTORICAL_PRIMARY
+        relevance: 0.6
+        excerpt: "The original demonstration that a learned vector space carries linear semantic structure."
+      - source: sentence-transformers
+        purpose: TOOL_REFERENCE
+        relevance: 0.8
+        excerpt: "Practical guidance on choosing a model, and on why models cannot be mixed in one index."
+      - source: rag-2020
+        purpose: DEEPER_REFERENCE
+        relevance: 0.6
+        excerpt: "Where these vectors are consumed, and what retrieval quality does to the end-to-end system."

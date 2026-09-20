@@ -1,0 +1,162 @@
+# Assessments for scaled-dot-product-attention (Wave 3).
+
+items:
+  - slug: attn-formula
+    unit: scaled-dot-product-attention
+    type: mcq
+    bloom: remember
+    difficulty: 3
+    estimateSeconds: 80
+    stem: "Which expression is scaled dot-product attention?"
+    choices:
+      - id: a
+        text: "softmax(QKᵀ / √d_k) V"
+        correct: true
+      - id: b
+        text: "softmax(QVᵀ) K"
+      - id: c
+        text: "sigmoid(Q + K + V)"
+      - id: d
+        text: "ReLU(QKᵀ) / d_k"
+    explanation: |
+      Queries score against keys, scores are scaled by √d_k, softmax turns each row into mixture
+      weights, and those weights mix the values. Swapping V into the score (b) or dropping softmax
+      (d) breaks the lookup interpretation.
+
+  - slug: attn-variance-scale
+    unit: scaled-dot-product-attention
+    type: mcq
+    bloom: understand
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      If components of q and k are independent with variance 1, why divide the dot product by √d_k?
+    choices:
+      - id: a
+        text: "So Var(q·k / √d_k) ≈ 1, keeping softmax inputs from growing with head width."
+        correct: true
+      - id: b
+        text: "Only to prevent float32 overflow; the math is otherwise unchanged."
+        misconception: attn.scale_is_optional_numerics
+      - id: c
+        text: "To make attention cost linear in sequence length."
+      - id: d
+        text: "Because softmax requires probabilities to sum to d_k."
+    explanation: |
+      Under those assumptions Var(q·k)=d_k; scaling restores variance ≈ 1. That is a learning-dynamics
+      argument from the paper, not a floating-point footnote. Softmax already normalises to sum 1
+      per row; (d) confuses that with d_k.
+
+  - slug: attn-three-token-row
+    unit: scaled-dot-product-attention
+    type: short_text
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 180
+    stem: |
+      In the unit's three-token example, QKᵀ row 1 is (1, 1, 0) and √d_k=√2. After scaling, which
+      position has the smallest attention weight for query 1 — 1, 2, or 3? Answer with the position
+      number only.
+    answer: "3"
+    explanation: |
+      Scaled scores are about (0.707, 0.707, 0). Softmax puts the least mass on the zero score —
+      position 3 (~0.20 vs ~0.40 for the others).
+
+  - slug: attn-scale-optional
+    unit: scaled-dot-product-attention
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A teammate removes √d_k "because our run did not NaN." What is the strongest objection?
+    choices:
+      - id: a
+        text: "Unscaled scores have variance growing with d_k, which sharpens softmax and weakens gradients even without NaNs."
+        correct: true
+      - id: b
+        text: "They are right — scaling is optional numerics if training appears stable."
+        misconception: attn.scale_is_optional_numerics
+      - id: c
+        text: "Without scaling, QKᵀ is no longer defined."
+      - id: d
+        text: "Scaling is only required when using multi-head attention."
+    explanation: |
+      Absence of NaNs does not mean the soft max is in a healthy regime. Single-head attention uses
+      the same scale; multi-head does not create the requirement.
+
+  - slug: attn-separate-kv
+    unit: scaled-dot-product-attention
+    type: mcq
+    bloom: analyze
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Why keep keys and values as separate projections?"
+    choices:
+      - id: a
+        text: "Matching (who to read) and content (what to read) are different roles."
+        correct: true
+      - id: b
+        text: "Keys must be integers while values are floats."
+      - id: c
+        text: "Softmax only works on keys, never on values."
+      - id: d
+        text: "Values are only used in the decoder, keys only in the encoder."
+    explanation: |
+      Separating K and V lets a position be easy to address without always dumping the same vector
+      as content. Softmax is applied to scores, not to values; encoder/decoder roles are orthogonal.
+
+  - slug: attn-softmax-axis
+    unit: scaled-dot-product-attention
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 70
+    stem: |
+      Softmax in attention runs over the key dimension for each query (each row of QKᵀ), producing
+      weights that sum to one over positions attended to.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Softmax over the wrong axis builds a mixture that does not mean "how much this query
+      reads each position."
+
+assessments:
+  - slug: scaled-dot-product-attention-practice
+    title: "Practice: scaled dot-product attention"
+    kind: practice
+    unit: scaled-dot-product-attention
+    items:
+      - attn-formula
+      - attn-three-token-row
+      - attn-separate-kv
+
+  - slug: scaled-dot-product-attention-quiz
+    title: "Quiz: scaled dot-product attention"
+    kind: quiz
+    unit: scaled-dot-product-attention
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - attn-formula
+      - attn-variance-scale
+      - attn-scale-optional
+      - attn-separate-kv
+      - attn-softmax-axis
+
+cards:
+  - slug: card-attn-formula
+    unit: scaled-dot-product-attention
+    front: "Write scaled dot-product attention in one line."
+    back: "softmax(QKᵀ / √d_k) V — score, scale, mix values."
+
+  - slug: card-attn-variance
+    unit: scaled-dot-product-attention
+    front: "Why √d_k?"
+    back: |
+      If q,k components are independent unit-variance, Var(q·k)=d_k; dividing by √d_k restores
+      variance ≈ 1 so softmax stays well-behaved as width grows.

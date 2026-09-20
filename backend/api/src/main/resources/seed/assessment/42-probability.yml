@@ -1,0 +1,249 @@
+# Items for the probability-for-ml chapter.
+
+items:
+  - slug: prob-expectation-compute
+    unit: random-variables-and-expectation
+    type: short_text
+    bloom: apply
+    difficulty: 2
+    estimateSeconds: 90
+    stem: |
+      $X$ takes the value 0 with probability 0.7 and the value 10 with probability 0.3.
+      What is $\mathbb{E}[X]$?
+    answer: 3
+    tolerance: 0.001
+    explanation: |
+      $0 \times 0.7 + 10 \times 0.3 = 3$.
+
+      Note that $X$ never takes the value 3. An expectation is a probability-weighted average, and
+      an average need not be a value the variable can attain — which is the whole of the
+      misconception on this page.
+
+  - slug: prob-expectation-not-typical
+    unit: random-variables-and-expectation
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      Two models have the same mean absolute error of 0.4 on the same test set. What can you
+      conclude about how they will behave in production?
+    choices:
+      - id: a
+        text: "Very little — the same mean is consistent with completely different error distributions."
+        correct: true
+      - id: b
+        text: "They will behave equivalently, since the expected error is the same."
+        misconception: prob.expectation_is_typical
+      - id: c
+        text: "Each will typically be off by about 0.4."
+        misconception: prob.expectation_is_typical
+      - id: d
+        text: "The one with more parameters will be better."
+    explanation: |
+      One model could be off by roughly 0.4 everywhere; the other could be near-perfect on 95% of
+      cases and catastrophically wrong on 5%. Same mean, different products, and it is the second
+      one that generates incidents.
+
+      This is why a mean is never a complete report. Median, 95th percentile, worst case, and
+      per-group means cost nothing to compute and answer the question the mean cannot.
+
+  - slug: prob-crossentropy-batch
+    unit: random-variables-and-expectation
+    type: short_text
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 140
+    stem: |
+      A model assigns the true class probabilities 0.5 and 0.9 on two examples. What is the
+      average cross-entropy loss over this batch? Use natural logs, to three decimal places.
+    answer: 0.399
+    tolerance: 0.005
+    explanation: |
+      $-\ln 0.5 = 0.693$ and $-\ln 0.9 = 0.105$, so the average is $0.399$.
+
+      Now add a third example at $P = 0.01$: its loss is $4.605$ and the batch average jumps to
+      $1.801$. One confident mistake outweighs two correct predictions, because $-\ln p$ grows
+      without bound as $p \to 0$. That is cross-entropy deliberately punishing confident
+      wrongness, and it is why a spiking loss curve is often a handful of examples rather than a
+      broken model.
+
+  - slug: prob-batch-noise
+    unit: random-variables-and-expectation
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: "Why does a smaller mini-batch produce a noisier training loss curve?"
+    choices:
+      - id: a
+        text: "The batch average is an estimate whose variance falls roughly as one over the batch size."
+        correct: true
+      - id: b
+        text: "Small batches use a different loss function."
+      - id: c
+        text: "Small batches make the model overfit each batch."
+      - id: d
+        text: "The gradient is biased for small batches."
+    explanation: |
+      Both batch sizes estimate the same quantity — the expected loss over the data distribution —
+      and by linearity of expectation both estimates are unbiased. What differs is variance, which
+      falls roughly as $1/B$.
+
+      (d) is worth ruling out explicitly: the mini-batch gradient is unbiased regardless of size.
+      That unbiasedness is exactly what makes stochastic gradient descent valid.
+
+  - slug: prob-bayes-posterior
+    unit: conditioning-and-bayes
+    type: short_text
+    bloom: apply
+    difficulty: 4
+    estimateSeconds: 180
+    stem: |
+      Fraud is 0.5% of transactions. A model flags 95% of fraud and 2% of legitimate
+      transactions. Given a flagged transaction, what is the probability it is fraud?
+      Answer as a decimal to two places.
+    answer: 0.19
+    tolerance: 0.02
+    explanation: |
+      Work in counts over 100,000 transactions: 500 fraudulent, of which 475 are flagged; 99,500
+      legitimate, of which 1,990 are flagged. So $475 / 2465 \approx 0.193$.
+
+      Four flags in five are false, from a model with 95% recall and only a 2% false-positive rate.
+      Nothing is wrong with the model — the base rate is doing the work, and this is why detection
+      systems get ignored by the analysts who staff them.
+
+  - slug: prob-base-rate-neglect
+    unit: conditioning-and-bayes
+    type: mcq
+    bloom: evaluate
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A test for a rare disease is "99% accurate". Someone tests positive. What is the most
+      defensible thing to say?
+    choices:
+      - id: a
+        text: "It depends on the base rate; without it the positive result cannot be interpreted."
+        correct: true
+      - id: b
+        text: "They are 99% likely to have the disease."
+        misconception: prob.base_rate_neglect
+      - id: c
+        text: "They are 1% likely to have the disease."
+      - id: d
+        text: "The test is broken, because accuracy should be reported per class."
+    explanation: |
+      $P(\text{positive} \mid \text{disease})$ and $P(\text{disease} \mid \text{positive})$ are
+      different conditional probabilities, and Bayes' rule converts between them using the base
+      rate. Without the base rate there is no answer.
+
+      (c) is a fixed number and therefore also wrong — it happens to be close for some base rates
+      and far off for others. The correct move is always to build the count table over a realistic
+      population before quoting anything.
+
+  - slug: prob-precision-transfers
+    unit: conditioning-and-bayes
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 130
+    stem: |
+      A model is evaluated on an artificially rebalanced test set with 50% positives. Which
+      measured quantity will still hold in production, where positives are 1%?
+    choices:
+      - id: a
+        text: "Recall, because it is conditioned on the true class."
+        correct: true
+      - id: b
+        text: "Precision, because it is a property of the model."
+      - id: c
+        text: "Both, since the model is unchanged."
+      - id: d
+        text: "Neither, because rebalancing invalidates all metrics."
+    explanation: |
+      Recall is $P(\text{flag} \mid \text{positive})$ — conditioned on the truth, so the mix of
+      classes does not enter it. Precision is $P(\text{positive} \mid \text{flag})$, which mixes in
+      how common positives are, so it changes when the prior changes.
+
+      This is the most common way a good offline result fails to survive deployment: the precision
+      figure was measured for a world that does not exist.
+
+  - slug: prob-independence
+    unit: conditioning-and-bayes
+    type: true_false
+    bloom: remember
+    difficulty: 2
+    estimateSeconds: 70
+    stem: |
+      Two events $A$ and $B$ are independent exactly when $P(A \mid B) = P(A)$.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True — learning that $B$ occurred does not change the probability of $A$. Equivalently,
+      $P(A \cap B) = P(A)P(B)$.
+
+      Worth remembering that this is an assumption people make constantly and check almost never.
+      Naive Bayes assumes features are independent given the class; they usually are not, which is
+      why its rankings can be useful while its probabilities are badly calibrated.
+
+assessments:
+  - slug: random-variables-and-expectation-practice
+    title: "Practice: random variables and expectation"
+    kind: practice
+    unit: random-variables-and-expectation
+    items:
+      - prob-expectation-compute
+      - prob-crossentropy-batch
+      - prob-batch-noise
+
+  - slug: random-variables-and-expectation-quiz
+    title: "Quiz: random variables and expectation"
+    kind: quiz
+    unit: random-variables-and-expectation
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - prob-expectation-compute
+      - prob-expectation-not-typical
+      - prob-crossentropy-batch
+      - prob-batch-noise
+
+  - slug: conditioning-and-bayes-practice
+    title: "Practice: conditioning and Bayes"
+    kind: practice
+    unit: conditioning-and-bayes
+    items:
+      - prob-independence
+      - prob-bayes-posterior
+      - prob-base-rate-neglect
+
+  - slug: conditioning-and-bayes-quiz
+    title: "Quiz: conditioning, base rates, and Bayes"
+    kind: quiz
+    unit: conditioning-and-bayes
+    passMark: 0.7
+    timeLimitSeconds: 900
+    items:
+      - prob-bayes-posterior
+      - prob-base-rate-neglect
+      - prob-precision-transfers
+
+cards:
+  - slug: card-prob-base-rate
+    unit: conditioning-and-bayes
+    front: "A 99%-accurate test for a rare condition fires. Now what?"
+    back: |
+      Build the count table. Most positives will be false, because the negative class is so much
+      larger that even a small error rate outnumbers the true positives.
+
+  - slug: card-prob-precision-vs-recall-prior
+    unit: conditioning-and-bayes
+    front: "Which of precision and recall survives a change in base rate?"
+    back: |
+      Recall — it is conditioned on the true class. Precision is conditioned on the prediction, so
+      it moves with the prior and does not transfer from a rebalanced test set.

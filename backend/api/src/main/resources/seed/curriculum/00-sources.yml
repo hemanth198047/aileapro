@@ -233,3 +233,516 @@ sources:
     lastVerifiedAt: 2026-09-16
     httpStatus: 200
     difficulty: 4
+
+  # --- Wave 2 (2026-09-19) -----------------------------------------------------------------
+  # Added for the calculus, probability, classical ML, evaluation, deep learning, transformer,
+  # LLM, embedding, agent, and responsible-AI units. Every URL below was checked with a HEAD
+  # request on 2026-09-19; openly readable material only, nothing behind a paywall is relied on
+  # for teaching (paywalled papers may still be cited for provenance, and say so in the licence).
+
+  - slug: 3b1b-calculus
+    title: "Essence of Calculus"
+    authors: "Grant Sanderson"
+    publisher: 3Blue1Brown
+    url: https://www.3blue1brown.com/topics/calculus
+    sourceType: VIDEO
+    license: "Linked only; not redistributed"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 2
+
+  - slug: seeing-theory
+    title: "Seeing Theory: a visual introduction to probability and statistics"
+    authors: "Daniel Kunin, Jingru Guo, Tyler Dae Devlin, Daniel Xiang"
+    publisher: "Brown University"
+    url: https://seeing-theory.brown.edu/
+    sourceType: COURSE
+    license: "Open access, CC BY-NC-SA 4.0"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 2
+
+  - slug: d2l
+    title: "Dive into Deep Learning"
+    authors: "Aston Zhang, Zachary C. Lipton, Mu Li, Alexander J. Smola"
+    publisher: "d2l.ai / Cambridge University Press"
+    url: https://d2l.ai/
+    sourceType: BOOK
+    license: "CC BY-SA 4.0 (text), MIT (code)"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: esl-book
+    title: "The Elements of Statistical Learning"
+    authors: "Trevor Hastie, Robert Tibshirani, Jerome Friedman"
+    publisher: Springer
+    url: https://hastie.su.domains/ElemStatLearn/
+    publishedOn: 2009-02-09
+    sourceType: BOOK
+    license: "Free PDF published by the authors; © Springer"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 5
+
+  - slug: sklearn-linear-model
+    title: "scikit-learn user guide: Linear Models"
+    authors: "scikit-learn developers"
+    publisher: scikit-learn
+    url: https://scikit-learn.org/stable/modules/linear_model.html
+    sourceType: OFFICIAL_DOC
+    license: "BSD-3-Clause (documentation)"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: sklearn-model-evaluation
+    title: "scikit-learn user guide: Metrics and scoring"
+    authors: "scikit-learn developers"
+    publisher: scikit-learn
+    url: https://scikit-learn.org/stable/modules/model_evaluation.html
+    sourceType: OFFICIAL_DOC
+    license: "BSD-3-Clause (documentation)"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: sklearn-cross-validation
+    title: "scikit-learn user guide: Cross-validation"
+    authors: "scikit-learn developers"
+    publisher: scikit-learn
+    url: https://scikit-learn.org/stable/modules/cross_validation.html
+    sourceType: OFFICIAL_DOC
+    license: "BSD-3-Clause (documentation)"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: dropout-2012
+    title: "Improving neural networks by preventing co-adaptation of feature detectors"
+    authors: "Geoffrey E. Hinton, Nitish Srivastava, Alex Krizhevsky, Ilya Sutskever, Ruslan R. Salakhutdinov"
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/1207.0580
+    doi: "10.48550/arXiv.1207.0580"
+    abstractText: >
+      AILEAPRO summary: Randomly dropping units during training stops them co-adapting,
+      which acts as a cheap approximation to averaging many thinned networks and reduces
+      overfitting on a range of supervised tasks.
+    publishedOn: 2012-07-03
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: he-init-2015
+    title: "Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification"
+    authors: "Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun"
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/1502.01852
+    doi: "10.48550/arXiv.1502.01852"
+    abstractText: >
+      AILEAPRO summary: Derives an initialisation that keeps activation and gradient variance
+      roughly constant through a deep rectifier network, which is what stops signal from
+      shrinking or blowing up layer by layer.
+    publishedOn: 2015-02-06
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 5
+
+  - slug: resnet-2015
+    title: "Deep Residual Learning for Image Recognition"
+    authors: "Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun"
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/1512.03385
+    doi: "10.48550/arXiv.1512.03385"
+    abstractText: >
+      AILEAPRO summary: Reformulates layers as learning residuals against an identity
+      shortcut, which gives gradients a short path back through the network and makes very
+      deep models trainable.
+    publishedOn: 2015-12-10
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 5
+
+  - slug: layernorm-2016
+    title: "Layer Normalization"
+    authors: "Jimmy Lei Ba, Jamie Ryan Kiros, Geoffrey E. Hinton"
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/1607.06450
+    doi: "10.48550/arXiv.1607.06450"
+    abstractText: >
+      AILEAPRO summary: Normalises each example across its own features rather than across
+      the batch, which keeps activations well-scaled independently of batch size and suits
+      sequence models.
+    publishedOn: 2016-07-21
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 5
+
+  - slug: transformer-circuits-framework
+    title: "A Mathematical Framework for Transformer Circuits"
+    authors: "Nelson Elhage, Neel Nanda, Catherine Olsson, et al."
+    publisher: "Transformer Circuits Thread"
+    url: https://transformer-circuits.pub/2021/framework/index.html
+    abstractText: >
+      AILEAPRO summary: Reads a transformer as a residual stream that every block reads from
+      and writes back into, which is the mental model used here for what a block actually
+      contributes.
+    publishedOn: 2021-12-22
+    # Self-published on the web rather than through a venue: no peer review, no DOI. Filed as
+    # what it is, so the research reading list stays a list of citable papers.
+    sourceType: BLOG
+    license: "Openly published; linked, not reproduced"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 5
+
+  - slug: rope-2021
+    title: "RoFormer: Enhanced Transformer with Rotary Position Embedding"
+    authors: "Jianlin Su, Yu Lu, Shengfeng Pan, Bo Wen, Yunfeng Liu"
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/2104.09864
+    doi: "10.48550/arXiv.2104.09864"
+    abstractText: >
+      AILEAPRO summary: Encodes position by rotating query and key vectors by an angle
+      proportional to their index, so attention scores depend on relative position rather
+      than on absolute index.
+    publishedOn: 2021-04-20
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 5
+
+  - slug: gpt3-2020
+    title: "Language Models are Few-Shot Learners"
+    authors: "Tom B. Brown, Benjamin Mann, Nick Ryder, et al."
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/2005.14165
+    doi: "10.48550/arXiv.2005.14165"
+    abstractText: >
+      AILEAPRO summary: Shows that scaling an autoregressive next-token model lets it perform
+      new tasks from instructions and examples placed in the context window, with no gradient
+      update at inference time.
+    publishedOn: 2020-05-28
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: chain-of-thought-2022
+    title: "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models"
+    authors: "Jason Wei, Xuezhi Wang, Dale Schuurmans, et al."
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/2201.11903
+    doi: "10.48550/arXiv.2201.11903"
+    abstractText: >
+      AILEAPRO summary: Prompting a model to produce intermediate steps before its answer
+      improves accuracy on arithmetic and multi-step reasoning benchmarks, with the effect
+      appearing only at larger model sizes.
+    publishedOn: 2022-01-28
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: lost-in-the-middle-2023
+    title: "Lost in the Middle: How Language Models Use Long Contexts"
+    authors: "Nelson F. Liu, Kevin Lin, John Hewitt, et al."
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/2307.03172
+    doi: "10.48550/arXiv.2307.03172"
+    abstractText: >
+      AILEAPRO summary: Measures retrieval accuracy as a function of where the relevant
+      passage sits in a long context and finds performance is highest at the beginning and
+      end and degrades in the middle.
+    publishedOn: 2023-07-06
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: react-2022
+    title: "ReAct: Synergizing Reasoning and Acting in Language Models"
+    authors: "Shunyu Yao, Jeffrey Zhao, Dian Yu, et al."
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/2210.03629
+    doi: "10.48550/arXiv.2210.03629"
+    abstractText: >
+      AILEAPRO summary: Interleaves generated reasoning traces with tool actions so the model
+      can ground its next step in a real observation, reducing hallucination relative to
+      reasoning alone.
+    publishedOn: 2022-10-06
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: agent-survey-2023
+    title: "A Survey on Large Language Model based Autonomous Agents"
+    authors: "Lei Wang, Chen Ma, Xueyang Feng, et al."
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/2308.11432
+    doi: "10.48550/arXiv.2308.11432"
+    abstractText: >
+      AILEAPRO summary: Surveys agent architectures built on language models — profile,
+      memory, planning, and action — and collects the evaluation problems and failure modes
+      reported across them.
+    publishedOn: 2023-08-22
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: sbert-2019
+    title: "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks"
+    authors: "Nils Reimers, Iryna Gurevych"
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/1908.10084
+    doi: "10.48550/arXiv.1908.10084"
+    abstractText: >
+      AILEAPRO summary: Fine-tunes BERT with a siamese objective so that cosine similarity
+      between sentence vectors tracks semantic similarity, making a single embedding usable
+      for search and clustering.
+    publishedOn: 2019-08-27
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: datasheets-2018
+    title: "Datasheets for Datasets"
+    authors: "Timnit Gebru, Jamie Morgenstern, Briana Vecchione, et al."
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/1803.09010
+    doi: "10.48550/arXiv.1803.09010"
+    abstractText: >
+      AILEAPRO summary: Proposes that every dataset ship a document stating its motivation,
+      composition, collection process, and recommended uses, so downstream users can judge
+      whether it fits their problem.
+    publishedOn: 2018-03-23
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: model-cards-2018
+    title: "Model Cards for Model Reporting"
+    authors: "Margaret Mitchell, Simone Wu, Andrew Zaldivar, et al."
+    publisher: "arXiv"
+    url: https://arxiv.org/abs/1810.03993
+    doi: "10.48550/arXiv.1810.03993"
+    abstractText: >
+      AILEAPRO summary: Proposes short accompanying documents that report model performance
+      disaggregated by group and state intended use and known limitations, rather than a
+      single aggregate score.
+    publishedOn: 2018-10-05
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: nist-ai-rmf
+    title: "AI Risk Management Framework"
+    authors: "National Institute of Standards and Technology"
+    publisher: NIST
+    url: https://www.nist.gov/itl/ai-risk-management-framework
+    sourceType: OFFICIAL_DOC
+    license: "US Government work, public domain"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  # --- Wave 3 sources (2026-09-19) -----------------------------------------------------------
+  - slug: lecun-cnn-1998
+    title: "Gradient-Based Learning Applied to Document Recognition"
+    authors: "Yann LeCun, Léon Bottou, Yoshua Bengio, Patrick Haffner"
+    publisher: IEEE
+    url: https://doi.org/10.1109/5.726791
+    doi: "10.1109/5.726791"
+    abstractText: >-
+      AILEAPRO summary: Classic CNN architecture for document recognition; establishes convolution
+      and pooling as the inductive bias for grid-structured inputs.
+    publishedOn: 1998-11-01
+    sourceType: PAPER
+    license: "IEEE (publisher); cite DOI"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 5
+
+  - slug: hochreiter-lstm-1997
+    title: "Long Short-Term Memory"
+    authors: "Sepp Hochreiter, Jürgen Schmidhuber"
+    publisher: Neural Computation
+    url: https://doi.org/10.1162/neco.1997.9.8.1735
+    doi: "10.1162/neco.1997.9.8.1735"
+    abstractText: >-
+      AILEAPRO summary: Introduces LSTM cells to mitigate vanishing gradients in recurrent nets.
+    publishedOn: 1997-11-15
+    sourceType: PAPER
+    license: "MIT Press; cite DOI"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 5
+
+  - slug: lora-2021
+    title: "LoRA: Low-Rank Adaptation of Large Language Models"
+    authors: "Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, Weizhu Chen"
+    publisher: arXiv
+    url: https://arxiv.org/abs/2106.09685
+    doi: "10.48550/arXiv.2106.09685"
+    abstractText: >-
+      AILEAPRO summary: Freezes pretrained weights and injects trainable low-rank matrices into
+      attention projections, cutting trainable parameters for adaptation.
+    publishedOn: 2021-06-17
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: instructgpt-2022
+    title: "Training language models to follow instructions with human feedback"
+    authors: "Long Ouyang et al."
+    publisher: arXiv
+    url: https://arxiv.org/abs/2203.02155
+    doi: "10.48550/arXiv.2203.02155"
+    abstractText: >-
+      AILEAPRO summary: Shows RLHF / preference tuning as the path from next-token models to
+      instruction-following assistants.
+    publishedOn: 2022-03-04
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: clip-2021
+    title: "Learning Transferable Visual Models From Natural Language Supervision"
+    authors: "Alec Radford et al."
+    publisher: arXiv
+    url: https://arxiv.org/abs/2103.00020
+    doi: "10.48550/arXiv.2103.00020"
+    abstractText: >-
+      AILEAPRO summary: Contrastive image–text pretraining that aligns modalities in a shared
+      embedding space.
+    publishedOn: 2021-02-26
+    sourceType: PAPER
+    license: "arXiv non-exclusive licence"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 4
+
+  - slug: owasp-llm-top10
+    title: "OWASP Top 10 for Large Language Model Applications"
+    authors: "OWASP"
+    publisher: OWASP
+    url: https://owasp.org/www-project-top-10-for-large-language-model-applications/
+    sourceType: OFFICIAL_DOC
+    license: "Creative Commons"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: huggingface-tokenizers
+    title: "Hugging Face Tokenizers documentation"
+    authors: "Hugging Face"
+    publisher: Hugging Face
+    url: https://huggingface.co/docs/tokenizers/index
+    sourceType: OFFICIAL_DOC
+    license: "Documentation; Apache-2.0 library"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: sklearn-tree
+    title: "sklearn.tree — Decision trees"
+    authors: "scikit-learn developers"
+    publisher: scikit-learn
+    url: https://scikit-learn.org/stable/modules/tree.html
+    sourceType: OFFICIAL_DOC
+    license: "BSD-3-Clause"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 2
+
+  - slug: sklearn-ensemble
+    title: "sklearn.ensemble — Ensemble methods"
+    authors: "scikit-learn developers"
+    publisher: scikit-learn
+    url: https://scikit-learn.org/stable/modules/ensemble.html
+    sourceType: OFFICIAL_DOC
+    license: "BSD-3-Clause"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: pytorch-autograd
+    title: "A Gentle Introduction to torch.autograd"
+    authors: "PyTorch"
+    publisher: PyTorch
+    url: https://pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html
+    sourceType: OFFICIAL_DOC
+    license: "BSD-style"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: mlflow-docs
+    title: "MLflow Documentation"
+    authors: "MLflow"
+    publisher: MLflow
+    url: https://mlflow.org/docs/latest/index.html
+    sourceType: OFFICIAL_DOC
+    license: "Apache-2.0"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 2
+
+  - slug: openai-evals
+    title: "OpenAI Evals"
+    authors: "OpenAI"
+    publisher: OpenAI
+    url: https://github.com/openai/evals
+    sourceType: OFFICIAL_DOC
+    license: "MIT"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3
+
+  - slug: sql-tutorial-w3
+    title: "SQL Tutorial (W3Schools)"
+    authors: "W3Schools"
+    publisher: W3Schools
+    url: https://www.w3schools.com/sql/
+    sourceType: COURSE
+    license: "Free online reference"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 1
+
+  - slug: numpy-broadcasting
+    title: "NumPy: Broadcasting"
+    authors: "NumPy developers"
+    publisher: NumPy
+    url: https://numpy.org/doc/stable/user/basics.broadcasting.html
+    sourceType: OFFICIAL_DOC
+    license: "BSD"
+    lastVerifiedAt: 2026-09-19
+    httpStatus: 200
+    difficulty: 3

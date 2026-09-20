@@ -1,0 +1,241 @@
+# Wave 3, part 3: choosing an LLM application shape.
+#
+# One decision-focused unit. Not a catalogue of vendor architectures — a tree you can walk with
+# evidence from evals and cost.
+
+units:
+  - slug: llm-systems
+    title: LLM Systems
+    kind: chapter
+    parent: ai-system-design
+    status: published
+    version: 1.0.0
+    difficulty: 3
+    estimateMinutes: 45
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    tags: [architecture, llm, system-design]
+    objectives:
+      - Choose among RAG, fine-tuning, and agents with explicit criteria.
+      - Design fallbacks and evaluation loops around a probabilistic component.
+    description: >-
+      Product architecture when a language model is a component: patterns, trade-offs, and the
+      decision tree that keeps teams from building the most fashionable option by default.
+    blocks:
+      - type: why
+        markdown: |
+          The model is rarely the product. The product is retrieval, workflow, UI expectations,
+          evaluation, and failure handling wrapped around a probabilistic generator. Picking the
+          wrong wrapper — agent when a form would do, fine-tune when the docs change weekly — is an
+          expensive architectural error dressed as AI progress.
+
+  - slug: llm-app-architecture-patterns
+    title: LLM App Architecture Patterns
+    kind: knowledge_unit
+    parent: llm-systems
+    status: published
+    version: 1.0.0
+    difficulty: 4
+    estimateMinutes: 42
+    volatility: MEDIUM
+    knowledgeClass: CURRENT
+    lastReviewedAt: 2026-09-19
+    lastVerifiedAt: 2026-09-19
+    tags: [architecture, rag, fine-tuning, agents, decision-tree]
+    objectives:
+      - Walk a RAG vs fine-tune vs agents decision tree with product constraints.
+      - Describe when a fixed workflow with LLM steps beats an open agent loop.
+      - Place evaluation, human review, and fallbacks in the architecture, not as afterthoughts.
+      - Explain how preference-tuned models change the interface contract but not the need for
+        grounding.
+    description: >-
+      A practical decision tree: retrieve, adapt weights, or let a model call tools — and the hybrid
+      shapes that show up in production when none of the pure options fit.
+    blocks:
+      - type: why
+        markdown: |
+          Teams often start from a demo pattern ("we built an agent") and search for a problem that
+          fits. Reliable systems start from constraints: Does knowledge change? Must answers cite
+          sources? Are side effects required? What is the cost and latency budget? How wrong can an
+          answer be?
+
+          Those answers pick the architecture. The model family is a later detail.
+
+      - type: eli5
+        markdown: |
+          You need help running a lemonade stand.
+
+          - If prices change every hour, you want someone who **looks at today's board** before
+            answering (retrieval).
+          - If you always want the same cheerful script in your brand voice, you **train a worker
+            on your script** (fine-tune / style adaptation).
+          - If they must **go to the bank, buy lemons, and unlock the stall**, you give them keys and
+            a short checklist — or you do those steps yourself in a fixed order and only ask them
+            which lemonade copy to write (workflow vs open agent).
+
+          Giving bank keys to someone who only needed to read the price board is how stands lose
+          money.
+
+      - type: beginner
+        markdown: |
+          **Three pure patterns:**
+
+          | Pattern | Core idea | Wins when | Loses when |
+          |---------|-----------|-----------|------------|
+          | **RAG** | Retrieve evidence, then generate conditioned on it | Knowledge changes; citations needed; corpus is the source of truth | Corpus is empty/noisy; questions need multi-step external *actions* |
+          | **Fine-tune** | Update weights (or adapters) on task data | Stable format/style/domain jargon; you can collect labels | Facts churn; you lack data; you needed citations from a live corpus |
+          | **Agents / tools** | Model proposes actions in a loop | Task needs external state, APIs, or branching not known up front | Sequence is known; each extra step multiplies failure and cost |
+
+          **Default bias that saves money:** prefer **deterministic workflow + LLM steps** over an
+          open loop when you can write the steps down. Prefer **RAG** over fine-tune for factual
+          freshness. Prefer **prompting a strong base/chat model** before fine-tuning until you have
+          measured a gap.
+
+          Preference-tuned chat models follow instructions better than raw next-token models — that
+          improves the *interface*, not your grounding. You still retrieve or tool-call when truth
+          lives outside the weights.
+
+      - type: intermediate
+        markdown: |
+          **Decision tree (walk top-down):**
+
+          ```
+          1. Does the task require side effects (send, buy, write to DB, open PRs)?
+               no  -> go to 2
+               yes -> Can you hard-code the step order?
+                        yes -> Fixed workflow with typed tool calls at known steps
+                        no  -> Constrained agent loop (bounds, confirms, allow-lists)
+                              Eval trajectories + cost; reconsider workflow after learning
+
+          2. Must answers be attributable to changing documents or records?
+               yes -> RAG (or SQL/tool read) + citation policy + retrieval eval
+               no  -> go to 3
+
+          3. Is the main gap format, tone, or a narrow skill with stable labels?
+               yes -> Consider fine-tune / PEFT after a prompt+RAG baseline loses on the suite
+               no  -> Prompted model (+ light classification/routing)
+
+          4. Always: define eval harness, latency/cost budgets, fallback (template, search UI,
+             human), and degrade path when retrieval or tools fail.
+          ```
+
+          **Hybrids are normal.** Fine-tune a small model to *route* or to emit structured plans;
+          use RAG for facts; use tools for live inventory. The tree picks the *dominant* risk: stale
+          knowledge, wrong tone, or unbounded actions.
+
+          **Failure design is architecture.** Timeouts, "insufficient evidence" refusals, human
+          queues for high-risk intents, and cached last-good answers belong on the diagram. An LLM
+          box with an arrow to the user is not a design.
+
+          **What papers buy you here.** Retrieval-augmented generation is the template for
+          evidence-conditioned answers. Tool-augmented reasoning loops show how to interleave thought
+          and action — and why observation quality matters. Neither paper says "use this everywhere."
+
+      - type: example
+        markdown: |
+          **Problem A — Policy assistant for 2,000 internal docs, updated daily.**
+          Tree: no side effects; attribution required → **RAG** with citation checks in eval.
+          Fine-tune rejected: policies churn faster than retrain. Agent rejected: no tools needed;
+          open loop only adds cost.
+
+          **Problem B — Normalize messy support tickets into a fixed JSON schema.**
+          Tree: no side effects; knowledge not the issue; format is → start with prompting + schema
+          scorer; if still failing after examples, **fine-tune/PEFT** on historical tickets.
+          RAG optional for rare policy references inside fields.
+
+          **Problem C — "Research this account and file a CRM note."**
+          Tree: side effects yes; order partly known → **workflow**: retrieve CRM → retrieve email
+          summary → draft note → **human confirm** → write tool. Not an open agent with `send_email`.
+
+          **Problem D — Same as C but explorative investigation across unknown systems.**
+          Constrained agent with allow-listed read tools, step budget, and write gated by confirm.
+          Ship only after trajectory evals beat the workflow on the hard tail *and* cost is acceptable.
+
+      - type: misconception
+        payload:
+          code: architecture.agents_subsume_rag
+          claim: "Agents replace RAG and fine-tuning; one loop does everything."
+          markdown: |
+            **The claim:** give a general agent tools for search and training-data upload and it
+            subsumes specialised architectures.
+
+            **Why it feels right:** demos collapse patterns into one chat; marketing uses "agent" as
+            a synonym for "product."
+
+            **What actually happens:** each tool call is a reliability and cost multiplier. Search
+            tools without a proper index and chunking policy reinvent a worse RAG stack. "Fine-tune
+            via tool" is not how production training works. You inherit every failure mode of agents
+            plus every failure mode of retrieval.
+
+            **How to catch yourself:** write the step list. If you can, you wanted a workflow. If
+            knowledge is the product, you wanted RAG with evals. Agents are for residual uncertainty
+            about *control flow*, not a default container.
+
+      - type: common_mistake
+        markdown: |
+          **Fine-tuning to teach facts that belong in a database.** You will retrain forever and
+          still lack citations.
+
+          **Open agents for form-shaped tasks.** Users fill forms faster than multi-step chats.
+
+          **Skipping fallback UX** when retrieval returns nothing — the model will still talk.
+
+      - type: exercise_set
+        payload:
+          checkedByPlatform: false
+          markdown: |
+            1. Pick a real product idea. Walk the decision tree; write the chosen pattern and the
+               rejected ones with reasons.
+            2. Redraw an "agent" demo you have seen as a fixed workflow. What did you lose?
+            3. For a RAG design, list evals for retrieval and for generation separately.
+            4. Specify fallback behaviour when tools fail or evidence is missing.
+            5. When would you combine RAG + fine-tune + one tool? Give a concrete example.
+
+      - type: quiz_set
+        payload:
+          selfCheck: true
+          items:
+            - question: "When is RAG the default over fine-tuning?"
+              answer: >-
+                When answers must track a changing corpus and/or cite evidence; fine-tuning does not
+                keep facts fresh by itself.
+            - question: "When should you prefer a fixed workflow over an agent loop?"
+              answer: >-
+                When the step order is known in advance — fewer model decisions means higher
+                reliability and lower cost.
+            - question: "What does preference tuning change in this tree?"
+              answer: >-
+                Instruction-following quality of the base interface; it does not replace retrieval
+                for grounding or tools for side effects.
+            - question: "Why is 'agents replace RAG' false?"
+              answer: >-
+                Open loops multiply failure modes and still need a real retrieval design; agents do
+                not remove the need for indexes, chunking, and retrieval eval.
+
+      - type: mastery_criteria
+        payload:
+          markdown: |
+            You have this when you can:
+
+            - Walk the decision tree on a new problem without defaulting to agents.
+            - Justify RAG vs fine-tune with freshness and citation requirements.
+            - Put evals, budgets, and fallbacks on the architecture diagram.
+            - Reduce an over-agentic design to a workflow when steps are known.
+    resources:
+      - source: rag-2020
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.9
+        excerpt: "Retrieval-conditioned generation as the template for evidence-grounded answers."
+      - source: react-2022
+        purpose: PRIMARY_REFERENCE
+        relevance: 0.85
+        excerpt: "Interleaved reasoning and acting — the pattern behind constrained tool loops."
+      - source: instructgpt-2022
+        purpose: RELATED_READING
+        relevance: 0.65
+        excerpt: "Instruction-following assistants change UX expectations; grounding remains separate."
+      - source: agent-survey-2023
+        purpose: DEEPER_REFERENCE
+        relevance: 0.6
+        excerpt: "Survey of agent components; useful for knowing when the extra machinery is justified."

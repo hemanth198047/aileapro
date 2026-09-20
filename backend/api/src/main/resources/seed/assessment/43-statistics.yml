@@ -1,0 +1,249 @@
+# Items for sampling-bias-and-selection and confidence-intervals-intuition.
+
+items:
+  - slug: stats-split-bias
+    unit: sampling-bias-and-selection
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      Why does a random train/test split not remove sampling bias?
+    choices:
+      - id: a
+        text: "Both halves inherit the same selection process relative to the population."
+        correct: true
+      - id: b
+        text: "Random splits are illegal for classification."
+      - id: c
+        text: "Test sets must always be larger than training sets."
+      - id: d
+        text: "Bias only exists if you use stratified sampling."
+        misconception: stats.random_split_fixes_bias
+    explanation: |
+      Randomisation within a biased sample yields two biased subsets that agree with each other
+      and can still disagree with production traffic.
+
+  - slug: stats-survivorship
+    unit: sampling-bias-and-selection
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      A model trains only on support tickets marked "resolved with tag". Abandoned chats are
+      never stored. What bias is this?
+    choices:
+      - id: a
+        text: "Survivorship — failures and dropouts are underrepresented."
+        correct: true
+      - id: b
+        text: "Overfitting due to too many features."
+      - id: c
+        text: "Underfitting due to linear models."
+      - id: d
+        text: "No bias — resolved tickets are the population of interest."
+    explanation: |
+      Only tickets that survived to tagged resolution enter the sample. Production includes
+      abandoned traffic the model never saw.
+
+  - slug: stats-population-frame
+    unit: sampling-bias-and-selection
+    type: true_false
+    bloom: understand
+    difficulty: 2
+    estimateSeconds: 60
+    stem: |
+      The sampling frame is the set of units you could have measured; the sample is the subset
+      you actually have.
+    choices:
+      - id: "true"
+        text: "True"
+        correct: true
+      - id: "false"
+        text: "False"
+    explanation: |
+      True. Population is what you care about at deployment; frame is what was reachable; sample
+      is what landed in the table.
+
+  - slug: stats-feedback-loop
+    unit: sampling-bias-and-selection
+    type: mcq
+    bloom: analyze
+    difficulty: 4
+    estimateSeconds: 120
+    stem: |
+      A recommender trains only on items that were shown and clicked under the previous ranking
+      policy. What goes wrong?
+    choices:
+      - id: a
+        text: "Unshown items never enter the sample, so learning is entangled with the old policy."
+        correct: true
+      - id: b
+        text: "Clicks are independent of ranking by definition."
+      - id: c
+        text: "This removes all selection bias automatically."
+      - id: d
+        text: "You only need a larger learning rate."
+    explanation: |
+      Feedback selection: the previous model decides what is observable. Offline metrics can look
+      great while exploring unseen items fails.
+
+  - slug: stats-ci-meaning
+    unit: confidence-intervals-intuition
+    type: mcq
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      What does "95%" mean in a classical 95% confidence interval?
+    choices:
+      - id: a
+        text: "About 95% of intervals from the procedure would cover the true parameter in repeated sampling."
+        correct: true
+      - id: b
+        text: "There is a 95% probability the true value lies in this specific interval."
+        misconception: stats.ci_is_probability_true_in_interval
+      - id: c
+        text: "95% of the training points fall inside the interval."
+      - id: d
+        text: "The model is 95% accurate."
+    explanation: |
+      Coverage is a property of the procedure across hypothetical repeats. After the data are
+      fixed, this interval either covers or not.
+
+  - slug: stats-ci-tf
+    unit: confidence-intervals-intuition
+    type: true_false
+    bloom: understand
+    difficulty: 3
+    estimateSeconds: 70
+    stem: |
+      After you compute a 95% CI from your validation set, it is correct to say there is a 95%
+      chance the true accuracy is inside that interval (classical frequentist reading).
+    choices:
+      - id: "true"
+        text: "True"
+        misconception: stats.ci_is_probability_true_in_interval
+      - id: "false"
+        text: "False"
+        correct: true
+    explanation: |
+      False under the classical reading. The probability statement applies to the method before
+      seeing the data, not to one realised interval as a posterior over the parameter.
+
+  - slug: stats-ci-n-scale
+    unit: confidence-intervals-intuition
+    type: mcq
+    bloom: apply
+    difficulty: 3
+    estimateSeconds: 90
+    stem: |
+      For many mean-like estimators, if sample size grows by a factor of 16, interval width
+      shrinks by about what factor (other things equal)?
+    choices:
+      - id: a
+        text: "4 (because width scales like 1/√n)"
+        correct: true
+      - id: b
+        text: "16"
+      - id: c
+        text: "2"
+      - id: d
+        text: "It does not depend on n"
+    explanation: |
+      Standard errors often scale as $1/\sqrt{n}$. $\sqrt{16} = 4$, so width shrinks about
+      fourfold.
+
+  - slug: stats-ci-small-n
+    unit: confidence-intervals-intuition
+    type: mcq
+    bloom: evaluate
+    difficulty: 3
+    estimateSeconds: 100
+    stem: |
+      Two models differ by 0.3% accuracy on 80 validation examples with wide overlapping
+      intervals. What is the most reasonable next step?
+    choices:
+      - id: a
+        text: "Gather a larger or paired evaluation before declaring a winner."
+        correct: true
+      - id: b
+        text: "Ship the higher point estimate immediately."
+      - id: c
+        text: "Drop the baseline because any positive gap is decisive."
+      - id: d
+        text: "Report training accuracy instead."
+    explanation: |
+      Tiny gaps on tiny $n$ are usually noise. Need more data, paired tests, or bootstrap of the
+      difference — not a celebration of the third decimal place.
+
+assessments:
+  - slug: sampling-bias-and-selection-practice
+    title: "Practice: sampling bias"
+    kind: practice
+    unit: sampling-bias-and-selection
+    items:
+      - stats-split-bias
+      - stats-survivorship
+      - stats-population-frame
+
+  - slug: sampling-bias-and-selection-quiz
+    title: "Quiz: sampling bias and selection"
+    kind: quiz
+    unit: sampling-bias-and-selection
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - stats-split-bias
+      - stats-survivorship
+      - stats-population-frame
+      - stats-feedback-loop
+
+  - slug: confidence-intervals-intuition-practice
+    title: "Practice: confidence intervals"
+    kind: practice
+    unit: confidence-intervals-intuition
+    items:
+      - stats-ci-meaning
+      - stats-ci-tf
+      - stats-ci-n-scale
+
+  - slug: confidence-intervals-intuition-quiz
+    title: "Quiz: confidence interval intuition"
+    kind: quiz
+    unit: confidence-intervals-intuition
+    passMark: 0.7
+    timeLimitSeconds: 720
+    items:
+      - stats-ci-meaning
+      - stats-ci-tf
+      - stats-ci-n-scale
+      - stats-ci-small-n
+
+cards:
+  - slug: card-stats-split
+    unit: sampling-bias-and-selection
+    front: "Does a random split fix sampling bias?"
+    back: |
+      No. It randomises within the sample you already have. Both halves can still miss the
+      population.
+
+  - slug: card-stats-survivorship
+    unit: sampling-bias-and-selection
+    front: "Survivorship bias in one line?"
+    back: |
+      You only observe units that made it into the log or label store — dropouts never train you.
+
+  - slug: card-stats-ci
+    unit: confidence-intervals-intuition
+    front: "What does 95% refer to in a CI?"
+    back: |
+      Long-run coverage of the procedure across repeated samples — not P(true value in this
+      interval) after seeing the data.
+
+  - slug: card-stats-width
+    unit: confidence-intervals-intuition
+    front: "How does CI width scale with n (roughly)?"
+    back: |
+      Like 1/√n for many mean estimators — 16× more data ≈ 4× narrower intervals.
